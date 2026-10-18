@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+@import "@Team-Trung-Vu-Khang/eco-shared-ui/index.css";
+
+@layer base {
+  .rich-text-content ul {
+    @apply list-disc list-inside;
+  }
+  .rich-text-content ol {
+    @apply list-decimal list-inside;
+  }
+  .rich-text-content a {
+    @apply text-blue-600 hover:underline;
+  }
+  .rich-text-content b, .rich-text-content strong {
+    @apply font-bold;
+  }
+  .rich-text-content i, .rich-text-content em {
+    @apply italic;
+  }
+  .rich-text-content p {
+    @apply mb-1;
+  }
+}
+
+/* eco-shared-ui dùng cú pháp Tailwind v3 `w-[--radix-popover-trigger-width]`,
+   Tailwind v4 không sinh ra class này → popover co giãn theo nội dung và tràn màn hình.
+   Định nghĩa lại để dropdown rộng bằng ô chọn, và không vượt quá vùng hiển thị. */
+.w-\[--radix-popover-trigger-width\] {
+  width: var(--radix-popover-trigger-width);
+}
+[data-radix-popper-content-wrapper] > * {
+  max-width: var(--radix-popper-available-width, 100vw);
+}
+
+/* Factory search landing (mobile app) */
+@keyframes fsl-sheet-in {
+  from { transform: translateY(32px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fsl-kenburns {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+.fsl-sheet { animation: fsl-sheet-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both; }
+.fsl-kenburns { animation: fsl-kenburns 1.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fsl-sheet, .fsl-kenburns { animation: none; }
+}
+.fsl-landscape { animation: fsl-sheet-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .fsl-landscape { animation: none; }
+}
+@keyframes fsl-card-in {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fsl-card-in { animation: fsl-card-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fsl-card-in { animation: none; }
+}
+/* Dialog shown as a bottom sheet on the mobile app */
+@keyframes fsl-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.fsl-bottom-sheet[data-state="open"] { animation: fsl-sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fsl-bottom-sheet[data-state="open"] { animation: none; }
+}
+
+/* ── Mobile app: every centered dialog becomes a bottom sheet ──────────────
+   Targets eco-shared-ui DialogContent / AlertDialogContent (the only overlays
+   centered with translate-y-[-50%]); popovers & selects are untouched.
+   Opt out with .fsl-no-sheet (image lightbox) or .fsl-bottom-sheet (custom sheet). */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet) {
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  /* Tailwind v4 centers with `translate`; leave `transform` free for the slide keyframes */
+  translate: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0 !important;
+  border-radius: 1.75rem 1.75rem 0 0 !important;
+  background: #f7f5ee !important;
+  padding: 1.9rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom)) !important;
+  box-shadow: 0 -12px 40px rgba(15, 40, 25, 0.18) !important;
+  animation: fsl-sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+/* Drag handle */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)::before {
+  content: "";
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  width: 2.5rem;
+  height: 0.375rem;
+  margin-left: -1.25rem;
+  border-radius: 9999px;
+  background: rgb(203 213 225);
+}
+/* Title in the app's dark green */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet) :is(h2) {
+  color: #0f3d22;
+  font-weight: 800;
+}
+/* Detail blocks (e.g. request summary) as white cards on the cream sheet */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet) :is(dl, .bg-slate-50) {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(20, 83, 45, 0.04), inset 0 0 0 1px rgba(20, 83, 45, 0.06);
+}
+/* Footer actions: large, rounded, full width (stacked: primary on top) */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet)
+  [class*="flex-col-reverse"] {
+  gap: 0.6rem;
+}
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet)
+  [class*="flex-col-reverse"] > button {
+  width: 100%;
+  height: 3.25rem;
+  margin: 0 !important;
+  border-radius: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+/* Close: slide back down (Radix waits for the animation before unmounting) */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)[data-state="closed"] {
+  animation: fsl-sheet-down 0.25s ease-in both !important;
+}
+/* Content eases in just after the sheet */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)[data-state="open"] > :not(button) {
+  animation: fsl-card-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)[data-state="open"] > :nth-child(2) { animation-delay: 0.08s; }
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)[data-state="open"] > :nth-child(3) { animation-delay: 0.14s; }
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet)[data-state="open"] > :nth-child(n + 4) { animation-delay: 0.2s; }
+/* Touch screens: no focus ring from Radix's auto-focus; press feedback instead */
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet) button:focus:not(:focus-visible),
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet) button:focus {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+}
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet) [class*="flex-col-reverse"] > button {
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+html[data-mobile-app]
+  :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"]:not(.fsl-no-sheet):not(.fsl-bottom-sheet) [class*="flex-col-reverse"] > button:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+@keyframes fsl-sheet-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+/* Softer backdrop */
+html[data-mobile-app] .fixed.inset-0.z-50[class*="bg-black/80"] {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(2px);
+}
+html[data-mobile-app] .fixed.inset-0.z-50[class*="bg-black/80"][data-state="open"] {
+  animation: fsl-fade-in 0.3s ease-out both !important;
+}
+html[data-mobile-app] .fixed.inset-0.z-50[class*="bg-black/80"][data-state="closed"] {
+  animation: fsl-fade-out 0.25s ease-in both !important;
+}
+@keyframes fsl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fsl-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-mobile-app] :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"],
+  html[data-mobile-app] :is([role="dialog"], [role="alertdialog"])[class*="translate-y-[-50%]"] > *,
+  html[data-mobile-app] .fixed.inset-0.z-50[class*="bg-black/80"] {
+    animation: none !important;
+  }
+}
+
+/* eco-shared-ui bug: the destructive Button variant ships `border-primary-border`
+   (green) → every red button got a green outline. Match the border to the fill. */
+/* !important: eco-shared-ui's CSS loads after ours and would win otherwise */
+.bg-destructive.border-primary-border,
+[class*="bg-destructive"][class*="border-primary-border"] {
+  border-color: transparent !important;
+}

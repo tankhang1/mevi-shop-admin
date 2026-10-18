@@ -1,0 +1,47 @@
+{
+  "name": "eco-factory-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@Team-Trung-Vu-Khang/eco-shared-ui": "^0.0.23",
+    "@hookform/resolvers": "^5.9.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.103.2",
+    "axios": "^1.20.0",
+    "dayjs": "^1.11.23",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.48.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.88.0",
+    "react-leaflet": "^5.0.0",
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.3",
+    "wouter": "^3.11.0",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tanstack/react-query-devtools": "^5.103.2",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}
