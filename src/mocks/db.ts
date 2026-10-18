@@ -1,5 +1,5 @@
 import type { Agency } from "@/features/agency/types";
-import type { Order } from "@/features/order/types";
+import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
 import { daysAgo } from "./utils";
 
@@ -31,3 +31,41 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } = 
     { id: "a3", name: "Đặc sản Tây Bắc", slug: "dac-san-tay-bac", brandColor: "#1d4ed8", contactName: "Lò Văn Sơn", phone: "0909555666", active: false, createdAt: daysAgo(25) },
   ],
 };
+
+// ── Generated order history (deterministic) so the dashboard has trends to show ──
+let seed = 42;
+const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
+
+const NAMES = ["Nguyễn Minh Anh", "Trần Quốc Bảo", "Lê Thị Cúc", "Phạm Gia Huy", "Võ Ngọc Lan", "Đỗ Văn Khoa", "Huỳnh Mai", "Ngô Thanh Tùng", "Bùi Hải Yến", "Dương Đức Phúc"];
+const CITIES = ["Q.3, TP.HCM", "Cầu Giấy, Hà Nội", "Ninh Kiều, Cần Thơ", "Hải Châu, Đà Nẵng", "TP. Đà Lạt", "TP. Vinh", "Thủ Đức, TP.HCM", "TP. Buôn Ma Thuột"];
+const sellable = db.products.filter((p) => p.status === "approved");
+
+/** Older orders are mostly finished; recent ones are still in the pipeline */
+function statusFor(age: number): OrderStatus {
+  const r = rand();
+  if (r < 0.08) return "cancelled";
+  if (age > 6) return "completed";
+  if (age > 3) return r < 0.5 ? "completed" : "shipped";
+  return pick<OrderStatus>(["new", "confirmed", "processing", "shipped"]);
+}
+
+for (let i = 0; i < 140; i++) {
+  // Skew towards recent days and a gentle upward trend
+  const age = Math.floor(Math.pow(rand(), 1.3) * 120) + 1;
+  const items = Array.from({ length: 1 + Math.floor(rand() * 3) }, () => {
+    const p = pick(sellable);
+    return { productId: p.id, name: p.name, quantity: 1 + Math.floor(rand() * 4), price: p.salePrice ?? p.price };
+  });
+  db.orders.push({
+    id: `og${i}`,
+    code: `MV-${2000 + i}`,
+    recipientName: pick(NAMES),
+    recipientPhone: `09${Math.floor(10_000_000 + rand() * 89_999_999)}`,
+    address: `${1 + Math.floor(rand() * 200)} Đường số ${1 + Math.floor(rand() * 30)}, ${pick(CITIES)}`,
+    total: items.reduce((s, it) => s + it.quantity * it.price, 0),
+    items,
+    status: statusFor(age),
+    createdAt: new Date(Date.now() - age * 86_400_000 - rand() * 86_400_000 * 0.9).toISOString(),
+  });
+}

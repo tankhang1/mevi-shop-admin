@@ -1,69 +1,120 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { ClipboardCheck, Package, ShoppingCart, Wallet } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  DataTable,
-} from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { Ban, Receipt, ShoppingCart, Wallet } from "lucide-react";
+import { DataTable, Tabs, TabsList, TabsTrigger } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { useDashboardSummary } from "@/features/dashboard";
-import { formatVnd } from "@/lib/format";
+import { type DashboardRange, useDashboardSummary } from "@/features/dashboard";
+import { ORDER_STATUS } from "@/features/order";
 import { orderColumns } from "@/features/order/components/order-columns";
-import { LoadingBlock } from "@/components/common/ui-bits";
+import { formatCompactVnd, formatPercent, formatVnd } from "@/lib/format";
+import { BarList } from "./components/BarList";
+import { KpiCard } from "./components/KpiCard";
+import { SnapshotStrip } from "./components/SnapshotStrip";
+import { TopProducts } from "./components/TopProducts";
+import { TrendChart } from "./components/TrendChart";
+
+const RANGES: { value: DashboardRange; label: string }[] = [
+  { value: 7, label: "7 ngày" },
+  { value: 30, label: "30 ngày" },
+  { value: 90, label: "90 ngày" },
+];
 
 export default function DashboardPage() {
-  const { data, isLoading } = useDashboardSummary();
+  const [range, setRange] = useState<DashboardRange>(30);
+  const { data, isLoading, isFetching } = useDashboardSummary(range);
   if (isLoading || !data) return <LoadingBlock />;
 
-  const stats = [
-    { label: "Sản phẩm", value: data.productCount, icon: Package, href: ROUTES.products },
-    { label: "Chờ duyệt", value: data.pendingCount, icon: ClipboardCheck, href: ROUTES.productApproval },
-    { label: "Đơn hàng", value: data.orderCount, sub: `${data.newOrderCount} đơn mới`, icon: ShoppingCart, href: ROUTES.orders },
-    { label: "Doanh thu", value: formatVnd(data.revenue), sub: "Đơn hoàn tất", icon: Wallet, href: ROUTES.orders },
-  ];
+  const rangeLabel = RANGES.find((r) => r.value === range)!.label;
+  const totalOrders = data.ordersByStatus.reduce((s, x) => s + x.count, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href}>
-            <Card className="h-full transition-shadow hover:shadow-md">
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#214c3a]/10 text-[#214c3a]">
-                  <s.icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">{s.label}</p>
-                  <p className="truncate text-2xl font-bold">{s.value}</p>
-                  {s.sub && <p className="text-xs text-muted-foreground">{s.sub}</p>}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+    <div className={isFetching ? "space-y-5 opacity-70 transition-opacity" : "space-y-5 transition-opacity"}>
+      {/* Filters live in one row above everything they control */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Số liệu {rangeLabel} gần nhất · doanh thu tính trên đơn hoàn tất
+        </p>
+        <Tabs value={String(range)} onValueChange={(v) => setRange(Number(v) as DashboardRange)}>
+          <TabsList>
+            {RANGES.map((r) => (
+              <TabsTrigger key={r.value} value={String(r.value)}>
+                {r.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Đơn hàng gần đây</CardTitle>
-          <Link href={ROUTES.orders} className="text-sm text-primary hover:underline">
+      <SnapshotStrip snapshot={data.snapshot} />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Doanh thu" metric={data.kpis.revenue} format={formatVnd} icon={Wallet} rangeLabel={rangeLabel} />
+        <KpiCard label="Đơn hàng" metric={data.kpis.orders} format={String} icon={ShoppingCart} rangeLabel={rangeLabel} />
+        <KpiCard
+          label="Giá trị đơn trung bình"
+          metric={data.kpis.avgOrderValue}
+          format={formatCompactVnd}
+          icon={Receipt}
+          rangeLabel={rangeLabel}
+        />
+        <KpiCard
+          label="Tỷ lệ huỷ"
+          metric={data.kpis.cancelRate}
+          format={(n) => formatPercent(n)}
+          icon={Ban}
+          inverse
+          rangeLabel={rangeLabel}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <TrendChart trend={data.trend} />
+        </div>
+        <BarList
+          title="Đơn theo trạng thái"
+          subtitle={`${totalOrders} đơn trong ${rangeLabel}`}
+          items={data.ordersByStatus.map((s) => ({
+            key: s.status,
+            label: <StatusPill {...ORDER_STATUS[s.status]} />,
+            value: s.count,
+            display: `${s.count} · ${totalOrders ? formatPercent(s.count / totalOrders, 0) : "0%"}`,
+          }))}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TopProducts items={data.topProducts} />
+        <BarList
+          title="Doanh thu theo danh mục"
+          subtitle="Đơn hoàn tất"
+          items={data.categoryRevenue.map((c) => ({
+            key: c.category,
+            label: c.category,
+            value: c.revenue,
+            display: formatCompactVnd(c.revenue),
+          }))}
+        />
+      </div>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Đơn hàng gần đây</h2>
+          <Link href={ROUTES.orders} className="text-sm font-medium text-primary hover:underline">
             Xem tất cả
           </Link>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={orderColumns.filter((c) => c.key !== "address")}
-            data={data.recentOrders}
-            pageSize={5}
-            searchable={false}
-            columnToggleable={false}
-            downloadable={false}
-            enableMobileCard
-          />
-        </CardContent>
-      </Card>
+        </div>
+        <DataTable
+          columns={orderColumns.filter((c) => c.key !== "address")}
+          data={data.recentOrders}
+          pageSize={6}
+          searchable={false}
+          columnToggleable={false}
+          downloadable={false}
+          enableMobileCard
+        />
+      </section>
     </div>
   );
 }
