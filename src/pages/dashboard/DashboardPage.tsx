@@ -5,18 +5,13 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  DataTable,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ROUTES } from "@/config/routes";
 import { useDashboardSummary } from "@/features/dashboard";
-import { ORDER_STATUS } from "@/features/order";
-import { formatDate, formatVnd } from "@/lib/format";
-import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
+import { formatVnd } from "@/lib/format";
+import { orderColumns } from "@/features/order/components/order-columns";
+import { LoadingBlock } from "@/components/common/ui-bits";
 
 export default function DashboardPage() {
   const { data, isLoading } = useDashboardSummary();
@@ -57,35 +52,16 @@ export default function DashboardPage() {
             Xem tất cả
           </Link>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {data.recentOrders.length === 0 ? (
-            <EmptyBlock>Chưa có đơn hàng</EmptyBlock>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã đơn</TableHead>
-                  <TableHead>Người nhận</TableHead>
-                  <TableHead>Ngày đặt</TableHead>
-                  <TableHead className="text-right">Tổng tiền</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.recentOrders.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-medium">{o.code}</TableCell>
-                    <TableCell>{o.recipientName}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatDate(o.createdAt)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">{formatVnd(o.total)}</TableCell>
-                    <TableCell>
-                      <StatusPill {...ORDER_STATUS[o.status]} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+        <CardContent>
+          <DataTable
+            columns={orderColumns.filter((c) => c.key !== "address")}
+            data={data.recentOrders}
+            pageSize={5}
+            searchable={false}
+            columnToggleable={false}
+            downloadable={false}
+            enableMobileCard
+          />
         </CardContent>
       </Card>
     </div>

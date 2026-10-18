@@ -16,7 +16,8 @@ export const productHandlers: MockHandler[] = [
     method: "GET",
     path: BASE,
     handle: ({ query }) => {
-      const rows = query.status && query.status !== "all" ? db.products.filter((p) => p.status === query.status) : db.products;
+      const is = (actual: string, wanted: unknown) => !wanted || wanted === "all" || wanted === actual;
+      const rows = db.products.filter((p) => is(p.status, query.status) && is(p.category, query.category));
       return { data: paginate(rows, query, (p) => `${p.name} ${p.sku}`) };
     },
   },

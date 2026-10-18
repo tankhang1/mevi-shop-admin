@@ -24,6 +24,7 @@ export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "
 
 export interface ProductListParams extends ListParams {
   status?: "all" | ProductStatus;
+  category?: string;
 }
 
 export interface ModerateProductInput {

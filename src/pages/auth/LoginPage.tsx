@@ -8,7 +8,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardContent className="p-6">
           <h1 className="text-2xl font-bold">
-            Eco <span className="font-normal text-muted-foreground">Shop</span>
+            Trạm xanh <span className="text-[#214c3a]">MEVI</span>
           </h1>
           <p className="mb-6 mt-1 text-sm text-muted-foreground">Đăng nhập trang quản trị cửa hàng</p>
           <Button type="button" className="h-11 w-full" onClick={() => authApi.startLogin()}>
