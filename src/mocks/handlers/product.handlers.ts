@@ -5,15 +5,37 @@ import type {
   ProductInput,
 } from "@/features/product/types";
 import { db } from "../db";
+import { actor, assertOwns, requireRoot, scoped } from "../scope";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const BASE = API_ENDPOINTS.admin.products.base;
 
-const findProduct = (id: string) => {
-  const p = db.products.find((x) => x.id === id);
-  if (!p) throw new HttpError(404, "Không tìm thấy sản phẩm");
-  return p;
-};
+const withShop = (p: Product): Product => ({
+  ...p,
+  shopName: db.shops.find((s) => s.id === p.shopId)?.name,
+});
+const findOwned = (id: string) =>
+  assertOwns(db.products.find((x) => x.id === id), "Không tìm thấy sản phẩm");
+
+/** SKU is unique per shop */
+function assertSkuFree(shopId: string, sku: string, exceptId?: string) {
+  if (
+    db.products.some(
+      (p) => p.shopId === shopId && p.sku === sku && p.id !== exceptId,
+    )
+  ) {
+    throw new HttpError(409, "SKU đã tồn tại trong gian hàng");
+  }
+}
+
+/** Shop admins always write into their own shop; root must name an existing shop */
+function resolveShopId(requested: string | undefined) {
+  const a = actor();
+  if (a.shopId) return a.shopId;
+  if (!requested || !db.shops.some((s) => s.id === requested))
+    throw new HttpError(400, "Vui lòng chọn gian hàng");
+  return requested;
+}
 
 export const productHandlers: MockHandler[] = [
   {
@@ -22,21 +44,27 @@ export const productHandlers: MockHandler[] = [
     handle: ({ query }) => {
       const is = (actual: string, wanted: unknown) =>
         !wanted || wanted === "all" || wanted === actual;
-      const rows = db.products.filter(
+      const rows = scoped(db.products, query.shopId).filter(
         (p) => is(p.status, query.status) && is(p.category, query.category),
       );
-      return { data: paginate(rows, query, (p) => `${p.name} ${p.sku}`) };
+      return {
+        data: paginate(
+          rows.map(withShop),
+          query,
+          (p) => `${p.name} ${p.sku} ${p.shopName ?? ""}`,
+        ),
+      };
     },
   },
   {
     method: "GET",
     path: `${BASE}/stats`,
     handle: () => {
-      const count = (s: string) =>
-        db.products.filter((p) => p.status === s).length;
+      const rows = scoped(db.products);
+      const count = (s: string) => rows.filter((p) => p.status === s).length;
       return {
         data: {
-          total: db.products.length,
+          total: rows.length,
           approved: count("approved"),
           pending: count("pending"),
           rejected: count("rejected"),
@@ -47,22 +75,23 @@ export const productHandlers: MockHandler[] = [
   {
     method: "GET",
     path: `${BASE}/:id`,
-    handle: ({ params }) => ({ data: findProduct(params.id) }),
+    handle: ({ params }) => ({ data: withShop(findOwned(params.id)) }),
   },
   {
     method: "POST",
     path: BASE,
     handle: ({ body }: { body: ProductInput }) => {
-      if (db.products.some((p) => p.sku === body.sku))
-        throw new HttpError(409, "SKU đã tồn tại");
+      const shopId = resolveShopId(body.shopId);
+      assertSkuFree(shopId, body.sku);
       const product: Product = {
         ...body,
+        shopId,
         id: uid("p"),
         status: "pending",
         createdAt: new Date().toISOString(),
       };
       db.products.unshift(product);
-      return { data: product, message: "Đã tạo sản phẩm" };
+      return { data: withShop(product), message: "Đã tạo sản phẩm" };
     },
   },
   {
@@ -75,19 +104,25 @@ export const productHandlers: MockHandler[] = [
       params: Record<string, string>;
       body: ProductInput;
     }) => {
-      const p = findProduct(params.id);
-      if (db.products.some((x) => x.sku === body.sku && x.id !== p.id))
-        throw new HttpError(409, "SKU đã tồn tại");
+      const p = findOwned(params.id);
+      // Moving a product to another shop is a root-only operation
+      const shopId =
+        actor().isRoot && body.shopId ? resolveShopId(body.shopId) : p.shopId;
+      assertSkuFree(shopId, body.sku, p.id);
       // Any edit sends the product back for moderation
-      Object.assign(p, body, { status: "pending", rejectionReason: null });
-      return { data: p };
+      Object.assign(p, body, {
+        shopId,
+        status: "pending",
+        rejectionReason: null,
+      });
+      return { data: withShop(p) };
     },
   },
   {
     method: "DELETE",
     path: `${BASE}/:id`,
     handle: ({ params }) => {
-      findProduct(params.id);
+      findOwned(params.id);
       db.products = db.products.filter((p) => p.id !== params.id);
       return { data: null };
     },
@@ -102,14 +137,15 @@ export const productHandlers: MockHandler[] = [
       params: Record<string, string>;
       body: ModerateProductInput;
     }) => {
-      const p = findProduct(params.id);
+      requireRoot();
+      const p = findOwned(params.id);
       if (body.status === "rejected" && !body.rejectionReason?.trim()) {
         throw new HttpError(400, "Vui lòng nhập lý do từ chối");
       }
       p.status = body.status;
       p.rejectionReason =
         body.status === "rejected" ? body.rejectionReason : null;
-      return { data: p };
+      return { data: withShop(p) };
     },
   },
 ];

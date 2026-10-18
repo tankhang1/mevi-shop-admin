@@ -111,6 +111,7 @@ export function ApprovalGrid({ page, loading, keyword, category, onSearch, onCat
                     <Eye className="h-3.5 w-3.5" /> Chi tiết
                   </Button>
                 </div>
+                {p.shopName && <p className="text-xs font-medium text-primary">{p.shopName}</p>}
                 <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
                   <span className="font-mono">{p.sku}</span>
                   <span>Gửi {formatDate(p.createdAt)}</span>

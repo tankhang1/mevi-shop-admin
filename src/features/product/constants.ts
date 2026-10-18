@@ -8,6 +8,8 @@ export const PRODUCT_STATUS: Record<ProductStatus, { label: string; className: s
 
 export const PRODUCT_CATEGORIES = ["Gạo", "Cà phê", "Trà", "Mật ong", "Gia vị", "Hạt", "Trái cây sấy", "Khác"];
 
+export const PRODUCT_CERTIFICATIONS = ["VietGAP", "GlobalGAP", "Hữu cơ", "OCOP 3 sao", "OCOP 4 sao", "OCOP 5 sao", "HACCP", "ISO 22000"];
+
 export const PRODUCT_IMAGE = {
   maxSize: 8 * 1024 * 1024,
   types: ["image/jpeg", "image/png", "image/webp"],

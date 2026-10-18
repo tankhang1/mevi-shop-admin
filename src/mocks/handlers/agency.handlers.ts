@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import type { Agency, AgencyInput } from "@/features/agency/types";
 import { db } from "../db";
+import { requireRoot } from "../scope";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const BASE = API_ENDPOINTS.admin.agencies.base;
@@ -9,7 +10,7 @@ export const agencyHandlers: MockHandler[] = [
   {
     method: "GET",
     path: BASE,
-    handle: ({ query }) => ({
+    handle: ({ query }) => (requireRoot(), {
       data: paginate(db.agencies, query, (a) => `${a.name} ${a.slug}`),
     }),
   },
@@ -17,6 +18,7 @@ export const agencyHandlers: MockHandler[] = [
     method: "POST",
     path: BASE,
     handle: ({ body }: { body: AgencyInput }) => {
+      requireRoot();
       if (db.agencies.some((a) => a.slug === body.slug))
         throw new HttpError(409, "Slug đã tồn tại");
       const agency: Agency = {
@@ -33,6 +35,7 @@ export const agencyHandlers: MockHandler[] = [
     method: "GET",
     path: `${BASE}/:id`,
     handle: ({ params }) => {
+      requireRoot();
       const a = db.agencies.find((x) => x.id === params.id);
       if (!a) throw new HttpError(404, "Không tìm thấy đại lý");
       return { data: a };
@@ -48,6 +51,7 @@ export const agencyHandlers: MockHandler[] = [
       params: Record<string, string>;
       body: Partial<Agency>;
     }) => {
+      requireRoot();
       const a = db.agencies.find((x) => x.id === params.id);
       if (!a) throw new HttpError(404, "Không tìm thấy đại lý");
       if (
@@ -64,6 +68,7 @@ export const agencyHandlers: MockHandler[] = [
     method: "DELETE",
     path: `${BASE}/:id`,
     handle: ({ params }) => {
+      requireRoot();
       const i = db.agencies.findIndex((x) => x.id === params.id);
       if (i < 0) throw new HttpError(404, "Không tìm thấy đại lý");
       db.agencies.splice(i, 1);

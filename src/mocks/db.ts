@@ -1,16 +1,100 @@
 import type { Agency } from "@/features/agency/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
+import type { Review } from "@/features/review/types";
+import type { Shop } from "@/features/shop/types";
 import { daysAgo } from "./utils";
 
 /** In-memory dummy data (resets on reload) — mutated by ./handlers */
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/400/400`;
 
-export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
-  {
+export const db: {
+  products: Product[];
+  orders: Order[];
+  agencies: Agency[];
+  shops: Shop[];
+  reviews: Review[];
+} = {
+    shops: [
+      {
+        id: "s1",
+        slug: "dac-san-mien-tay",
+        name: "Đặc sản Miền Tây",
+        tagline: "Gạo thơm, trái cây sấy quê nhà",
+        description:
+          "Mang hương vị đồng bằng sông Cửu Long đến mọi gian bếp: gạo ST25 chính gốc Sóc Trăng và trái cây sấy giòn không đường hóa học.",
+        location: "Sóc Trăng",
+        logoUrl: img("mientay-logo"),
+        coverUrl: "https://picsum.photos/seed/mientay-cover/1600/500",
+        brandColor: "#b45309",
+        contactName: "Lê Chủ Shop",
+        phone: "0909000003",
+        email: "shop@mevi.vn",
+        address: "12 Hùng Vương, P.6, TP. Sóc Trăng",
+        verified: false,
+        active: true,
+        followers: 6120,
+        responseRate: 92,
+        productCount: 0,
+        rating: 0,
+        reviewCount: 0,
+        joinedAt: "2022-03-14T00:00:00.000Z",
+      },
+      {
+        id: "s2",
+        slug: "ca-phe-tay-nguyen",
+        name: "Cà phê Tây Nguyên",
+        tagline: "Rang mộc từ đất đỏ bazan",
+        description:
+          "Xưởng rang thủ công tại Buôn Ma Thuột, chỉ dùng hạt chín 100% từ các nông hộ quen. Ngoài cà phê, chúng tôi bán thêm hạt dinh dưỡng đúng vụ.",
+        location: "Buôn Ma Thuột, Đắk Lắk",
+        logoUrl: img("taynguyen-logo"),
+        coverUrl: "https://picsum.photos/seed/taynguyen-cover/1600/500",
+        brandColor: "#7c2d12",
+        contactName: "Y Bhin Niê",
+        phone: "0905111222",
+        email: "taynguyen@mevi.vn",
+        address: "45 Lê Duẩn, TP. Buôn Ma Thuột",
+        verified: true,
+        active: true,
+        followers: 9310,
+        responseRate: 95,
+        productCount: 0,
+        rating: 0,
+        reviewCount: 0,
+        joinedAt: "2020-08-02T00:00:00.000Z",
+      },
+      {
+        id: "s3",
+        slug: "tra-gia-vi-viet",
+        name: "Trà & Gia vị Việt",
+        tagline: "Hương vị Việt trong từng gói",
+        description:
+          "Tuyển chọn trà Thái Nguyên, Shan tuyết Hà Giang và các loại gia vị đặc sản như tiêu Phú Quốc, muối tôm Tây Ninh.",
+        location: "Thái Nguyên",
+        logoUrl: img("traviet-logo"),
+        coverUrl: "https://picsum.photos/seed/traviet-cover/1600/500",
+        brandColor: "#15803d",
+        contactName: "Hoàng Thu Trà",
+        phone: "0912333444",
+        email: "traviet@mevi.vn",
+        address: "8 Hoàng Văn Thụ, TP. Thái Nguyên",
+        verified: false,
+        active: true,
+        followers: 5230,
+        responseRate: 94,
+        productCount: 0,
+        rating: 0,
+        reviewCount: 0,
+        joinedAt: "2021-11-20T00:00:00.000Z",
+      },
+    ],
+    reviews: [],
     products: [
       {
         id: "p1",
+        shopId: "s1",
+        certifications: ["VietGAP", "Hữu cơ"],
         name: "Gạo ST25 hữu cơ",
         sku: "GAO-ST25-5KG",
         category: "Gạo",
@@ -27,6 +111,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p2",
+        shopId: "s2",
+        certifications: ["OCOP 4 sao"],
         name: "Cà phê Robusta rang mộc",
         sku: "CF-ROB-500",
         category: "Cà phê",
@@ -40,6 +126,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p3",
+        shopId: "s3",
+        certifications: [],
         name: "Mật ong hoa nhãn",
         sku: "MO-NHAN-1L",
         category: "Mật ong",
@@ -52,6 +140,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p4",
+        shopId: "s3",
+        certifications: ["Hữu cơ", "OCOP 5 sao"],
         name: "Trà Shan tuyết cổ thụ",
         sku: "TRA-SHAN-200",
         category: "Trà",
@@ -65,6 +155,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p5",
+        shopId: "s3",
+        certifications: [],
         name: "Tiêu đen Phú Quốc",
         sku: "TIEU-PQ-250",
         category: "Gia vị",
@@ -78,6 +170,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p6",
+        shopId: "s2",
+        certifications: ["HACCP"],
         name: "Hạt điều rang muối",
         sku: "DIEU-RM-500",
         category: "Hạt",
@@ -90,6 +184,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p7",
+        shopId: "s1",
+        certifications: [],
         name: "Xoài sấy dẻo Cam Lâm",
         sku: "XOAI-SAY-250",
         category: "Trái cây sấy",
@@ -102,6 +198,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p8",
+        shopId: "s3",
+        certifications: [],
         name: "Trà ô long Lâm Đồng",
         sku: "TRA-OL-100",
         category: "Trà",
@@ -114,6 +212,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p9",
+        shopId: "s1",
+        certifications: ["Hữu cơ"],
         name: "Gạo lứt đỏ hữu cơ",
         sku: "GAO-LUT-2KG",
         category: "Gạo",
@@ -127,6 +227,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p10",
+        shopId: "s2",
+        certifications: [],
         name: "Mắc ca nứt vỏ",
         sku: "MACCA-500",
         category: "Hạt",
@@ -139,6 +241,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p11",
+        shopId: "s2",
+        certifications: ["VietGAP"],
         name: "Cà phê Arabica Cầu Đất",
         sku: "CF-ARA-250",
         category: "Cà phê",
@@ -151,6 +255,8 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       },
       {
         id: "p12",
+        shopId: "s3",
+        certifications: [],
         name: "Muối tôm Tây Ninh",
         sku: "MUOI-TOM-200",
         category: "Gia vị",
@@ -166,6 +272,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o1",
         code: "MV-1001",
+        shopId: "s1",
         recipientName: "Nguyễn Văn An",
         recipientPhone: "0901234567",
         address: "12 Lê Lợi, Q.1, TP.HCM",
@@ -176,6 +283,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o2",
         code: "MV-1002",
+        shopId: "s2",
         recipientName: "Trần Thị Bình",
         recipientPhone: "0912345678",
         address: "45 Kim Mã, Ba Đình, Hà Nội",
@@ -186,6 +294,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o3",
         code: "MV-1003",
+        shopId: "s3",
         recipientName: "Lê Hoàng Cường",
         recipientPhone: "0987654321",
         address: "8 Trần Phú, Hải Châu, Đà Nẵng",
@@ -196,6 +305,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o4",
         code: "MV-1004",
+        shopId: "s1",
         recipientName: "Phạm Minh Dũng",
         recipientPhone: "0934567890",
         address: "102 Nguyễn Huệ, TP. Huế",
@@ -206,6 +316,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o5",
         code: "MV-1005",
+        shopId: "s2",
         recipientName: "Võ Thị Em",
         recipientPhone: "0945678901",
         address: "77 Hùng Vương, Cần Thơ",
@@ -216,6 +327,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o6",
         code: "MV-1006",
+        shopId: "s3",
         recipientName: "Đặng Quốc Phong",
         recipientPhone: "0956789012",
         address: "5 Lý Thường Kiệt, Hải Phòng",
@@ -226,6 +338,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o7",
         code: "MV-1007",
+        shopId: "s1",
         recipientName: "Bùi Thu Giang",
         recipientPhone: "0967890123",
         address: "30 Phan Chu Trinh, Nha Trang",
@@ -236,6 +349,7 @@ export const db: { products: Product[]; orders: Order[]; agencies: Agency[] } =
       {
         id: "o8",
         code: "MV-1008",
+        shopId: "s2",
         recipientName: "Hồ Thanh Hà",
         recipientPhone: "0978901234",
         address: "18 Điện Biên Phủ, Bình Thạnh, TP.HCM",
@@ -321,8 +435,11 @@ function statusFor(age: number): OrderStatus {
 for (let i = 0; i < 140; i++) {
   // Skew towards recent days and a gentle upward trend
   const age = Math.floor(Math.pow(rand(), 1.3) * 120) + 1;
-  const items = Array.from({ length: 1 + Math.floor(rand() * 3) }, () => {
-    const p = pick(sellable);
+  // One order = one seller: pick a shop via its first product, then fill from that shop
+  const first = pick(sellable);
+  const shopProducts = sellable.filter((p) => p.shopId === first.shopId);
+  const items = Array.from({ length: 1 + Math.floor(rand() * 3) }, (_, k) => {
+    const p = k === 0 ? first : pick(shopProducts);
     return {
       productId: p.id,
       name: p.name,
@@ -338,6 +455,7 @@ for (let i = 0; i < 140; i++) {
     address: `${1 + Math.floor(rand() * 200)} Đường số ${1 + Math.floor(rand() * 30)}, ${pick(CITIES)}`,
     total: items.reduce((s, it) => s + it.quantity * it.price, 0),
     items,
+    shopId: first.shopId,
     status: statusFor(age),
     // Every other order came through an agency referral link
     agencyId: (["a1", "a2", "a3", undefined, undefined] as const)[i % 5],
@@ -346,3 +464,48 @@ for (let i = 0; i < 140; i++) {
     ).toISOString(),
   });
 }
+
+// ── Generated reviews (deterministic), wording from mevi-shop's reviews model ──
+const AUTHORS = ["Nguyễn Thu Hà", "Trần Minh Khoa", "Lê Bảo Ngọc", "Phạm Gia Huy", "Võ Thị Mai", "Đỗ Quang Vinh", "Huỳnh Anh Thư", "Bùi Đức Long", "Ngô Phương Linh", "Đặng Hữu Tài"];
+const PRAISE = [
+  { content: "Hàng tươi, đóng gói cẩn thận, giao nhanh hơn mình nghĩ. Sẽ ủng hộ shop dài dài.", tags: ["Giao nhanh", "Đóng gói kỹ"] },
+  { content: "Chất lượng đúng như mô tả, có ghi rõ vùng trồng nên mua rất yên tâm.", tags: ["Đúng mô tả", "Rõ nguồn gốc"] },
+  { content: "Lần thứ ba mua rồi, chất lượng vẫn ổn định. Cả nhà đều thích.", tags: ["Mua lại", "Chất lượng ổn định"] },
+  { content: "Giá hợp lý so với chất lượng. Shop tư vấn nhiệt tình qua điện thoại.", tags: ["Giá tốt", "Shop nhiệt tình"] },
+  { content: "Mua làm quà biếu, người nhận khen ngon. Bao bì đẹp, sạch sẽ.", tags: ["Làm quà", "Bao bì đẹp"] },
+];
+const CRITICAL = [
+  { content: "Sản phẩm ổn, nhưng giao hàng hơi trễ một ngày so với hẹn.", tags: ["Giao hơi chậm"], rating: 3 },
+  { content: "Có vài phần hơi dập do vận chuyển. Shop đã hỗ trợ đổi.", tags: ["Shop hỗ trợ đổi"], rating: 3 },
+  { content: "Hàng không giống ảnh lắm, vị nhạt hơn lần trước.", tags: ["Không như mô tả"], rating: 2 },
+  { content: "Đóng gói sơ sài, túi bị rách khi nhận.", tags: ["Đóng gói kém"], rating: 1 },
+];
+const SHOP_REPLY = "Cảm ơn anh/chị đã tin tưởng ủng hộ shop. Chúc anh/chị và gia đình nhiều sức khoẻ!";
+
+let rid = 0;
+for (const p of db.products.filter((x) => x.status === "approved")) {
+  const count = 4 + Math.floor(rand() * 6);
+  for (let i = 0; i < count; i++) {
+    const critical = rand() < 0.22;
+    const pickR = critical ? pick(CRITICAL) : pick(PRAISE);
+    const age = Math.floor(rand() * 60);
+    const replied = !critical && rand() < 0.45;
+    db.reviews.push({
+      id: `r${++rid}`,
+      productId: p.id,
+      productName: p.name,
+      productImage: p.images[0],
+      shopId: p.shopId,
+      author: pick(AUTHORS),
+      rating: (critical ? (pickR as (typeof CRITICAL)[number]).rating : rand() < 0.3 ? 4 : 5) as Review["rating"],
+      content: pickR.content,
+      tags: pickR.tags,
+      images: rand() < 0.15 ? [img(`review-${rid}`)] : [],
+      helpful: Math.floor(rand() * 24),
+      createdAt: daysAgo(age),
+      hidden: pickR.tags.includes("Đóng gói kém") && rand() < 0.5,
+      reply: replied ? { content: SHOP_REPLY, repliedAt: daysAgo(Math.max(0, age - 1)), by: "shop" } : null,
+    });
+  }
+}
+db.reviews.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

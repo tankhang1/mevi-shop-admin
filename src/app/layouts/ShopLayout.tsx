@@ -7,7 +7,9 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { DemoAccountSwitcher } from "@/components/common/DemoAccountSwitcher";
 import { env } from "@/config/env";
+import { menuFor, mobileNavFor, shopMenu } from "@/config/menu";
 import { ROUTES } from "@/config/routes";
+import { useAccess } from "@/features/auth";
 import { usePageHeaderStore } from "./page-header.store";
 
 const BRAND_TITLE = "Trạm xanh MEVI";
@@ -20,6 +22,10 @@ function titleFor(path: string) {
   if (path.startsWith(ROUTES.products)) return "Quản lý sản phẩm";
   if (path.startsWith(ROUTES.orders)) return "Đơn đặt hàng";
   if (path.startsWith(ROUTES.agencies)) return "Đại lý";
+  if (path === ROUTES.reviews) return "Đánh giá khách hàng";
+  if (path === ROUTES.myShop) return "Thông tin gian hàng";
+  if (path === ROUTES.shops) return "Gian hàng";
+  if (path.startsWith(ROUTES.shops)) return "Chi tiết gian hàng";
   if (path === ROUTES.profile) return "Tài khoản";
   return "Tổng quan";
 }
@@ -29,14 +35,17 @@ export function ShopLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [location] = useLocation();
   const actions = usePageHeaderStore((s) => s.actions);
+  const { isRoot, roles } = useAccess();
   const layout = isMobile ? (
-    <ShopMobileLayout brandTitle={BRAND_TITLE}>
+    <ShopMobileLayout brandTitle={BRAND_TITLE} navItems={mobileNavFor(isRoot)}>
       {actions && <div className="mb-4 flex justify-end gap-2">{actions}</div>}
       {children}
     </ShopMobileLayout>
   ) : (
     <ShopAdminLayout
       brandTitle={BRAND_TITLE}
+      // While /auth/me loads, hand the full menu to the library (it filters by role itself)
+      menu={roles.length ? menuFor(roles) : shopMenu}
       title={titleFor(location)}
       actions={actions}
     >

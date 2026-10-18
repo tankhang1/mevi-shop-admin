@@ -20,6 +20,7 @@ import {
   useUpdateOrderStatus,
 } from "@/features/order";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
 import {
@@ -29,8 +30,10 @@ import {
 
 export default function OrderListPage() {
   const { toast } = useToast();
-  const table = useTableParams<Pick<OrderListParams, "status">>({
+  const shopFilter = useShopFilter();
+  const table = useTableParams<Pick<OrderListParams, "status"> & { shopId: string }>({
     status: "all",
+    shopId: shopFilter.initialShopId,
   });
   const { data: page, isFetching } = useOrders(table.params);
   const update = useUpdateOrderStatus();
@@ -61,7 +64,9 @@ export default function OrderListPage() {
   };
 
   const columns: Column<Order>[] = [
-    ...orderColumns,
+    ...orderColumns.slice(0, 2),
+    ...shopFilter.column<Order>(),
+    ...orderColumns.slice(2),
     {
       key: "changeStatus",
       label: "Đổi trạng thái",
@@ -96,7 +101,7 @@ export default function OrderListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={orderFilters}
+        filters={shopFilter.filter ? [shopFilter.filter, ...orderFilters] : orderFilters}
         searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
         enableMobileCard
       />

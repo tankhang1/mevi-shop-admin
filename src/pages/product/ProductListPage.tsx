@@ -11,6 +11,7 @@ import {
   useProductStats,
   useProducts,
 } from "@/features/product";
+import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
 import { productColumns, productFilters } from "./components/product-columns";
@@ -18,7 +19,11 @@ import { productColumns, productFilters } from "./components/product-columns";
 export default function ProductListPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const table = useTableParams<Pick<ProductListParams, "status" | "category">>({ status: "all" });
+  const shopFilter = useShopFilter();
+  const table = useTableParams<Pick<ProductListParams, "status" | "category"> & { shopId: string }>({
+    status: "all",
+    shopId: shopFilter.initialShopId,
+  });
   const { data: page, isFetching } = useProducts(table.params);
   const { data: stats } = useProductStats();
   const del = useDeleteProduct();
@@ -54,8 +59,8 @@ export default function ProductListPage() {
 
       <DataTable
         {...table.bind(page, isFetching)}
-        columns={productColumns}
-        filters={productFilters}
+        columns={[...productColumns.slice(0, 2), ...shopFilter.column<Product>(), ...productColumns.slice(2)]}
+        filters={shopFilter.filter ? [shopFilter.filter, ...productFilters] : productFilters}
         searchPlaceholder="Tìm theo tên, SKU..."
         enableMobileCard
         onView={(p) => navigate(ROUTES.productDetail(p.id))}

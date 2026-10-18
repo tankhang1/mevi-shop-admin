@@ -23,8 +23,13 @@ export interface DashboardSummary {
     productCount: number;
     pendingProducts: number;
     newOrders: number;
-    activeAgencies: number;
-    agencyCount: number;
+    unrepliedReviews: number;
+    /** 0 when there are no reviews */
+    averageRating: number;
+    /** Root only */
+    activeAgencies?: number;
+    agencyCount?: number;
+    shopCount?: number;
   };
   /** One point per day, oldest first */
   trend: { date: string; revenue: number; orders: number }[];

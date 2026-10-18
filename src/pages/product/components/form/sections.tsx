@@ -1,17 +1,30 @@
 import { useRef } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { ImagePlus, Star, X } from "lucide-react";
+import { Check, ImagePlus, Star, X } from "lucide-react";
+import { readAsDataUrl } from "@/lib/file";
 import { FormField, FormItem, FormMessage, cn, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { SelectField, TextField, TextareaField } from "@/components/form";
-import { PRODUCT_CATEGORIES, PRODUCT_IMAGE, type ProductFormValues } from "@/features/product";
+import { PRODUCT_CATEGORIES, PRODUCT_CERTIFICATIONS, PRODUCT_IMAGE, type ProductFormValues } from "@/features/product";
 import { ProductInfo } from "../ProductInfo";
 
 const CATEGORY_OPTIONS = PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c }));
 
 /** Bước 1 */
-export function BasicInfoSection() {
+/** Bước 1 — `shopOptions` only for root (shop admins always create in their own shop) */
+export function BasicInfoSection({ shopOptions }: { shopOptions?: { label: string; value: string }[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      {shopOptions && (
+        <SelectField<ProductFormValues>
+          name="shopId"
+          label="Gian hàng"
+          required
+          className="sm:col-span-2"
+          options={shopOptions}
+          placeholder="Chọn gian hàng sở hữu sản phẩm"
+          description="Sản phẩm sẽ hiển thị trên trang của gian hàng này."
+        />
+      )}
       <TextField<ProductFormValues> name="name" label="Tên sản phẩm" required className="sm:col-span-2" placeholder="VD: Gạo ST25 hữu cơ" />
       <TextField<ProductFormValues> name="sku" label="SKU" required placeholder="VD: GAO-ST25-5KG" description="Mã duy nhất, dùng để quản lý kho" />
       <SelectField<ProductFormValues> name="category" label="Danh mục" required options={CATEGORY_OPTIONS} placeholder="Chọn danh mục" />
@@ -34,17 +47,52 @@ export function PricingSection() {
         <TextField<ProductFormValues> name="shelfLife" label="Hạn sử dụng" placeholder="VD: 12 tháng" />
         <TextField<ProductFormValues> name="storage" label="Hướng dẫn bảo quản" placeholder="VD: Nơi khô ráo, thoáng mát" />
       </div>
+      <CertificationsField />
     </div>
   );
 }
 
-const readAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
+/** Bước 2 — certifications shown on the storefront trace card */
+export function CertificationsField() {
+  const { control } = useFormContext<ProductFormValues>();
+  return (
+    <FormField
+      control={control}
+      name="certifications"
+      render={({ field }) => {
+        const value: string[] = field.value ?? [];
+        const toggle = (c: string) => field.onChange(value.includes(c) ? value.filter((x) => x !== c) : [...value, c]);
+        return (
+          <FormItem>
+            <p className="text-sm font-medium">Chứng nhận</p>
+            <div className="flex flex-wrap gap-2">
+              {PRODUCT_CERTIFICATIONS.map((c) => {
+                const on = value.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    onClick={() => toggle(c)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm transition-colors",
+                      on ? "border-primary bg-primary/10 font-medium text-primary" : "hover:border-primary/50",
+                    )}
+                  >
+                    {on && <Check className="h-3.5 w-3.5" />} {c}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">Chỉ chọn chứng nhận còn hiệu lực; Mevi sẽ kiểm tra giấy tờ khi duyệt.</p>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
 
 /** Bước 3 — first image is the cover */
 export function ImagesSection() {

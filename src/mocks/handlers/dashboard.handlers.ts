@@ -6,6 +6,7 @@ import type {
 import { ORDER_STATUSES } from "@/features/order/constants";
 import type { Order } from "@/features/order/types";
 import { db } from "../db";
+import { actor, scoped } from "../scope";
 import type { MockHandler } from "../utils";
 
 const DAY = 86_400_000;
@@ -38,8 +39,12 @@ export const dashboardHandlers: MockHandler[] = [
       const prevFrom = from - range * DAY;
       const at = (o: Order) => new Date(o.createdAt).getTime();
 
-      const current = db.orders.filter((o) => at(o) >= from);
-      const previous = db.orders.filter(
+      const { isRoot } = actor();
+      const orders = scoped(db.orders);
+      const products = scoped(db.products);
+      const reviews = scoped(db.reviews).filter((r) => !r.hidden);
+      const current = orders.filter((o) => at(o) >= from);
+      const previous = orders.filter(
         (o) => at(o) >= prevFrom && at(o) < from,
       );
       const cur = periodStats(current);
@@ -63,7 +68,7 @@ export const dashboardHandlers: MockHandler[] = [
         };
       });
 
-      const productById = new Map(db.products.map((p) => [p.id, p]));
+      const productById = new Map(products.map((p) => [p.id, p]));
       const sales = new Map<string, { sold: number; revenue: number }>();
       const byCategory = new Map<string, number>();
       for (const o of current) {
@@ -90,12 +95,20 @@ export const dashboardHandlers: MockHandler[] = [
           cancelRate: metric("cancelRate"),
         },
         snapshot: {
-          productCount: db.products.length,
-          pendingProducts: db.products.filter((p) => p.status === "pending")
+          productCount: products.length,
+          pendingProducts: products.filter((p) => p.status === "pending")
             .length,
-          newOrders: db.orders.filter((o) => o.status === "new").length,
-          activeAgencies: db.agencies.filter((a) => a.active).length,
-          agencyCount: db.agencies.length,
+          newOrders: orders.filter((o) => o.status === "new").length,
+          unrepliedReviews: reviews.filter((r) => !r.reply).length,
+          averageRating: reviews.length
+            ? reviews.reduce((t, r) => t + r.rating, 0) / reviews.length
+            : 0,
+          // Partner counts only make sense for Mevi staff
+          ...(isRoot && {
+            activeAgencies: db.agencies.filter((a) => a.active).length,
+            agencyCount: db.agencies.length,
+            shopCount: db.shops.filter((s) => s.active).length,
+          }),
         },
         trend,
         ordersByStatus: ORDER_STATUSES.map((status) => ({
@@ -114,7 +127,7 @@ export const dashboardHandlers: MockHandler[] = [
           }))
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 5),
-        recentOrders: [...db.orders]
+        recentOrders: [...orders]
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
           .slice(0, 6),
       };

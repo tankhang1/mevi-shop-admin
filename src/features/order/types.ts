@@ -18,6 +18,9 @@ export interface Order {
   total: number;
   items?: OrderItem[];
   status: OrderStatus;
+  /** Seller that fulfils the order */
+  shopId: string;
+  shopName?: string;
   /** Agency whose referral link the order came through */
   agencyId?: string;
   createdAt: string;
@@ -26,4 +29,6 @@ export interface Order {
 export interface OrderListParams extends ListParams {
   status?: "all" | OrderStatus;
   agencyId?: string;
+  /** Root only */
+  shopId?: string;
 }

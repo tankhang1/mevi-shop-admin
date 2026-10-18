@@ -16,6 +16,18 @@ export const API_ENDPOINTS = {
       base: "/api/admin/shop/orders",
       status: (id: string) => `/api/admin/shop/orders/${id}/status`,
     },
+    shops: {
+      base: "/api/admin/shop/shops",
+      detail: (id: string) => `/api/admin/shop/shops/${id}`,
+      /** The signed-in shop admin's own shop */
+      me: "/api/admin/shop/my-shop",
+    },
+    reviews: {
+      base: "/api/admin/shop/reviews",
+      stats: "/api/admin/shop/reviews/stats",
+      reply: (id: string) => `/api/admin/shop/reviews/${id}/reply`,
+      visibility: (id: string) => `/api/admin/shop/reviews/${id}/visibility`,
+    },
     agencies: {
       base: "/api/admin/shop/agencies",
       detail: (id: string) => `/api/admin/shop/agencies/${id}`,

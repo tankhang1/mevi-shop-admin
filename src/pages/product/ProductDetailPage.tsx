@@ -10,6 +10,7 @@ import { PRODUCT_STATUS, useDeleteProduct, useProduct } from "@/features/product
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
 import { ProductInfo } from "./components/ProductInfo";
+import { ProductReviews } from "./components/ProductReviews";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,6 +78,8 @@ export default function ProductDetailPage() {
       )}
 
       <ProductInfo product={product} />
+
+      {product.status === "approved" && <ProductReviews productId={product.id} />}
 
       <DeleteDialog
         open={confirmOpen}

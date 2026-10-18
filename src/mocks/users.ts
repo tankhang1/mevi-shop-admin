@@ -1,7 +1,8 @@
 import type { AuthMe } from "@/features/auth/types";
 
 /** Demo accounts for mock mode — pick one on the login page instead of going through SSO */
-export const DEMO_USERS: (AuthMe & { title: string })[] = [
+/** `shopId` is mock-only: the real backend resolves a shop admin's shop from the token */
+export const DEMO_USERS: (AuthMe & { title: string; shopId?: string })[] = [
   {
     userId: "u-admin",
     username: "admin",
@@ -18,7 +19,8 @@ export const DEMO_USERS: (AuthMe & { title: string })[] = [
     email: "shop@mevi.vn",
     phoneNumber: "0909000003",
     roles: ["MEVI_SHOP_ADMIN"],
-    title: "Quản trị cửa hàng",
+    title: "Chủ gian hàng · Đặc sản Miền Tây",
+    shopId: "s1",
   },
   {
     userId: "u-ops",

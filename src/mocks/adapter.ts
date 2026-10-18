@@ -11,6 +11,8 @@ import { authHandlers } from "./handlers/auth.handlers";
 import { dashboardHandlers } from "./handlers/dashboard.handlers";
 import { orderHandlers } from "./handlers/order.handlers";
 import { productHandlers } from "./handlers/product.handlers";
+import { reviewHandlers } from "./handlers/review.handlers";
+import { shopHandlers } from "./handlers/shop.handlers";
 import { env } from "@/config/env";
 import { HttpError, type MockHandler } from "./utils";
 
@@ -20,6 +22,8 @@ const handlers: MockHandler[] = [
   ...productHandlers,
   ...orderHandlers,
   ...agencyHandlers,
+  ...shopHandlers,
+  ...reviewHandlers,
 ];
 
 const LATENCY_MS = 350;

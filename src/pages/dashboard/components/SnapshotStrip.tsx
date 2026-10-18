@@ -1,28 +1,42 @@
 import type { ElementType } from "react";
 import { Link } from "wouter";
-import { ChevronRight, ClipboardCheck, Inbox, Package, Store } from "lucide-react";
+import { Building2, ChevronRight, ClipboardCheck, Inbox, MessageSquareText, Star } from "lucide-react";
 import { Card } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ROUTES } from "@/config/routes";
 import type { DashboardSummary } from "@/features/dashboard";
 
 /** "Needs attention now" counters — current state, not tied to the date range */
-export function SnapshotStrip({ snapshot }: { snapshot: DashboardSummary["snapshot"] }) {
+export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary["snapshot"]; isRoot: boolean }) {
   const items: { label: string; value: string; icon: ElementType; href: string; highlight?: boolean }[] = [
     { label: "Đơn mới cần xử lý", value: String(snapshot.newOrders), icon: Inbox, href: ROUTES.orders, highlight: snapshot.newOrders > 0 },
     {
       label: "Sản phẩm chờ duyệt",
       value: String(snapshot.pendingProducts),
       icon: ClipboardCheck,
-      href: ROUTES.productApproval,
-      highlight: snapshot.pendingProducts > 0,
+      // Shop admins can't moderate — send them to their own list filtered to pending instead
+      href: isRoot ? ROUTES.productApproval : ROUTES.products,
+      highlight: isRoot && snapshot.pendingProducts > 0,
     },
-    { label: "Tổng sản phẩm", value: String(snapshot.productCount), icon: Package, href: ROUTES.products },
     {
-      label: "Đại lý hoạt động",
-      value: `${snapshot.activeAgencies}/${snapshot.agencyCount}`,
-      icon: Store,
-      href: ROUTES.agencies,
+      label: "Đánh giá chưa trả lời",
+      value: String(snapshot.unrepliedReviews),
+      icon: MessageSquareText,
+      href: ROUTES.reviews,
+      highlight: snapshot.unrepliedReviews > 0,
     },
+    isRoot
+      ? {
+          label: "Gian hàng · Đại lý hoạt động",
+          value: `${snapshot.shopCount ?? 0} · ${snapshot.activeAgencies ?? 0}/${snapshot.agencyCount ?? 0}`,
+          icon: Building2,
+          href: ROUTES.shops,
+        }
+      : {
+          label: "Điểm đánh giá trung bình",
+          value: snapshot.averageRating ? `${snapshot.averageRating.toFixed(1)} ★` : "—",
+          icon: Star,
+          href: ROUTES.reviews,
+        },
   ];
 
   return (

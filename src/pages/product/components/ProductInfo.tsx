@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import type { ProductInput } from "@/features/product";
 import { formatVnd } from "@/lib/format";
 
-type Props = { product: Partial<ProductInput> & Pick<ProductInput, "price"> };
+type Props = { product: Partial<ProductInput> & Pick<ProductInput, "price"> & { shopName?: string } };
 
 const Field = ({ label, value }: { label: string; value?: string | null }) => (
   <div>
@@ -47,6 +48,7 @@ export function ProductInfo({ product: p }: Props) {
       <div className="space-y-5">
         <div>
           <p className="text-sm text-muted-foreground">
+            {p.shopName && <span className="font-medium text-foreground">{p.shopName} · </span>}
             {p.category || "Chưa chọn danh mục"} · <span className="font-mono">{p.sku || "—"}</span>
           </p>
           <h2 className="mt-1 text-2xl font-bold">{p.name || "Chưa đặt tên"}</h2>
@@ -61,6 +63,15 @@ export function ProductInfo({ product: p }: Props) {
               </>
             )}
           </div>
+          {!!p.certifications?.length && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {p.certifications.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                  <ShieldCheck className="h-3.5 w-3.5" /> {c}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <Card>

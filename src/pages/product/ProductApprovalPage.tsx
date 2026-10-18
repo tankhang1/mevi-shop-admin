@@ -28,7 +28,11 @@ import { productColumns, productFilters } from "./components/product-columns";
 const GRID_SIZE = 12;
 const TABLE_SIZE = 10;
 // Every row here is "pending" — the status column/filter would be noise
-const columns = productColumns.filter((c) => c.key !== "status");
+const columns: Column<Product>[] = [
+  ...productColumns.filter((c) => c.key !== "status").slice(0, 2),
+  { key: "shopName", label: "Gian hàng", render: (v) => <span className="whitespace-nowrap text-sm">{String(v ?? "—")}</span> },
+  ...productColumns.filter((c) => c.key !== "status").slice(2),
+];
 const filters = productFilters.filter((f) => f.key !== "status");
 
 export default function ProductApprovalPage() {

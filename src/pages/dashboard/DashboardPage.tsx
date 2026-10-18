@@ -4,6 +4,7 @@ import { Ban, Receipt, ShoppingCart, Wallet } from "lucide-react";
 import { DataTable, Tabs, TabsList, TabsTrigger } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
+import { useAccess } from "@/features/auth";
 import { type DashboardRange, useDashboardSummary } from "@/features/dashboard";
 import { ORDER_STATUS } from "@/features/order";
 import { orderColumns } from "@/features/order/components/order-columns";
@@ -22,6 +23,7 @@ const RANGES: { value: DashboardRange; label: string }[] = [
 
 export default function DashboardPage() {
   const [range, setRange] = useState<DashboardRange>(30);
+  const { isRoot } = useAccess();
   const { data, isLoading, isFetching } = useDashboardSummary(range);
   if (isLoading || !data) return <LoadingBlock />;
 
@@ -46,7 +48,7 @@ export default function DashboardPage() {
         </Tabs>
       </div>
 
-      <SnapshotStrip snapshot={data.snapshot} />
+      <SnapshotStrip snapshot={data.snapshot} isRoot={isRoot} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Doanh thu" metric={data.kpis.revenue} format={formatVnd} icon={Wallet} rangeLabel={rangeLabel} />
