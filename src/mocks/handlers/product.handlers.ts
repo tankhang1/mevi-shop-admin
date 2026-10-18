@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type { ModerateProductInput, Product, ProductInput } from "@/features/product/types";
+import type {
+  ModerateProductInput,
+  Product,
+  ProductInput,
+} from "@/features/product/types";
 import { db } from "../db";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
@@ -16,9 +20,28 @@ export const productHandlers: MockHandler[] = [
     method: "GET",
     path: BASE,
     handle: ({ query }) => {
-      const is = (actual: string, wanted: unknown) => !wanted || wanted === "all" || wanted === actual;
-      const rows = db.products.filter((p) => is(p.status, query.status) && is(p.category, query.category));
+      const is = (actual: string, wanted: unknown) =>
+        !wanted || wanted === "all" || wanted === actual;
+      const rows = db.products.filter(
+        (p) => is(p.status, query.status) && is(p.category, query.category),
+      );
       return { data: paginate(rows, query, (p) => `${p.name} ${p.sku}`) };
+    },
+  },
+  {
+    method: "GET",
+    path: `${BASE}/stats`,
+    handle: () => {
+      const count = (s: string) =>
+        db.products.filter((p) => p.status === s).length;
+      return {
+        data: {
+          total: db.products.length,
+          approved: count("approved"),
+          pending: count("pending"),
+          rejected: count("rejected"),
+        },
+      };
     },
   },
   {
@@ -30,8 +53,14 @@ export const productHandlers: MockHandler[] = [
     method: "POST",
     path: BASE,
     handle: ({ body }: { body: ProductInput }) => {
-      if (db.products.some((p) => p.sku === body.sku)) throw new HttpError(409, "SKU đã tồn tại");
-      const product: Product = { ...body, id: uid("p"), status: "pending", createdAt: new Date().toISOString() };
+      if (db.products.some((p) => p.sku === body.sku))
+        throw new HttpError(409, "SKU đã tồn tại");
+      const product: Product = {
+        ...body,
+        id: uid("p"),
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
       db.products.unshift(product);
       return { data: product, message: "Đã tạo sản phẩm" };
     },
@@ -39,10 +68,18 @@ export const productHandlers: MockHandler[] = [
   {
     method: "PUT",
     path: `${BASE}/:id`,
-    handle: ({ params, body }: { params: Record<string, string>; body: ProductInput }) => {
+    handle: ({
+      params,
+      body,
+    }: {
+      params: Record<string, string>;
+      body: ProductInput;
+    }) => {
       const p = findProduct(params.id);
-      if (db.products.some((x) => x.sku === body.sku && x.id !== p.id)) throw new HttpError(409, "SKU đã tồn tại");
-      Object.assign(p, body);
+      if (db.products.some((x) => x.sku === body.sku && x.id !== p.id))
+        throw new HttpError(409, "SKU đã tồn tại");
+      // Any edit sends the product back for moderation
+      Object.assign(p, body, { status: "pending", rejectionReason: null });
       return { data: p };
     },
   },
@@ -58,13 +95,20 @@ export const productHandlers: MockHandler[] = [
   {
     method: "PATCH",
     path: `${BASE}/:id/moderate`,
-    handle: ({ params, body }: { params: Record<string, string>; body: ModerateProductInput }) => {
+    handle: ({
+      params,
+      body,
+    }: {
+      params: Record<string, string>;
+      body: ModerateProductInput;
+    }) => {
       const p = findProduct(params.id);
       if (body.status === "rejected" && !body.rejectionReason?.trim()) {
         throw new HttpError(400, "Vui lòng nhập lý do từ chối");
       }
       p.status = body.status;
-      p.rejectionReason = body.status === "rejected" ? body.rejectionReason : null;
+      p.rejectionReason =
+        body.status === "rejected" ? body.rejectionReason : null;
       return { data: p };
     },
   },

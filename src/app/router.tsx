@@ -9,10 +9,13 @@ const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const ProfilePage = lazy(() => import("@/pages/account/ProfilePage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const ProductListPage = lazy(() => import("@/pages/product/ProductListPage"));
-const ProductFormPage = lazy(() => import("@/pages/product/ProductFormPage"));
+const ProductCreatePage = lazy(() => import("@/pages/product/ProductCreatePage"));
+const ProductDetailPage = lazy(() => import("@/pages/product/ProductDetailPage"));
+const ProductEditPage = lazy(() => import("@/pages/product/ProductEditPage"));
 const ProductApprovalPage = lazy(() => import("@/pages/product/ProductApprovalPage"));
 const OrderListPage = lazy(() => import("@/pages/order/OrderListPage"));
 const AgencyListPage = lazy(() => import("@/pages/agency/AgencyListPage"));
+const AgencyDetailPage = lazy(() => import("@/pages/agency/AgencyDetailPage"));
 
 function ProtectedRoutes() {
   return (
@@ -21,12 +24,14 @@ function ProtectedRoutes() {
         <Suspense fallback={<LoadingBlock />}>
           <Switch>
             <Route path={ROUTES.dashboard} component={DashboardPage} />
-            {/* Before productEdit(":id") */}
+            {/* Static segments before productDetail(":id") */}
             <Route path={ROUTES.productApproval} component={ProductApprovalPage} />
-            <Route path={ROUTES.productCreate} component={ProductFormPage} />
-            <Route path={ROUTES.productEdit(":id")} component={ProductFormPage} />
+            <Route path={ROUTES.productCreate} component={ProductCreatePage} />
+            <Route path={ROUTES.productEdit(":id")} component={ProductEditPage} />
+            <Route path={ROUTES.productDetail(":id")} component={ProductDetailPage} />
             <Route path={ROUTES.products} component={ProductListPage} />
             <Route path={ROUTES.orders} component={OrderListPage} />
+            <Route path={ROUTES.agencyDetail(":id")} component={AgencyDetailPage} />
             <Route path={ROUTES.agencies} component={AgencyListPage} />
             <Route path={ROUTES.profile} component={ProfilePage} />
             <Route>

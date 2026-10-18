@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   type Column,
   DataTable,
@@ -18,22 +19,44 @@ import {
   useOrders,
   useUpdateOrderStatus,
 } from "@/features/order";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
-import { orderColumns, orderFilters } from "@/features/order/components/order-columns";
+import {
+  orderColumns,
+  orderFilters,
+} from "@/features/order/components/order-columns";
 
 export default function OrderListPage() {
   const { toast } = useToast();
-  const table = useTableParams<Pick<OrderListParams, "status">>({ status: "all" });
+  const table = useTableParams<Pick<OrderListParams, "status">>({
+    status: "all",
+  });
   const { data: page, isFetching } = useOrders(table.params);
   const update = useUpdateOrderStatus();
+  // Status picks are staged here and only applied after the admin confirms
+  const [pending, setPending] = useState<{
+    order: Order;
+    next: OrderStatus;
+  } | null>(null);
 
-  const changeStatus = async (o: Order, next: OrderStatus) => {
+  const confirmChange = async () => {
+    if (!pending) return;
+    const { order: o, next } = pending;
     try {
       await update.mutateAsync({ id: o.id, status: next });
-      toast({ title: "Đã cập nhật đơn hàng", description: `${o.code} → ${ORDER_STATUS[next].label}` });
+      toast({
+        title: "Đã cập nhật đơn hàng",
+        description: `${o.code} → ${ORDER_STATUS[next].label}`,
+      });
     } catch (e) {
-      toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: getErrorMessage(e),
+      });
+    } finally {
+      setPending(null);
     }
   };
 
@@ -46,7 +69,9 @@ export default function OrderListPage() {
       render: (_, o) => (
         <Select
           value={o.status}
-          onValueChange={(v) => void changeStatus(o, v as OrderStatus)}
+          onValueChange={(v) =>
+            v !== o.status && setPending({ order: o, next: v as OrderStatus })
+          }
           disabled={isFinalOrderStatus(o.status) || update.isPending}
         >
           <SelectTrigger className="h-9 w-40">
@@ -64,13 +89,50 @@ export default function OrderListPage() {
     },
   ];
 
+  const finalStep = pending && isFinalOrderStatus(pending.next);
+
   return (
-    <DataTable
-      {...table.bind(page, isFetching)}
-      columns={columns}
-      filters={orderFilters}
-      searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
-      enableMobileCard
-    />
+    <>
+      <DataTable
+        {...table.bind(page, isFetching)}
+        columns={columns}
+        filters={orderFilters}
+        searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
+        enableMobileCard
+      />
+      <ConfirmDialog
+        open={!!pending}
+        onOpenChange={(o) => !o && setPending(null)}
+        loading={update.isPending}
+        destructive={!!finalStep}
+        title={`Đổi trạng thái đơn ${pending?.order.code ?? ""}?`}
+        confirmLabel={pending?.next === "cancelled" ? "Huỷ đơn" : "Xác nhận"}
+        onConfirm={() => void confirmChange()}
+        description={
+          pending && (
+            <>
+              <p>
+                <span className="font-medium text-foreground">
+                  {ORDER_STATUS[pending.order.status].label}
+                </span>{" "}
+                →{" "}
+                <span className="font-medium text-foreground">
+                  {ORDER_STATUS[pending.next].label}
+                </span>
+              </p>
+              <p>
+                Người nhận: {pending.order.recipientName} ·{" "}
+                {pending.order.recipientPhone}
+              </p>
+              {finalStep && (
+                <p className="font-medium text-destructive">
+                  Không thể hoàn tác sau khi xác nhận.
+                </p>
+              )}
+            </>
+          )
+        }
+      />
+    </>
   );
 }

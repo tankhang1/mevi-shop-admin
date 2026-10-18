@@ -11,18 +11,42 @@ export const orderHandlers: MockHandler[] = [
     method: "GET",
     path: BASE,
     handle: ({ query }) => {
-      const sorted = [...db.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      const rows = query.status && query.status !== "all" ? sorted.filter((o) => o.status === query.status) : sorted;
-      return { data: paginate(rows, query, (o) => `${o.code} ${o.recipientName} ${o.recipientPhone}`) };
+      const sorted = [...db.orders].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      );
+      const rows = sorted.filter(
+        (o) =>
+          (!query.status ||
+            query.status === "all" ||
+            o.status === query.status) &&
+          (!query.agencyId || o.agencyId === query.agencyId),
+      );
+      return {
+        data: paginate(
+          rows,
+          query,
+          (o) => `${o.code} ${o.recipientName} ${o.recipientPhone}`,
+        ),
+      };
     },
   },
   {
     method: "PATCH",
     path: `${BASE}/:id/status`,
-    handle: ({ params, body }: { params: Record<string, string>; body: { status: OrderStatus } }) => {
+    handle: ({
+      params,
+      body,
+    }: {
+      params: Record<string, string>;
+      body: { status: OrderStatus };
+    }) => {
       const o = db.orders.find((x) => x.id === params.id);
       if (!o) throw new HttpError(404, "Không tìm thấy đơn hàng");
-      if (isFinalOrderStatus(o.status)) throw new HttpError(400, "Đơn hàng đã kết thúc, không thể đổi trạng thái");
+      if (isFinalOrderStatus(o.status))
+        throw new HttpError(
+          400,
+          "Đơn hàng đã kết thúc, không thể đổi trạng thái",
+        );
       o.status = body.status;
       return { data: o };
     },

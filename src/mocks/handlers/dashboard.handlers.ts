@@ -1,12 +1,16 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type { DashboardRange, DashboardSummary } from "@/features/dashboard/types";
+import type {
+  DashboardRange,
+  DashboardSummary,
+} from "@/features/dashboard/types";
 import { ORDER_STATUSES } from "@/features/order/constants";
 import type { Order } from "@/features/order/types";
 import { db } from "../db";
 import type { MockHandler } from "../utils";
 
 const DAY = 86_400_000;
-const startOfDay = (t: number) => new Date(new Date(t).toDateString()).getTime();
+const startOfDay = (t: number) =>
+  new Date(new Date(t).toDateString()).getTime();
 
 function periodStats(orders: Order[]) {
   const completed = orders.filter((o) => o.status === "completed");
@@ -14,8 +18,12 @@ function periodStats(orders: Order[]) {
   return {
     revenue,
     orders: orders.length,
-    avgOrderValue: completed.length ? Math.round(revenue / completed.length) : 0,
-    cancelRate: orders.length ? orders.filter((o) => o.status === "cancelled").length / orders.length : 0,
+    avgOrderValue: completed.length
+      ? Math.round(revenue / completed.length)
+      : 0,
+    cancelRate: orders.length
+      ? orders.filter((o) => o.status === "cancelled").length / orders.length
+      : 0,
   };
 }
 
@@ -31,17 +39,26 @@ export const dashboardHandlers: MockHandler[] = [
       const at = (o: Order) => new Date(o.createdAt).getTime();
 
       const current = db.orders.filter((o) => at(o) >= from);
-      const previous = db.orders.filter((o) => at(o) >= prevFrom && at(o) < from);
+      const previous = db.orders.filter(
+        (o) => at(o) >= prevFrom && at(o) < from,
+      );
       const cur = periodStats(current);
       const prev = periodStats(previous);
-      const metric = (k: keyof typeof cur) => ({ value: cur[k], previous: prev[k] });
+      const metric = (k: keyof typeof cur) => ({
+        value: cur[k],
+        previous: prev[k],
+      });
 
       const trend = Array.from({ length: range }, (_, i) => {
         const dayStart = from + i * DAY;
-        const day = current.filter((o) => at(o) >= dayStart && at(o) < dayStart + DAY);
+        const day = current.filter(
+          (o) => at(o) >= dayStart && at(o) < dayStart + DAY,
+        );
         return {
           date: new Date(dayStart).toISOString(),
-          revenue: day.filter((o) => o.status === "completed").reduce((s, o) => s + o.total, 0),
+          revenue: day
+            .filter((o) => o.status === "completed")
+            .reduce((s, o) => s + o.total, 0),
           orders: day.length,
         };
       });
@@ -57,7 +74,10 @@ export const dashboardHandlers: MockHandler[] = [
           s.revenue += it.quantity * it.price;
           sales.set(it.productId, s);
           const cat = productById.get(it.productId)?.category ?? "Khác";
-          byCategory.set(cat, (byCategory.get(cat) ?? 0) + it.quantity * it.price);
+          byCategory.set(
+            cat,
+            (byCategory.get(cat) ?? 0) + it.quantity * it.price,
+          );
         }
       }
 
@@ -71,7 +91,8 @@ export const dashboardHandlers: MockHandler[] = [
         },
         snapshot: {
           productCount: db.products.length,
-          pendingProducts: db.products.filter((p) => p.status === "pending").length,
+          pendingProducts: db.products.filter((p) => p.status === "pending")
+            .length,
           newOrders: db.orders.filter((o) => o.status === "new").length,
           activeAgencies: db.agencies.filter((a) => a.active).length,
           agencyCount: db.agencies.length,
@@ -85,10 +106,17 @@ export const dashboardHandlers: MockHandler[] = [
           .map(([category, revenue]) => ({ category, revenue }))
           .sort((a, b) => b.revenue - a.revenue),
         topProducts: [...sales]
-          .map(([id, s]) => ({ id, name: productById.get(id)?.name ?? id, image: productById.get(id)?.images[0], ...s }))
+          .map(([id, s]) => ({
+            id,
+            name: productById.get(id)?.name ?? id,
+            image: productById.get(id)?.images[0],
+            ...s,
+          }))
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 5),
-        recentOrders: [...db.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6),
+        recentOrders: [...db.orders]
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .slice(0, 6),
       };
       return { data: summary };
     },

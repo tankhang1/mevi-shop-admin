@@ -38,5 +38,13 @@ export function useTableParams<F extends Record<string, string>>(initialFilters 
     } satisfies Partial<DataTableProps<T>>;
   }
 
-  return { params, bind };
+  /** Back to page 1 with no keyword/filters — e.g. when switching between table and grid */
+  const reset = (nextSize = size) => {
+    setPage(1);
+    setSize(nextSize);
+    setKeyword("");
+    setFilters(initialFilters);
+  };
+
+  return { params, bind, reset, state: { page, size, keyword, filters } };
 }

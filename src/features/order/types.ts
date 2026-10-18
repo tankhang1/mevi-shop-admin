@@ -18,9 +18,12 @@ export interface Order {
   total: number;
   items?: OrderItem[];
   status: OrderStatus;
+  /** Agency whose referral link the order came through */
+  agencyId?: string;
   createdAt: string;
 }
 
 export interface OrderListParams extends ListParams {
   status?: "all" | OrderStatus;
+  agencyId?: string;
 }

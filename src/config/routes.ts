@@ -3,7 +3,9 @@ import { env } from "./env";
 
 export const ROUTES = {
   ...SHOP_ROUTES,
+  productDetail: (id: string) => `${SHOP_ROUTES.products}/${id}`,
   productEdit: (id: string) => `${SHOP_ROUTES.products}/${id}/edit`,
+  agencyDetail: (id: string) => `${SHOP_ROUTES.agencies}/${id}`,
   /** Mobile "Tài khoản" tab — eco-shared-ui links it to /profile */
   profile: "/profile",
   login: "/login",

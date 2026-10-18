@@ -1,24 +1,37 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Plus } from "lucide-react";
-import { type Column, Button, DataTable, Switch, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { PageHeader } from "@/components/common/ui-bits";
-import { type Agency, useAgencies, useUpdateAgency } from "@/features/agency";
+import {
+  type Column,
+  Button,
+  DataTable,
+} from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { usePageActions } from "@/app/layouts/page-header.store";
+import { ROUTES } from "@/config/routes";
+import { type Agency, useAgencies } from "@/features/agency";
 import { useTableParams } from "@/hooks/useTableParams";
-import { getErrorMessage } from "@/lib/api-error";
+import { AgencyActiveToggle } from "./components/AgencyActiveToggle";
 import { AgencyFormDialog } from "./components/AgencyFormDialog";
+import { DeleteAgencyDialog } from "./components/DeleteAgencyDialog";
 
 export default function AgencyListPage() {
-  const { toast } = useToast();
+  const [, navigate] = useLocation();
   const table = useTableParams();
   const { data: page, isFetching } = useAgencies(table.params);
-  const update = useUpdateAgency();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Agency | undefined>();
+  const [deleting, setDeleting] = useState<Agency | null>(null);
 
-  const toggleActive = (id: string, active: boolean) =>
-    update.mutate(
-      { id, data: { active } },
-      { onError: (e) => toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) }) },
-    );
+  usePageActions(() => (
+    <Button
+      onClick={() => {
+        setEditing(undefined);
+        setOpen(true);
+      }}
+    >
+      <Plus className="mr-1 h-4 w-4" /> Thêm đại lý
+    </Button>
+  ));
 
   const columns: Column<Agency>[] = [
     {
@@ -28,7 +41,11 @@ export default function AgencyListPage() {
       render: (_, a) => (
         <div className="flex items-center gap-3">
           {a.logoUrl ? (
-            <img src={a.logoUrl} alt="" className="h-9 w-9 rounded-lg border object-cover" />
+            <img
+              src={a.logoUrl}
+              alt=""
+              className="h-9 w-9 rounded-lg border object-cover"
+            />
           ) : (
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
@@ -53,7 +70,9 @@ export default function AgencyListPage() {
       render: (_, a) => (
         <div className="text-sm">
           <div>{a.contactName || "—"}</div>
-          <div className="text-xs text-muted-foreground">{[a.phone, a.email].filter(Boolean).join(" · ")}</div>
+          <div className="text-xs text-muted-foreground">
+            {[a.phone, a.email].filter(Boolean).join(" · ")}
+          </div>
         </div>
       ),
     },
@@ -61,27 +80,29 @@ export default function AgencyListPage() {
       key: "active",
       label: "Hoạt động",
       mobilePriority: "badge",
-      render: (_, a) => <Switch checked={a.active} onCheckedChange={(active) => toggleActive(a.id, active)} />,
+      render: (_, a) => <AgencyActiveToggle agency={a} />,
     },
   ];
 
   return (
     <>
-      <PageHeader
-        description={`${page?.total ?? 0} đại lý`}
-        actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Thêm đại lý
-          </Button>
-        }
-      />
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
+        onView={(a) => navigate(ROUTES.agencyDetail(a.id))}
+        onEdit={(a) => {
+          setEditing(a);
+          setOpen(true);
+        }}
+        onDelete={setDeleting}
         searchPlaceholder="Tìm theo tên, slug..."
         enableMobileCard
       />
-      <AgencyFormDialog open={open} onOpenChange={setOpen} />
+      <AgencyFormDialog open={open} onOpenChange={setOpen} agency={editing} />
+      <DeleteAgencyDialog
+        agency={deleting}
+        onOpenChange={(o) => !o && setDeleting(null)}
+      />
     </>
   );
 }

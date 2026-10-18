@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Check, X } from "lucide-react";
 import {
+  type Column,
   Button,
-  Card,
-  CardContent,
+  DataTable,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -13,19 +14,39 @@ import {
   Textarea,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import placeholder from "@/assets/images/image-placeholder.webp";
+import { usePageActions } from "@/app/layouts/page-header.store";
+import { ViewToggle } from "@/components/common/ViewToggle";
+import { ROUTES } from "@/config/routes";
 import { type Product, useModerateProduct, useProducts } from "@/features/product";
+import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
-import { formatDate, formatVnd } from "@/lib/format";
-import { EmptyBlock, LoadingBlock, PageHeader } from "@/components/common/ui-bits";
+import { formatDate } from "@/lib/format";
+import { useListView } from "@/stores/ui-prefs.store";
+import { ApprovalGrid } from "./components/ApprovalGrid";
+import { productColumns, productFilters } from "./components/product-columns";
+
+const GRID_SIZE = 12;
+const TABLE_SIZE = 10;
+// Every row here is "pending" — the status column/filter would be noise
+const columns = productColumns.filter((c) => c.key !== "status");
+const filters = productFilters.filter((f) => f.key !== "status");
 
 export default function ProductApprovalPage() {
+  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: page, isLoading } = useProducts({ status: "pending" });
-  const data = page?.items ?? [];
+  const [view, setView] = useListView("product-approval", "grid");
+  const table = useTableParams({ category: "all" }, view === "grid" ? GRID_SIZE : TABLE_SIZE);
+  const { data: page, isFetching } = useProducts({ ...table.params, status: "pending" });
   const moderate = useModerateProduct();
   const [rejecting, setRejecting] = useState<Product | null>(null);
   const [reason, setReason] = useState("");
+
+  const switchView = (v: typeof view) => {
+    setView(v);
+    table.reset(v === "grid" ? GRID_SIZE : TABLE_SIZE);
+  };
+
+  usePageActions(() => <ViewToggle value={view} onChange={switchView} />, [view]);
 
   const approve = async (p: Product) => {
     try {
@@ -36,56 +57,75 @@ export default function ProductApprovalPage() {
     }
   };
 
+  const closeReject = () => {
+    setRejecting(null);
+    setReason("");
+  };
+
   const reject = async () => {
     if (!rejecting || !reason.trim()) return;
     try {
       await moderate.mutateAsync({ id: rejecting.id, data: { status: "rejected", rejectionReason: reason.trim() } });
       toast({ title: "Đã từ chối", description: rejecting.name });
-      setRejecting(null);
-      setReason("");
+      closeReject();
     } catch (e) {
       toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
     }
   };
 
-  if (isLoading) return <LoadingBlock />;
+  const tableColumns: Column<Product>[] = [
+    ...columns,
+    {
+      key: "createdAt",
+      label: "Gửi lúc",
+      sortable: true,
+      render: (v) => <span className="whitespace-nowrap text-sm">{formatDate(String(v))}</span>,
+    },
+    {
+      key: "moderate",
+      label: "Duyệt",
+      width: "200px",
+      render: (_, p) => (
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => void approve(p)} disabled={moderate.isPending}>
+            <Check className="mr-1 h-4 w-4" /> Duyệt
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setRejecting(p)}>
+            <X className="mr-1 h-4 w-4" /> Từ chối
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <>
-      <PageHeader description={`${data.length} sản phẩm đang chờ duyệt`} />
-      {data.length === 0 ? (
-        <Card>
-          <EmptyBlock>Không có sản phẩm nào chờ duyệt 🎉</EmptyBlock>
-        </Card>
+      {view === "table" ? (
+        <DataTable
+          {...table.bind(page, isFetching)}
+          columns={tableColumns}
+          filters={filters}
+          searchPlaceholder="Tìm theo tên, SKU..."
+          enableMobileCard
+          onView={(p) => navigate(ROUTES.productDetail(p.id))}
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {data.map((p) => (
-            <Card key={p.id} className="overflow-hidden">
-              <img src={p.images[0] || placeholder} alt="" className="aspect-[4/3] w-full object-cover" />
-              <CardContent className="space-y-3 p-4">
-                <div>
-                  <h3 className="font-semibold">{p.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {p.sku} · {p.category} · {formatDate(p.createdAt)}
-                  </p>
-                </div>
-                <p className="font-medium">{formatVnd(p.salePrice ?? p.price)}</p>
-                {p.origin && <p className="text-sm text-muted-foreground">Nguồn gốc: {p.origin}</p>}
-                <div className="flex gap-2 pt-1">
-                  <Button className="flex-1" onClick={() => void approve(p)} disabled={moderate.isPending}>
-                    <Check className="mr-1 h-4 w-4" /> Duyệt
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => setRejecting(p)}>
-                    <X className="mr-1 h-4 w-4" /> Từ chối
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ApprovalGrid
+          page={page}
+          loading={isFetching}
+          keyword={table.state.keyword}
+          category={table.state.filters.category}
+          onSearch={table.bind(page, isFetching).onSearch}
+          onCategory={(v) => table.bind(page, isFetching).onFilterChange("category", v)}
+          onPage={table.bind(page, isFetching).onIndexChange}
+          onView={(p) => navigate(ROUTES.productDetail(p.id))}
+          onApprove={(p) => void approve(p)}
+          onReject={setRejecting}
+          busy={moderate.isPending}
+        />
       )}
 
-      <Dialog open={!!rejecting} onOpenChange={(o) => !o && (setRejecting(null), setReason(""))}>
+      <Dialog open={!!rejecting} onOpenChange={(o) => !o && closeReject()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Từ chối "{rejecting?.name}"</DialogTitle>
@@ -94,10 +134,16 @@ export default function ProductApprovalPage() {
             <Label htmlFor="reason">
               Lý do từ chối<span className="text-destructive"> *</span>
             </Label>
-            <Textarea id="reason" rows={4} value={reason} onChange={(e) => setReason(e.target.value)} />
+            <Textarea
+              id="reason"
+              rows={4}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="VD: Thiếu giấy chứng nhận ATTP, ảnh không rõ..."
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejecting(null)}>
+            <Button variant="outline" onClick={closeReject}>
               Huỷ
             </Button>
             <Button variant="destructive" disabled={!reason.trim() || moderate.isPending} onClick={() => void reject()}>

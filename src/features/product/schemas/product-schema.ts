@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Product, ProductInput } from "../types";
 
 const optionalPrice = z
   .union([z.coerce.number().int().positive("Giá phải lớn hơn 0"), z.literal("").transform(() => null)])
@@ -7,16 +8,24 @@ const optionalPrice = z
 
 export const productSchema = z
   .object({
-    name: z.string().trim().min(1, "Vui lòng nhập tên"),
-    sku: z.string().trim().min(1, "Vui lòng nhập SKU"),
+    // Bước 1 — Thông tin cơ bản
+    name: z.string().trim().min(1, "Vui lòng nhập tên sản phẩm"),
+    sku: z
+      .string()
+      .trim()
+      .min(1, "Vui lòng nhập SKU")
+      .regex(/^[A-Za-z0-9-]+$/, "Chỉ gồm chữ, số và dấu gạch ngang"),
     category: z.string().min(1, "Vui lòng chọn danh mục"),
+    description: z.string().optional(),
+    // Bước 2 — Giá & quy cách
     price: z.coerce.number({ message: "Vui lòng nhập giá" }).int().positive("Giá phải lớn hơn 0"),
     salePrice: optionalPrice,
-    description: z.string().optional(),
     origin: z.string().optional(),
     packaging: z.string().optional(),
     shelfLife: z.string().optional(),
     storage: z.string().optional(),
+    // Bước 3 — Hình ảnh
+    images: z.array(z.string()).min(1, "Cần ít nhất 1 ảnh sản phẩm").max(8, "Tối đa 8 ảnh"),
   })
   .refine((v) => !v.salePrice || v.salePrice < v.price, {
     path: ["salePrice"],
@@ -24,3 +33,29 @@ export const productSchema = z
   });
 
 export type ProductFormValues = z.input<typeof productSchema>;
+
+export const EMPTY_PRODUCT: ProductFormValues = {
+  name: "",
+  sku: "",
+  category: "",
+  description: "",
+  price: "",
+  salePrice: "",
+  origin: "",
+  packaging: "",
+  shelfLife: "",
+  storage: "",
+  images: [],
+};
+
+export const productToFormValues = (p: Product): ProductFormValues => ({
+  ...EMPTY_PRODUCT,
+  ...p,
+  price: String(p.price),
+  salePrice: p.salePrice ? String(p.salePrice) : "",
+});
+
+export const formValuesToInput = (values: ProductFormValues): ProductInput => {
+  const v = productSchema.parse(values);
+  return { ...v, salePrice: v.salePrice ?? null };
+};

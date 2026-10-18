@@ -12,7 +12,8 @@ const isSafeRedirect = (path: string | null): path is string =>
   !path.startsWith(ROUTES.authCallback) &&
   !path.startsWith(ROUTES.login);
 
-const isCallbackRoute = () => window.location.pathname.startsWith(ROUTES.authCallback);
+const isCallbackRoute = () =>
+  window.location.pathname.startsWith(ROUTES.authCallback);
 
 function handleCallback() {
   const token = authApi.getCallbackToken();

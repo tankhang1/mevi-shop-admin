@@ -7,28 +7,42 @@ import {
   getAdapter,
 } from "axios";
 import { agencyHandlers } from "./handlers/agency.handlers";
+import { authHandlers } from "./handlers/auth.handlers";
 import { dashboardHandlers } from "./handlers/dashboard.handlers";
 import { orderHandlers } from "./handlers/order.handlers";
 import { productHandlers } from "./handlers/product.handlers";
+import { env } from "@/config/env";
 import { HttpError, type MockHandler } from "./utils";
 
-const handlers: MockHandler[] = [...dashboardHandlers, ...productHandlers, ...orderHandlers, ...agencyHandlers];
+const handlers: MockHandler[] = [
+  ...authHandlers,
+  ...dashboardHandlers,
+  ...productHandlers,
+  ...orderHandlers,
+  ...agencyHandlers,
+];
 
 const LATENCY_MS = 350;
 const realAdapter = getAdapter(["xhr", "fetch"]);
 
 function matchPath(pattern: string, path: string) {
   const keys: string[] = [];
-  const re = new RegExp(`^${pattern.replace(/:(\w+)/g, (_, k) => (keys.push(k), "([^/]+)"))}$`);
+  const re = new RegExp(
+    `^${pattern.replace(/:(\w+)/g, (_, k) => (keys.push(k), "([^/]+)"))}$`,
+  );
   const m = path.match(re);
-  return m ? Object.fromEntries(keys.map((k, i) => [k, decodeURIComponent(m[i + 1])])) : null;
+  return m
+    ? Object.fromEntries(keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]))
+    : null;
 }
 
 /**
  * Answers requests that match a handler in ./handlers with dummy data;
- * anything else (e.g. /auth/me) goes to the real network.
+ * unmatched calls to our API host get a mock 404, anything else (other hosts) goes to the real network.
  */
-export const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+export const mockAdapter: AxiosAdapter = async (
+  config: InternalAxiosRequestConfig,
+) => {
   const method = (config.method ?? "get").toUpperCase();
   const path = new URL(config.url ?? "", "http://mock").pathname;
 
@@ -38,7 +52,10 @@ export const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConf
     if (!params) continue;
 
     await new Promise((r) => setTimeout(r, LATENCY_MS));
-    const body = typeof config.data === "string" && config.data ? JSON.parse(config.data) : config.data;
+    const body =
+      typeof config.data === "string" && config.data
+        ? JSON.parse(config.data)
+        : config.data;
     const respond = (status: number, data: unknown): AxiosResponse => ({
       data: structuredClone(data),
       status,
@@ -49,14 +66,41 @@ export const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConf
 
     try {
       const data = h.handle({ params, query: config.params ?? {}, body });
-      if (import.meta.env.DEV) console.debug(`[mock] ${method} ${path}`, { query: config.params, body, data });
+      if (import.meta.env.DEV)
+        console.debug(`[mock] ${method} ${path}`, {
+          query: config.params,
+          body,
+          data,
+        });
       return respond(200, data);
     } catch (e) {
       const status = e instanceof HttpError ? e.status : 500;
-      const res = respond(status, { message: e instanceof Error ? e.message : "Mock error" });
+      const res = respond(status, {
+        message: e instanceof Error ? e.message : "Mock error",
+      });
       throw new AxiosError(res.data.message, String(status), config, null, res);
     }
   }
 
+  // Never send a demo token to the real API: an unknown path there should fail locally, not 401 → logout
+  const url = new URL(
+    config.url ?? "",
+    config.baseURL || window.location.origin,
+  );
+  const apiHost = env.apiBaseUrl
+    ? new URL(env.apiBaseUrl).host
+    : window.location.host;
+  if (url.host === apiHost || url.host === window.location.host) {
+    if (import.meta.env.DEV)
+      console.warn(`[mock] no handler for ${method} ${path}`);
+    const res: AxiosResponse = {
+      data: { message: "No mock handler" },
+      status: 404,
+      statusText: "404",
+      headers: new AxiosHeaders(),
+      config,
+    };
+    throw new AxiosError("No mock handler", "404", config, null, res);
+  }
   return realAdapter(config);
 };

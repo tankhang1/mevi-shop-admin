@@ -27,6 +27,8 @@ export interface ProductListParams extends ListParams {
   category?: string;
 }
 
+export type ProductStats = Record<"total" | ProductStatus, number>;
+
 export interface ModerateProductInput {
   status: "approved" | "rejected";
   rejectionReason?: string;

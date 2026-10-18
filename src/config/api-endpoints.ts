@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     summary: "/api/admin/shop/summary",
     products: {
       base: "/api/admin/shop/products",
+      stats: "/api/admin/shop/products/stats",
       detail: (id: string) => `/api/admin/shop/products/${id}`,
       moderate: (id: string) => `/api/admin/shop/products/${id}/moderate`,
     },

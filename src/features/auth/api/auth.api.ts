@@ -13,12 +13,16 @@ export const authApi = {
   /** Backend redirects back to `callback_url?token=...` after SSO login */
   startLogin: () => {
     const callbackUrl = new URL(ROUTES.authCallback, window.location.origin);
-    const url = new URL(API_ENDPOINTS.auth.login(env.auth.provider), env.apiBaseUrl || window.location.origin);
+    const url = new URL(
+      API_ENDPOINTS.auth.login(env.auth.provider),
+      env.apiBaseUrl || window.location.origin,
+    );
     url.searchParams.set("callback_url", callbackUrl.toString());
     window.location.replace(url.toString());
   },
 
-  getCallbackToken: () => new URLSearchParams(window.location.search).get("token"),
+  getCallbackToken: () =>
+    new URLSearchParams(window.location.search).get("token"),
 
   saveRedirect: (path: string) => sessionStorage.setItem(REDIRECT_KEY, path),
   takeRedirect: () => {
@@ -29,6 +33,11 @@ export const authApi = {
 
   logout: () => {
     useAuthStore.getState().clear();
-    window.location.replace(env.auth.postLogoutRedirectUri || ROUTES.login);
+    // Mock sessions never touched the SSO server, so just return to our own login page
+    window.location.replace(
+      env.useMock
+        ? ROUTES.login
+        : env.auth.postLogoutRedirectUri || ROUTES.login,
+    );
   },
 };

@@ -6,6 +6,7 @@ import type { ModerateProductInput, ProductInput, ProductListParams } from "../t
 export const productKeys = {
   all: ["products"] as const,
   list: (params: ProductListParams) => [...productKeys.all, "list", params] as const,
+  stats: () => [...productKeys.all, "stats"] as const,
   detail: (id: string) => [...productKeys.all, "detail", id] as const,
 };
 
@@ -15,6 +16,10 @@ export function useProducts(params: ProductListParams = {}) {
     queryFn: () => productApi.list(params),
     placeholderData: keepPreviousData,
   });
+}
+
+export function useProductStats() {
+  return useQuery({ queryKey: productKeys.stats(), queryFn: productApi.stats });
 }
 
 export function useProduct(id: string | undefined) {
