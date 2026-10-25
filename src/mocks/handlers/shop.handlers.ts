@@ -11,7 +11,7 @@ function withStats(s: Shop): Shop {
   const reviews = db.reviews.filter((r) => r.shopId === s.id && !r.hidden);
   return {
     ...s,
-    productCount: db.products.filter((p) => p.shopId === s.id && p.status === "approved").length,
+    productCount: db.products.filter((p) => p.shopId === s.id && p.status === "approved" && p.listed).length,
     reviewCount: reviews.length,
     rating: reviews.length ? Math.round((reviews.reduce((t, r) => t + r.rating, 0) / reviews.length) * 10) / 10 : 0,
   };

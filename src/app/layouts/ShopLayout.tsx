@@ -20,6 +20,8 @@ function titleFor(path: string) {
   if (/^\/admin\/products\/[^/]+\/edit$/.test(path)) return "Sửa sản phẩm";
   if (/^\/admin\/products\/[^/]+$/.test(path)) return "Chi tiết sản phẩm";
   if (path.startsWith(ROUTES.products)) return "Quản lý sản phẩm";
+  if (path === ROUTES.productGroups) return "Nhóm sản phẩm";
+  if (path.startsWith(ROUTES.productGroups)) return "Chi tiết nhóm sản phẩm";
   if (path.startsWith(ROUTES.orders)) return "Đơn đặt hàng";
   if (path.startsWith(ROUTES.agencies)) return "Đại lý";
   if (path === ROUTES.reviews) return "Đánh giá khách hàng";

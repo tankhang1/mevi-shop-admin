@@ -14,6 +14,8 @@ const ProductCreatePage = lazy(() => import("@/pages/product/ProductCreatePage")
 const ProductDetailPage = lazy(() => import("@/pages/product/ProductDetailPage"));
 const ProductEditPage = lazy(() => import("@/pages/product/ProductEditPage"));
 const ProductApprovalPage = lazy(() => import("@/pages/product/ProductApprovalPage"));
+const ProductGroupListPage = lazy(() => import("@/pages/product-group/ProductGroupListPage"));
+const ProductGroupDetailPage = lazy(() => import("@/pages/product-group/ProductGroupDetailPage"));
 const OrderListPage = lazy(() => import("@/pages/order/OrderListPage"));
 const AgencyListPage = lazy(() => import("@/pages/agency/AgencyListPage"));
 const AgencyDetailPage = lazy(() => import("@/pages/agency/AgencyDetailPage"));
@@ -48,6 +50,8 @@ function ProtectedRoutes() {
             <Route path={ROUTES.productEdit(":id")} component={ProductEditPage} />
             <Route path={ROUTES.productDetail(":id")} component={ProductDetailPage} />
             <Route path={ROUTES.products} component={ProductListPage} />
+            <Route path={ROUTES.productGroupDetail(":id")} component={ProductGroupDetailPage} />
+            <Route path={ROUTES.productGroups} component={ProductGroupListPage} />
             <Route path={ROUTES.orders} component={OrderListPage} />
             <Route path={ROUTES.agencyDetail(":id")} component={AgencyDetailRoute} />
             <Route path={ROUTES.agencies} component={AgencyListRoute} />

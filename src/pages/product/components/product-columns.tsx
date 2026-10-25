@@ -3,6 +3,7 @@ import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
 import { PRODUCT_CATEGORIES, PRODUCT_STATUS, type Product, type ProductStatus } from "@/features/product";
 import { formatVnd } from "@/lib/format";
+import { ShelfToggle } from "./ShelfToggle";
 
 export const productColumns: Column<Product>[] = [
   {
@@ -42,6 +43,7 @@ export const productColumns: Column<Product>[] = [
     mobilePriority: "badge",
     render: (v) => <StatusPill {...PRODUCT_STATUS[v as ProductStatus]} />,
   },
+  { key: "listed", label: "Lên kệ", width: "88px", render: (_, p) => <ShelfToggle product={p} /> },
 ];
 
 export const productFilters: TableFilterDef[] = [

@@ -68,6 +68,7 @@ export const productHandlers: MockHandler[] = [
           approved: count("approved"),
           pending: count("pending"),
           rejected: count("rejected"),
+          listed: rows.filter((p) => p.listed).length,
         },
       };
     },
@@ -88,6 +89,7 @@ export const productHandlers: MockHandler[] = [
         shopId,
         id: uid("p"),
         status: "pending",
+        listed: false,
         createdAt: new Date().toISOString(),
       };
       db.products.unshift(product);
@@ -109,11 +111,12 @@ export const productHandlers: MockHandler[] = [
       const shopId =
         actor().isRoot && body.shopId ? resolveShopId(body.shopId) : p.shopId;
       assertSkuFree(shopId, body.sku, p.id);
-      // Any edit sends the product back for moderation
+      // Any edit sends the product back for moderation (and off the shelf until re-approved)
       Object.assign(p, body, {
         shopId,
         status: "pending",
         rejectionReason: null,
+        listed: false,
       });
       return { data: withShop(p) };
     },
@@ -124,6 +127,9 @@ export const productHandlers: MockHandler[] = [
     handle: ({ params }) => {
       findOwned(params.id);
       db.products = db.products.filter((p) => p.id !== params.id);
+      db.productGroups.forEach((g) => {
+        g.productIds = g.productIds.filter((id) => id !== params.id);
+      });
       return { data: null };
     },
   },
@@ -145,6 +151,26 @@ export const productHandlers: MockHandler[] = [
       p.status = body.status;
       p.rejectionReason =
         body.status === "rejected" ? body.rejectionReason : null;
+      // Approved products go on the shelf by default; the shop can take them off later
+      p.listed = body.status === "approved";
+      return { data: withShop(p) };
+    },
+  },
+  {
+    method: "PATCH",
+    path: `${BASE}/:id/listing`,
+    handle: ({
+      params,
+      body,
+    }: {
+      params: Record<string, string>;
+      body: { listed: boolean };
+    }) => {
+      const p = findOwned(params.id);
+      if (body.listed && p.status !== "approved") {
+        throw new HttpError(400, "Chỉ sản phẩm đã duyệt mới được lên kệ");
+      }
+      p.listed = !!body.listed;
       return { data: withShop(p) };
     },
   },

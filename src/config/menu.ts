@@ -5,6 +5,7 @@ import {
   Package,
   ShoppingCart,
   Building2,
+  FolderTree,
   Handshake,
   Store,
 } from "lucide-react";
@@ -37,6 +38,7 @@ export const shopMenu: AdminMenuSection[] = [
           { id: "product-create", label: "Thêm sản phẩm", href: ROUTES.productCreate, roles: [...ALL] },
         ],
       },
+      { id: "product-groups", label: "Nhóm sản phẩm", icon: FolderTree, href: ROUTES.productGroups, roles: [...ALL] },
       { id: "product-approval", label: "Duyệt sản phẩm", icon: ClipboardCheck, href: ROUTES.productApproval, roles: [...ROOT] },
       { id: "reviews", label: "Đánh giá khách hàng", icon: MessageSquareText, href: ROUTES.reviews, roles: [...ALL] },
     ],

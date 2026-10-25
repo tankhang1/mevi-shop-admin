@@ -1,6 +1,7 @@
 import type { Agency } from "@/features/agency/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
+import type { ProductGroup } from "@/features/product-group/types";
 import type { Review } from "@/features/review/types";
 import type { Shop } from "@/features/shop/types";
 import { daysAgo } from "./utils";
@@ -10,6 +11,7 @@ const img = (seed: string) => `https://picsum.photos/seed/${seed}/400/400`;
 
 export const db: {
   products: Product[];
+  productGroups: ProductGroup[];
   orders: Order[];
   agencies: Agency[];
   shops: Shop[];
@@ -90,6 +92,35 @@ export const db: {
       },
     ],
     reviews: [],
+    productGroups: [
+      {
+        id: "g1",
+        shopId: "s1",
+        name: "Gạo đặc sản",
+        description: "Gạo thơm chính gốc đồng bằng sông Cửu Long.",
+        imageUrl: img("group-rice"),
+        productIds: ["p1"],
+        createdAt: daysAgo(18),
+      },
+      {
+        id: "g2",
+        shopId: "s1",
+        name: "Quà Tết",
+        description: "Set quà biếu sang trọng cho dịp Tết.",
+        imageUrl: img("group-tet"),
+        productIds: [],
+        createdAt: daysAgo(5),
+      },
+      {
+        id: "g3",
+        shopId: "s2",
+        name: "Cà phê rang mộc",
+        description: "Rang mộc, không tẩm ướp.",
+        imageUrl: img("group-coffee"),
+        productIds: ["p2"],
+        createdAt: daysAgo(10),
+      },
+    ],
     products: [
       {
         id: "p1",
@@ -107,6 +138,7 @@ export const db: {
         description: "Gạo ST25 canh tác hữu cơ.",
         images: [img("rice")],
         status: "approved",
+        listed: true,
         createdAt: daysAgo(20),
       },
       {
@@ -122,6 +154,7 @@ export const db: {
         shelfLife: "6 tháng",
         images: [img("coffee")],
         status: "approved",
+        listed: true,
         createdAt: daysAgo(15),
       },
       {
@@ -136,6 +169,7 @@ export const db: {
         packaging: "Chai 1L",
         images: [img("honey")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(3),
       },
       {
@@ -151,6 +185,7 @@ export const db: {
         packaging: "Hộp 200g",
         images: [img("tea")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(2),
       },
       {
@@ -165,6 +200,7 @@ export const db: {
         packaging: "Hũ 250g",
         images: [img("pepper")],
         status: "rejected",
+        listed: false,
         rejectionReason: "Thiếu giấy chứng nhận ATTP",
         createdAt: daysAgo(8),
       },
@@ -180,6 +216,7 @@ export const db: {
         packaging: "Hũ 500g",
         images: [img("cashew")],
         status: "approved",
+        listed: true,
         createdAt: daysAgo(10),
       },
       {
@@ -194,6 +231,7 @@ export const db: {
         packaging: "Túi 250g",
         images: [img("mango")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(1),
       },
       {
@@ -208,6 +246,7 @@ export const db: {
         packaging: "Hộp 100g",
         images: [img("oolong")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(1),
       },
       {
@@ -223,6 +262,7 @@ export const db: {
         packaging: "Túi 2kg",
         images: [img("brownrice")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(2),
       },
       {
@@ -237,6 +277,7 @@ export const db: {
         packaging: "Hũ 500g",
         images: [img("macadamia")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(3),
       },
       {
@@ -251,6 +292,7 @@ export const db: {
         packaging: "Túi 250g",
         images: [img("arabica")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(4),
       },
       {
@@ -265,6 +307,7 @@ export const db: {
         packaging: "Hũ 200g",
         images: [img("salt")],
         status: "pending",
+        listed: false,
         createdAt: daysAgo(5),
       },
     ],

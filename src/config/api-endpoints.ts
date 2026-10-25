@@ -11,6 +11,14 @@ export const API_ENDPOINTS = {
       stats: "/api/admin/shop/products/stats",
       detail: (id: string) => `/api/admin/shop/products/${id}`,
       moderate: (id: string) => `/api/admin/shop/products/${id}/moderate`,
+      /** Shop admin puts an approved product on / off the storefront shelf */
+      listing: (id: string) => `/api/admin/shop/products/${id}/listing`,
+    },
+    productGroups: {
+      base: "/api/admin/shop/product-groups",
+      detail: (id: string) => `/api/admin/shop/product-groups/${id}`,
+      /** PUT { productIds } — replaces the group's members */
+      products: (id: string) => `/api/admin/shop/product-groups/${id}/products`,
     },
     orders: {
       base: "/api/admin/shop/orders",

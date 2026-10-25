@@ -5,6 +5,9 @@ export const ROUTES = {
   ...SHOP_ROUTES,
   productDetail: (id: string) => `${SHOP_ROUTES.products}/${id}`,
   productEdit: (id: string) => `${SHOP_ROUTES.products}/${id}/edit`,
+  /** Same value as SHOP_ROUTES.productGroups (eco-shared-ui ≥ next release) */
+  productGroups: "/admin/product-groups",
+  productGroupDetail: (id: string) => `/admin/product-groups/${id}`,
   agencyDetail: (id: string) => `${SHOP_ROUTES.agencies}/${id}`,
   reviews: "/admin/reviews",
   /** Shop admin: their own storefront settings */

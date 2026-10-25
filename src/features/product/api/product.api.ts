@@ -24,4 +24,7 @@ export const productApi = {
 
   moderate: async (id: string, data: ModerateProductInput) =>
     (await apiClient.patch<ApiResponse<Product>>(EP.moderate(id), data)).data.data,
+
+  setListing: async (id: string, listed: boolean) =>
+    (await apiClient.patch<ApiResponse<Product>>(EP.listing(id), { listed })).data.data,
 };

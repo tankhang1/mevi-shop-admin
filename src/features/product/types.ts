@@ -23,10 +23,12 @@ export interface Product {
   shopName?: string;
   status: ProductStatus;
   rejectionReason?: string | null;
+  /** Shown on the storefront (on the shelf). Only approved products can be listed */
+  listed: boolean;
   createdAt: string;
 }
 
-export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "createdAt" | "shopName">;
+export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "createdAt" | "shopName">;
 
 export interface ProductListParams extends ListParams {
   status?: "all" | ProductStatus;
@@ -35,7 +37,7 @@ export interface ProductListParams extends ListParams {
   shopId?: string;
 }
 
-export type ProductStats = Record<"total" | ProductStatus, number>;
+export type ProductStats = Record<"total" | ProductStatus | "listed", number>;
 
 export interface ModerateProductInput {
   status: "approved" | "rejected";

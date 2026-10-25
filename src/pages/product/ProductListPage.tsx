@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { CheckCircle2, Clock, Package, Plus, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Package, Plus, Store, XCircle } from "lucide-react";
 import { Button, DataTable, DeleteDialog, StatsCard, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
@@ -50,9 +50,10 @@ export default function ProductListPage() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatsCard title="Tổng sản phẩm" value={stats?.total ?? "—"} icon={Package} />
-        <StatsCard title="Đang bán" value={stats?.approved ?? "—"} icon={CheckCircle2} />
+        <StatsCard title="Đã duyệt" value={stats?.approved ?? "—"} icon={CheckCircle2} />
+        <StatsCard title="Đang lên kệ" value={stats?.listed ?? "—"} icon={Store} />
         <StatsCard title="Chờ duyệt" value={stats?.pending ?? "—"} icon={Clock} />
         <StatsCard title="Bị từ chối" value={stats?.rejected ?? "—"} icon={XCircle} />
       </div>

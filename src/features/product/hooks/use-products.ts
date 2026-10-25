@@ -65,3 +65,11 @@ export function useModerateProduct() {
     onSuccess: invalidate,
   });
 }
+
+export function useSetProductListing() {
+  const invalidate = useInvalidateProducts();
+  return useMutation({
+    mutationFn: ({ id, listed }: { id: string; listed: boolean }) => productApi.setListing(id, listed),
+    onSuccess: invalidate,
+  });
+}
