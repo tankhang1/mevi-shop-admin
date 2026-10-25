@@ -1,6 +1,8 @@
 import {
+  Sprout,
   ClipboardCheck,
   LayoutDashboard,
+  Network,
   MessageSquareText,
   Package,
   ShoppingCart,
@@ -8,6 +10,8 @@ import {
   FolderTree,
   Handshake,
   Store,
+  UserCog,
+  Users,
   Warehouse,
 } from "lucide-react";
 import { type AdminMenuSection, SHOP_MOBILE_NAV_ITEMS } from "@Team-Trung-Vu-Khang/eco-shared-ui";
@@ -47,11 +51,27 @@ export const shopMenu: AdminMenuSection[] = [
   },
   {
     title: "Bán hàng",
-    items: [{ id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL] }],
+    items: [
+      { id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL] },
+      { id: "dispatch-teams", label: "Nhóm điều phối", icon: Network, href: ROUTES.dispatchTeams, roles: [...ALL] },
+      { id: "customers", label: "Khách hàng", icon: Users, href: ROUTES.customers, roles: [...ALL] },
+    ],
+  },
+  {
+    title: "Báo cáo doanh thu",
+    items: [
+      { id: "report-agency", label: "Theo đại lý / CTV", icon: Handshake, href: ROUTES.report("agency"), roles: [...ALL] },
+      { id: "report-product", label: "Theo sản phẩm", icon: Package, href: ROUTES.report("product"), roles: [...ALL] },
+      { id: "report-group", label: "Theo nhóm sản phẩm", icon: FolderTree, href: ROUTES.report("group"), roles: [...ALL] },
+      { id: "report-farm", label: "Theo nông hộ", icon: Sprout, href: ROUTES.report("farm"), roles: [...ALL] },
+    ],
   },
   {
     title: "Gian hàng",
-    items: [{ id: "my-shop", label: "Thông tin gian hàng", icon: Store, href: ROUTES.myShop, roles: [...SHOP] }],
+    items: [
+      { id: "my-shop", label: "Thông tin gian hàng", icon: Store, href: ROUTES.myShop, roles: [...SHOP] },
+      { id: "staff", label: "Nhân viên", icon: UserCog, href: ROUTES.staff, roles: [...ALL] },
+    ],
   },
   {
     title: "Đối tác",

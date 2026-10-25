@@ -11,6 +11,18 @@ export const ROUTES = {
   /** Same value as SHOP_ROUTES.inventory (eco-shared-ui ≥ next release) */
   inventory: "/admin/inventory",
   inventoryHistory: (productId: string) => `/admin/inventory/${productId}`,
+  /** Same value as SHOP_ROUTES.customers (eco-shared-ui ≥ next release) */
+  customers: "/admin/customers",
+  customerDetail: (id: string) => `/admin/customers/${id}`,
+  orderDetail: (id: string) => `${SHOP_ROUTES.orders}/${id}`,
+  /** Same value as SHOP_ROUTES.staff (eco-shared-ui ≥ next release) */
+  staff: "/admin/staff",
+  /** Same value as SHOP_ROUTES.dispatchTeams (eco-shared-ui ≥ next release) */
+  dispatchTeams: "/admin/dispatch-teams",
+  /** Same value as SHOP_ROUTES.reports (eco-shared-ui ≥ next release) */
+  reports: "/admin/reports",
+  /** One page per report — /admin/reports/agency | product | group | farm */
+  report: (kind: "agency" | "product" | "group" | "farm") => `/admin/reports/${kind}`,
   agencyDetail: (id: string) => `${SHOP_ROUTES.agencies}/${id}`,
   reviews: "/admin/reviews",
   /** Shop admin: their own storefront settings */

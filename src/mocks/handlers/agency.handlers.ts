@@ -1,10 +1,35 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type { Agency, AgencyInput } from "@/features/agency/types";
+import type { Agency, AgencyInput, Commission, CommissionStatus } from "@/features/agency/types";
+import type { Order } from "@/features/order/types";
 import { db } from "../db";
 import { requireRoot } from "../scope";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const BASE = API_ENDPOINTS.admin.agencies.base;
+
+function findAgency(id: string) {
+  const a = db.agencies.find((x) => x.id === id);
+  if (!a) throw new HttpError(404, "Không tìm thấy đại lý");
+  return a;
+}
+
+function commissionOf(o: Order, fallbackRate: number): Commission {
+  const rate = o.commissionRate ?? fallbackRate;
+  const status: CommissionStatus =
+    o.status === "cancelled" ? "void" : o.status !== "completed" ? "pending" : o.commissionPaidAt ? "paid" : "payable";
+  return {
+    id: o.id,
+    orderId: o.id,
+    orderCode: o.code,
+    orderTotal: o.total,
+    orderStatus: o.status,
+    rate,
+    amount: Math.round((o.total * rate) / 100),
+    status,
+    paidAt: o.commissionPaidAt ?? null,
+    createdAt: o.createdAt,
+  };
+}
 
 export const agencyHandlers: MockHandler[] = [
   {
@@ -62,6 +87,43 @@ export const agencyHandlers: MockHandler[] = [
       }
       Object.assign(a, body);
       return { data: a };
+    },
+  },
+  {
+    method: "GET",
+    path: `${BASE}/:id/commissions`,
+    handle: ({ params, query }) => {
+      requireRoot();
+      const a = findAgency(params.id);
+      const all = db.orders
+        .filter((o) => o.agencyId === a.id)
+        .map((o) => commissionOf(o, a.commissionRate))
+        .sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+      const summary = { pending: 0, payable: 0, paid: 0, void: 0 };
+      all.forEach((c) => (summary[c.status] += c.amount));
+      const rows = all.filter((c) => !query.status || query.status === "all" || c.status === query.status);
+      return { data: { ...paginate(rows, query, (c) => c.orderCode), summary } };
+    },
+  },
+  {
+    method: "POST",
+    path: `${BASE}/:id/commissions/payout`,
+    handle: ({ params, body }: { params: Record<string, string>; body: { orderIds: string[] } }) => {
+      requireRoot();
+      const a = findAgency(params.id);
+      const now = new Date().toISOString();
+      let count = 0;
+      let amount = 0;
+      for (const o of db.orders) {
+        if (o.agencyId !== a.id || !body.orderIds?.includes(o.id)) continue;
+        const c = commissionOf(o, a.commissionRate);
+        if (c.status !== "payable") continue;
+        o.commissionPaidAt = now;
+        count++;
+        amount += c.amount;
+      }
+      if (!count) throw new HttpError(400, "Không có hoa hồng nào cần thanh toán");
+      return { data: { count, amount } };
     },
   },
   {

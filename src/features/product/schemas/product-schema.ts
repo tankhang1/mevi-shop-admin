@@ -23,6 +23,7 @@ const baseSchema = z
     price: z.coerce.number({ message: "Vui lòng nhập giá" }).int().positive("Giá phải lớn hơn 0"),
     salePrice: optionalPrice,
     origin: z.string().optional(),
+    farmId: z.string().optional(),
     packaging: z.string().optional(),
     shelfLife: z.string().optional(),
     storage: z.string().optional(),
@@ -54,6 +55,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   price: "",
   salePrice: "",
   origin: "",
+  farmId: "",
   packaging: "",
   shelfLife: "",
   storage: "",
@@ -67,9 +69,10 @@ export const productToFormValues = (p: Product): ProductFormValues => ({
   certifications: p.certifications ?? [],
   price: String(p.price),
   salePrice: p.salePrice ? String(p.salePrice) : "",
+  farmId: p.farmId ?? "",
 });
 
 export const formValuesToInput = (values: ProductFormValues): ProductInput => {
   const v = productSchema.parse(values);
-  return { ...v, salePrice: v.salePrice ?? null };
+  return { ...v, salePrice: v.salePrice ?? null, farmId: v.farmId || null };
 };

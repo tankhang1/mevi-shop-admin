@@ -8,12 +8,16 @@ import {
 } from "axios";
 import { agencyHandlers } from "./handlers/agency.handlers";
 import { authHandlers } from "./handlers/auth.handlers";
+import { customerHandlers } from "./handlers/customer.handlers";
+import { dispatchTeamHandlers } from "./handlers/dispatch-team.handlers";
 import { dashboardHandlers } from "./handlers/dashboard.handlers";
 import { inventoryHandlers } from "./handlers/inventory.handlers";
 import { orderHandlers } from "./handlers/order.handlers";
 import { productGroupHandlers } from "./handlers/product-group.handlers";
 import { productHandlers } from "./handlers/product.handlers";
+import { reportHandlers } from "./handlers/report.handlers";
 import { reviewHandlers } from "./handlers/review.handlers";
+import { staffHandlers } from "./handlers/staff.handlers";
 import { shopHandlers } from "./handlers/shop.handlers";
 import { env } from "@/config/env";
 import { HttpError, type MockHandler } from "./utils";
@@ -25,9 +29,13 @@ const handlers: MockHandler[] = [
   ...productGroupHandlers,
   ...inventoryHandlers,
   ...orderHandlers,
+  ...dispatchTeamHandlers,
+  ...customerHandlers,
   ...agencyHandlers,
   ...shopHandlers,
+  ...staffHandlers,
   ...reviewHandlers,
+  ...reportHandlers,
 ];
 
 const LATENCY_MS = 350;

@@ -15,3 +15,16 @@ export const ORDER_STATUSES = Object.keys(ORDER_STATUS) as OrderStatus[];
 export const ORDER_FLOW: OrderStatus[] = ["new", "confirmed", "processing", "shipped", "completed"];
 
 export const isFinalOrderStatus = (s: OrderStatus) => s === "completed" || s === "cancelled";
+
+/** Label of the button that moves an order to this step */
+export const NEXT_STEP_LABEL: Partial<Record<OrderStatus, string>> = {
+  confirmed: "Xác nhận đơn",
+  processing: "Bắt đầu chuẩn bị",
+  shipped: "Giao cho vận chuyển",
+  completed: "Hoàn tất đơn",
+};
+
+export const nextOrderStatus = (s: OrderStatus): OrderStatus | undefined =>
+  isFinalOrderStatus(s) ? undefined : ORDER_FLOW[ORDER_FLOW.indexOf(s) + 1];
+
+export const CANCEL_REASONS = ["Khách yêu cầu huỷ", "Hết hàng", "Không liên lạc được khách", "Sai địa chỉ giao hàng"];

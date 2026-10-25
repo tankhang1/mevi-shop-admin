@@ -19,6 +19,7 @@ import {
   toSlug,
   useCreateAgency,
   useUpdateAgency,
+  DEFAULT_COMMISSION_RATE,
 } from "@/features/agency";
 import { getErrorMessage } from "@/lib/api-error";
 
@@ -37,6 +38,7 @@ const DEFAULTS: AgencyFormValues = {
   contactName: "",
   phone: "",
   email: "",
+  commissionRate: DEFAULT_COMMISSION_RATE,
 };
 
 const toFormValues = (a?: Agency): AgencyFormValues =>
@@ -49,6 +51,7 @@ const toFormValues = (a?: Agency): AgencyFormValues =>
         contactName: a.contactName ?? "",
         phone: a.phone ?? "",
         email: a.email ?? "",
+        commissionRate: a.commissionRate ?? DEFAULT_COMMISSION_RATE,
       }
     : DEFAULTS;
 
@@ -163,6 +166,27 @@ export function AgencyFormDialog({ open, onOpenChange, agency }: Props) {
               {...register("logoUrl")}
             />
             {err("logoUrl")}
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="commissionRate">
+              Hoa hồng chia sẻ<span className="text-destructive"> *</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="commissionRate"
+                type="number"
+                min={0}
+                max={50}
+                step={0.5}
+                className="pr-8"
+                {...register("commissionRate", { valueAsNumber: true })}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tính trên giá trị đơn hoàn tất qua link giới thiệu. Đổi tỉ lệ chỉ áp dụng cho đơn mới.
+            </p>
+            {err("commissionRate")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="contactName">Người liên hệ</Label>

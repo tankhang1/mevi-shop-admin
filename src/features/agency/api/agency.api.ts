@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { apiClient } from "@/lib/axios";
 import type { ApiResponse, ListParams, Paginated } from "@/types/api";
-import type { Agency, AgencyInput } from "../types";
+import type { Agency, AgencyInput, CommissionListParams, CommissionPage } from "../types";
 
 const EP = API_ENDPOINTS.admin.agencies;
 
@@ -19,4 +19,10 @@ export const agencyApi = {
   remove: async (id: string) => {
     await apiClient.delete(EP.detail(id));
   },
+
+  commissions: async (id: string, params: CommissionListParams) =>
+    (await apiClient.get<ApiResponse<CommissionPage>>(EP.commissions(id), { params })).data.data,
+
+  payout: async (id: string, orderIds: string[]) =>
+    (await apiClient.post<ApiResponse<{ count: number; amount: number }>>(EP.payout(id), { orderIds })).data.data,
 };

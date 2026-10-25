@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import {
   type Column,
   DataTable,
@@ -15,11 +16,15 @@ import {
   type Order,
   type OrderListParams,
   type OrderStatus,
+  ORDER_FLOW,
   isFinalOrderStatus,
   useOrders,
   useUpdateOrderStatus,
 } from "@/features/order";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ROUTES } from "@/config/routes";
+import { useDispatchTeams } from "@/features/dispatch-team";
+import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
@@ -30,11 +35,26 @@ import {
 
 export default function OrderListPage() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
-  const table = useTableParams<Pick<OrderListParams, "status"> & { shopId: string }>({
+  const search = useSearch();
+  const { data: teams } = useDispatchTeams({ size: 100 });
+  const table = useTableParams<
+    Pick<OrderListParams, "status"> & { shopId: string; teamId: string }
+  >({
     status: "all",
     shopId: shopFilter.initialShopId,
+    // ?teamId= comes from "Xem đơn của nhóm" on the dispatch team page
+    teamId: new URLSearchParams(search).get("teamId") ?? "all",
   });
+  const teamFilter = {
+    key: "teamId",
+    label: "Nhóm điều phối",
+    options: [
+      { label: "Chưa phân nhóm", value: "none" },
+      ...(teams?.items ?? []).map((t) => ({ label: t.name, value: t.id })),
+    ],
+  };
   const { data: page, isFetching } = useOrders(table.params);
   const update = useUpdateOrderStatus();
   // Status picks are staged here and only applied after the admin confirms
@@ -42,6 +62,28 @@ export default function OrderListPage() {
     order: Order;
     next: OrderStatus;
   } | null>(null);
+
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+
+  const cancelOrder = async (reason: string) => {
+    if (!cancelTarget) return;
+    try {
+      await update.mutateAsync({
+        id: cancelTarget.id,
+        status: "cancelled",
+        note: reason,
+      });
+      toast({ title: "Đã huỷ đơn hàng", description: cancelTarget.code });
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: getErrorMessage(e),
+      });
+    } finally {
+      setCancelTarget(null);
+    }
+  };
 
   const confirmChange = async () => {
     if (!pending) return;
@@ -68,28 +110,55 @@ export default function OrderListPage() {
     ...shopFilter.column<Order>(),
     ...orderColumns.slice(2),
     {
+      key: "teamName",
+      label: "Điều phối",
+      render: (_, o) =>
+        o.teamName ? (
+          <div className="text-sm">
+            <div className="whitespace-nowrap">{o.teamName}</div>
+            {o.assigneeName && <div className="text-xs text-muted-foreground">{o.assigneeName}</div>}
+          </div>
+        ) : (
+          <span className="whitespace-nowrap text-xs text-amber-700">Chưa phân</span>
+        ),
+    },
+    {
       key: "changeStatus",
       label: "Đổi trạng thái",
       width: "180px",
       render: (_, o) => (
-        <Select
-          value={o.status}
-          onValueChange={(v) =>
-            v !== o.status && setPending({ order: o, next: v as OrderStatus })
-          }
-          disabled={isFinalOrderStatus(o.status) || update.isPending}
-        >
-          <SelectTrigger className="h-9 w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ORDER_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {ORDER_STATUS[s].label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        // Stop clicks reaching the table row, which would otherwise open the order
+        <span onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={o.status}
+            onValueChange={(v) => {
+              if (v === o.status) return;
+              if (v === "cancelled") setCancelTarget(o);
+              else setPending({ order: o, next: v as OrderStatus });
+            }}
+            disabled={isFinalOrderStatus(o.status) || update.isPending}
+          >
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUSES.map((s) => (
+                <SelectItem
+                  key={s}
+                  value={s}
+                  // Orders only move forward (cancel is always allowed until final)
+                  disabled={
+                    s !== "cancelled" &&
+                    s !== o.status &&
+                    ORDER_FLOW.indexOf(s) < ORDER_FLOW.indexOf(o.status)
+                  }
+                >
+                  {ORDER_STATUS[s].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </span>
       ),
     },
   ];
@@ -101,9 +170,14 @@ export default function OrderListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={shopFilter.filter ? [shopFilter.filter, ...orderFilters] : orderFilters}
+        filters={
+          shopFilter.filter
+            ? [shopFilter.filter, ...orderFilters, teamFilter]
+            : [...orderFilters, teamFilter]
+        }
         searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
         enableMobileCard
+        onView={(o) => navigate(ROUTES.orderDetail(o.id))}
       />
       <ConfirmDialog
         open={!!pending}
@@ -111,7 +185,7 @@ export default function OrderListPage() {
         loading={update.isPending}
         destructive={!!finalStep}
         title={`Đổi trạng thái đơn ${pending?.order.code ?? ""}?`}
-        confirmLabel={pending?.next === "cancelled" ? "Huỷ đơn" : "Xác nhận"}
+        confirmLabel="Xác nhận"
         onConfirm={() => void confirmChange()}
         description={
           pending && (
@@ -137,6 +211,13 @@ export default function OrderListPage() {
             </>
           )
         }
+      />
+      <CancelOrderDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => !o && setCancelTarget(null)}
+        code={cancelTarget?.code ?? ""}
+        loading={update.isPending}
+        onConfirm={(reason) => void cancelOrder(reason)}
       />
     </>
   );

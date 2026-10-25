@@ -19,6 +19,10 @@ import {
   CardHeader,
   CardTitle,
   DataTable,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
@@ -42,6 +46,7 @@ import {
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatDate, formatVnd } from "@/lib/format";
 import { AgencyActiveToggle } from "./components/AgencyActiveToggle";
+import { AgencyCommissions } from "./components/AgencyCommissions";
 import { AgencyFormDialog } from "./components/AgencyFormDialog";
 import { DeleteAgencyDialog } from "./components/DeleteAgencyDialog";
 
@@ -191,8 +196,12 @@ export default function AgencyDetailPage() {
               <h2 className="text-xl font-bold" style={{ color }}>
                 {agency.name}
               </h2>
-              <p className="font-mono text-xs text-muted-foreground">
+              <p className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
                 {agency.slug}
+                <StatusPill
+                  label={`Hoa hồng ${agency.commissionRate}%`}
+                  className="bg-primary/10 font-sans text-primary"
+                />
               </p>
               <div className="mt-1.5 flex flex-wrap gap-3 text-xs font-medium">
                 <a
@@ -306,16 +315,25 @@ export default function AgencyDetailPage() {
             />
           </div>
 
-          <section className="space-y-3">
-            <h3 className="text-base font-semibold">Đơn hàng của đại lý</h3>
-            <DataTable
-              {...table.bind(page, isFetching)}
-              columns={orderColumns}
-              filters={orderFilters}
-              searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
-              enableMobileCard
-            />
-          </section>
+          <Tabs defaultValue="orders" className="space-y-3">
+            <TabsList>
+              <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
+              <TabsTrigger value="commissions">Hoa hồng</TabsTrigger>
+            </TabsList>
+            <TabsContent value="orders" className="mt-0">
+              <DataTable
+                {...table.bind(page, isFetching)}
+                columns={orderColumns}
+                onView={(o) => navigate(ROUTES.orderDetail(o.id))}
+                filters={orderFilters}
+                searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
+                enableMobileCard
+              />
+            </TabsContent>
+            <TabsContent value="commissions" className="mt-0">
+              <AgencyCommissions agency={agency} />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 

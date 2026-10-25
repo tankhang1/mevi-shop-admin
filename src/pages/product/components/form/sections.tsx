@@ -5,6 +5,7 @@ import { readAsDataUrl } from "@/lib/file";
 import { FormField, FormItem, FormMessage, cn, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { SelectField, TextField, TextareaField } from "@/components/form";
 import { PRODUCT_CATEGORIES, PRODUCT_CERTIFICATIONS, PRODUCT_IMAGE, type ProductFormValues } from "@/features/product";
+import { FARM_TYPE, useFarms } from "@/features/farm";
 import { ProductInfo } from "../ProductInfo";
 
 const CATEGORY_OPTIONS = PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c }));
@@ -35,6 +36,8 @@ export function BasicInfoSection({ shopOptions }: { shopOptions?: { label: strin
 
 /** Bước 2 */
 export function PricingSection() {
+  const { data: farms } = useFarms();
+  const farmOptions = (farms ?? []).map((f) => ({ label: `${f.name} · ${FARM_TYPE[f.type]} · ${f.location}`, value: f.id }));
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -43,6 +46,13 @@ export function PricingSection() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField<ProductFormValues> name="origin" label="Nguồn gốc / vùng trồng" placeholder="VD: Sóc Trăng" />
+        <SelectField<ProductFormValues>
+          name="farmId"
+          label="Nông hộ cung cấp"
+          options={farmOptions}
+          placeholder="Chọn nông hộ / HTX"
+          description="Dùng cho truy xuất nguồn gốc và báo cáo doanh thu theo nông hộ"
+        />
         <TextField<ProductFormValues> name="packaging" label="Quy cách đóng gói" placeholder="VD: Túi 5kg" />
         <TextField<ProductFormValues> name="shelfLife" label="Hạn sử dụng" placeholder="VD: 12 tháng" />
         <TextField<ProductFormValues> name="storage" label="Hướng dẫn bảo quản" placeholder="VD: Nơi khô ráo, thoáng mát" />

@@ -17,6 +17,8 @@ export interface Product {
   images: string[];
   /** VietGAP, OCOP 4 sao, Hữu cơ… — shown on the storefront trace card */
   certifications: string[];
+  /** Supplying farmer household / cooperative (eco-farm workspace) */
+  farmId?: string | null;
   /** Owning seller; set from the token for shop admins, chosen in the form by root */
   shopId: string;
   /** Joined by the backend for list/detail views */

@@ -1,10 +1,14 @@
 import type { Agency } from "@/features/agency/types";
+import type { Customer } from "@/features/customer/types";
+import type { Farm } from "@/features/farm/types";
+import type { DispatchTeam } from "@/features/dispatch-team/types";
 import type { StockMovement } from "@/features/inventory/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
 import type { ProductGroup } from "@/features/product-group/types";
 import type { Review } from "@/features/review/types";
 import type { Shop } from "@/features/shop/types";
+import type { Staff } from "@/features/staff/types";
 import { daysAgo } from "./utils";
 
 /** In-memory dummy data (resets on reload) — mutated by ./handlers */
@@ -14,6 +18,10 @@ export const db: {
   products: Product[];
   productGroups: ProductGroup[];
   stockMovements: StockMovement[];
+  customers: Customer[];
+  staff: Staff[];
+  farms: Farm[];
+  dispatchTeams: DispatchTeam[];
   orders: Order[];
   agencies: Agency[];
   shops: Shop[];
@@ -94,6 +102,26 @@ export const db: {
       },
     ],
     reviews: [],
+    customers: [],
+    dispatchTeams: [
+      { id: "t1", shopId: "s1", name: "Nhóm miền Nam", description: "Giao nội thành TP.HCM và Cần Thơ", leaderId: "st1", memberIds: ["st1", "st2"], regions: ["TP.HCM", "Cần Thơ"], active: true, createdAt: daysAgo(40) },
+      { id: "t2", shopId: "s1", name: "Nhóm miền Bắc & Trung", description: "Gửi xe đi Hà Nội, Đà Nẵng, Vinh", leaderId: "st2", memberIds: ["st2", "st4"], regions: ["Hà Nội", "Đà Nẵng", "Vinh"], active: true, createdAt: daysAgo(30) },
+    ],
+    farms: [
+      { id: "f1", name: "Nông hộ Lâm Văn Sáu", ownerName: "Lâm Văn Sáu", location: "Mỹ Xuyên, Sóc Trăng", type: "farm_household" },
+      { id: "f2", name: "HTX Nông nghiệp Cam Lâm", ownerName: "Nguyễn Thị Hoa", location: "Cam Lâm, Khánh Hoà", type: "cooperative" },
+      { id: "f3", name: "Nông hộ Y Ngông", ownerName: "Y Ngông Niê", location: "Krông Pắc, Đắk Lắk", type: "farm_household" },
+      { id: "f4", name: "HTX Trà Bảo Lộc", ownerName: "Trần Quốc Việt", location: "Bảo Lộc, Lâm Đồng", type: "cooperative" },
+      { id: "f5", name: "Nông hộ Giàng A Páo", ownerName: "Giàng A Páo", location: "Hoàng Su Phì, Hà Giang", type: "farm_household" },
+      { id: "f6", name: "Nông hộ Phạm Văn Lành", ownerName: "Phạm Văn Lành", location: "Dương Đông, Phú Quốc", type: "farm_household" },
+    ],
+    staff: [
+      { id: "st1", shopId: "s1", name: "Phạm Thu Hà", phone: "0911000001", email: "ha.pham@mientay.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(90), lastActiveAt: daysAgo(0), createdAt: daysAgo(90) },
+      { id: "st2", shopId: "s1", name: "Trần Minh Quân", phone: "0911000002", email: "quan.tran@mientay.vn", role: "sales", permissions: ["orders", "customers", "reviews"], status: "active", invitedAt: daysAgo(45), lastActiveAt: daysAgo(1), createdAt: daysAgo(45) },
+      { id: "st3", shopId: "s1", name: "Lê Văn Tài", phone: "0911000003", email: "tai.le@mientay.vn", role: "warehouse", permissions: ["inventory", "orders"], status: "disabled", invitedAt: daysAgo(60), lastActiveAt: daysAgo(20), createdAt: daysAgo(60) },
+      { id: "st4", shopId: "s1", name: "Võ Ngọc Mai", phone: "0911000004", email: "mai.vo@mientay.vn", role: "sales", permissions: ["orders", "customers"], status: "invited", invitedAt: daysAgo(2), lastActiveAt: null, createdAt: daysAgo(2) },
+      { id: "st5", shopId: "s2", name: "H'Nhi Êban", phone: "0911000005", email: "nhi@caphetaynguyen.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(70), lastActiveAt: daysAgo(3), createdAt: daysAgo(70) },
+    ],
     stockMovements: [
       { id: "mh0", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(40) },
       { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
@@ -146,6 +174,7 @@ export const db: {
     products: [
       {
         id: "p1",
+        farmId: "f1",
         shopId: "s1",
         certifications: ["VietGAP", "Hữu cơ"],
         name: "Gạo ST25 hữu cơ",
@@ -167,6 +196,7 @@ export const db: {
       },
       {
         id: "p2",
+        farmId: "f3",
         shopId: "s2",
         certifications: ["OCOP 4 sao"],
         name: "Cà phê Robusta rang mộc",
@@ -185,6 +215,7 @@ export const db: {
       },
       {
         id: "p3",
+        farmId: "f2",
         shopId: "s3",
         certifications: [],
         name: "Mật ong hoa nhãn",
@@ -202,6 +233,7 @@ export const db: {
       },
       {
         id: "p4",
+        farmId: "f5",
         shopId: "s3",
         certifications: ["Hữu cơ", "OCOP 5 sao"],
         name: "Trà Shan tuyết cổ thụ",
@@ -220,6 +252,7 @@ export const db: {
       },
       {
         id: "p5",
+        farmId: "f6",
         shopId: "s3",
         certifications: [],
         name: "Tiêu đen Phú Quốc",
@@ -238,6 +271,7 @@ export const db: {
       },
       {
         id: "p6",
+        farmId: "f3",
         shopId: "s2",
         certifications: ["HACCP"],
         name: "Hạt điều rang muối",
@@ -255,6 +289,7 @@ export const db: {
       },
       {
         id: "p7",
+        farmId: "f2",
         shopId: "s1",
         certifications: [],
         name: "Xoài sấy dẻo Cam Lâm",
@@ -272,6 +307,7 @@ export const db: {
       },
       {
         id: "p8",
+        farmId: "f4",
         shopId: "s3",
         certifications: [],
         name: "Trà ô long Lâm Đồng",
@@ -289,6 +325,7 @@ export const db: {
       },
       {
         id: "p9",
+        farmId: "f1",
         shopId: "s1",
         certifications: ["Hữu cơ"],
         name: "Gạo lứt đỏ hữu cơ",
@@ -307,6 +344,7 @@ export const db: {
       },
       {
         id: "p10",
+        farmId: "f3",
         shopId: "s2",
         certifications: [],
         name: "Mắc ca nứt vỏ",
@@ -324,6 +362,7 @@ export const db: {
       },
       {
         id: "p11",
+        farmId: "f4",
         shopId: "s2",
         certifications: ["VietGAP"],
         name: "Cà phê Arabica Cầu Đất",
@@ -341,6 +380,7 @@ export const db: {
       },
       {
         id: "p12",
+        farmId: "f2",
         shopId: "s3",
         certifications: [],
         name: "Muối tôm Tây Ninh",
@@ -457,6 +497,7 @@ export const db: {
         phone: "0909111222",
         email: "dalat@mevi.vn",
         active: true,
+        commissionRate: 10,
         createdAt: daysAgo(60),
       },
       {
@@ -468,6 +509,7 @@ export const db: {
         phone: "0909333444",
         email: "mientay@mevi.vn",
         active: true,
+        commissionRate: 8,
         createdAt: daysAgo(40),
       },
       {
@@ -478,6 +520,7 @@ export const db: {
         contactName: "Lò Văn Sơn",
         phone: "0909555666",
         active: false,
+        commissionRate: 12,
         createdAt: daysAgo(25),
       },
     ],
@@ -488,18 +531,6 @@ let seed = 42;
 const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 const pick = <T>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
 
-const NAMES = [
-  "Nguyễn Minh Anh",
-  "Trần Quốc Bảo",
-  "Lê Thị Cúc",
-  "Phạm Gia Huy",
-  "Võ Ngọc Lan",
-  "Đỗ Văn Khoa",
-  "Huỳnh Mai",
-  "Ngô Thanh Tùng",
-  "Bùi Hải Yến",
-  "Dương Đức Phúc",
-];
 const CITIES = [
   "Q.3, TP.HCM",
   "Cầu Giấy, Hà Nội",
@@ -511,6 +542,17 @@ const CITIES = [
   "TP. Buôn Ma Thuột",
 ];
 const sellable = db.products.filter((p) => p.status === "approved");
+
+/** Repeat buyers: a small pool so the same people show up across many orders */
+const SURNAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Võ", "Đặng", "Bùi", "Đỗ", "Ngô", "Dương", "Lý"];
+const GIVEN = ["Minh Anh", "Quốc Bảo", "Thị Cúc", "Gia Huy", "Ngọc Lan", "Văn Khoa", "Mai", "Thanh Tùng", "Hải Yến", "Đức Phúc", "Thu Trang", "Hoàng Nam", "Bích Ngọc", "Tuấn Kiệt"];
+const BUYERS = Array.from({ length: 28 }, (_, i) => ({
+  name: `${SURNAMES[i % SURNAMES.length]} ${GIVEN[(i * 5) % GIVEN.length]}`,
+  phone: `09${String(10_000_000 + Math.floor(rand() * 89_999_999))}`,
+  address: `${1 + Math.floor(rand() * 200)} Đường số ${1 + Math.floor(rand() * 30)}, ${pick(CITIES)}`,
+}));
+// Skewed so a handful of loyal customers place most orders
+const pickBuyer = () => BUYERS[Math.floor(Math.pow(rand(), 1.8) * BUYERS.length)];
 
 /** Older orders are mostly finished; recent ones are still in the pipeline */
 function statusFor(age: number): OrderStatus {
@@ -536,23 +578,83 @@ for (let i = 0; i < 140; i++) {
       price: p.salePrice ?? p.price,
     };
   });
+  const agencyId = (["a1", "a2", "a3", undefined, undefined] as const)[i % 5];
+  const buyer = pickBuyer();
   db.orders.push({
     id: `og${i}`,
     code: `MV-${2000 + i}`,
-    recipientName: pick(NAMES),
-    recipientPhone: `09${Math.floor(10_000_000 + rand() * 89_999_999)}`,
-    address: `${1 + Math.floor(rand() * 200)} Đường số ${1 + Math.floor(rand() * 30)}, ${pick(CITIES)}`,
+    recipientName: buyer.name,
+    recipientPhone: buyer.phone,
+    address: buyer.address,
     total: items.reduce((s, it) => s + it.quantity * it.price, 0),
     items,
     shopId: first.shopId,
     status: statusFor(age),
     // Every other order came through an agency referral link
-    agencyId: (["a1", "a2", "a3", undefined, undefined] as const)[i % 5],
+    agencyId,
+    commissionRate: agencyId ? db.agencies.find((a) => a.id === agencyId)?.commissionRate : undefined,
+    // Commissions on orders finished more than a month ago have been paid out
+    commissionPaidAt: agencyId && age > 30 ? daysAgo(age - 30) : null,
     createdAt: new Date(
       Date.now() - age * 86_400_000 - rand() * 86_400_000 * 0.9,
     ).toISOString(),
   });
 }
+
+// ── Order details: items for the hand-written orders + a status trail for every order ──
+const FLOW: OrderStatus[] = ["new", "confirmed", "processing", "shipped", "completed"];
+for (const o of db.orders) {
+  if (!o.items?.length) {
+    const p = db.products.find((x) => x.shopId === o.shopId) ?? db.products[0];
+    const price = p.salePrice ?? p.price;
+    const quantity = Math.max(1, Math.round(o.total / price));
+    o.items = [{ productId: p.id, name: p.name, quantity, price }];
+    o.total = quantity * price;
+  }
+  const placed = new Date(o.createdAt).getTime();
+  const shop = db.shops.find((x) => x.id === o.shopId)?.contactName ?? "Chủ shop";
+  const reached = o.status === "cancelled" ? FLOW.slice(0, 1 + Math.floor(rand() * 3)) : FLOW.slice(0, FLOW.indexOf(o.status) + 1);
+  o.statusHistory = reached.map((status, i) => ({
+    status,
+    at: new Date(Math.min(Date.now(), placed + i * (6 + rand() * 18) * 3_600_000)).toISOString(),
+    by: i === 0 ? "Khách hàng" : shop,
+  }));
+  if (o.status === "cancelled") {
+    o.cancelReason = pick(["Khách yêu cầu huỷ", "Không liên lạc được khách", "Hết hàng"]);
+    o.statusHistory.push({
+      status: "cancelled",
+      at: new Date(Math.min(Date.now(), placed + reached.length * 8 * 3_600_000)).toISOString(),
+      by: shop,
+      note: o.cancelReason,
+    });
+  }
+}
+
+// ── Dispatch: route each order to the shop team covering its address ──
+for (const o of db.orders) {
+  const addr = o.address.toLowerCase();
+  const team = db.dispatchTeams.find((t) => t.shopId === o.shopId && t.regions.some((r) => addr.includes(r.toLowerCase())));
+  // Leave the newest few unassigned so "Tự động phân đơn" has work to do
+  if (!team || Date.now() - new Date(o.createdAt).getTime() < 2 * 86_400_000) continue;
+  o.teamId = team.id;
+  o.assigneeId = o.status === "new" ? null : team.memberIds[o.code.length % team.memberIds.length];
+}
+
+// ── Customers: one per distinct buyer phone, first seen = first order ──
+for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+  if (db.customers.some((c) => c.phone === o.recipientPhone)) continue;
+  db.customers.push({
+    id: `c${db.customers.length + 1}`,
+    name: o.recipientName,
+    phone: o.recipientPhone,
+    address: o.address,
+    tags: [],
+    createdAt: o.createdAt,
+  });
+}
+db.customers[0].tags = ["Khách sỉ"];
+db.customers[0].note = "Mua số lượng lớn, ưu tiên giao buổi sáng.";
+db.customers[1].tags = ["Quà tặng"];
 
 // ── Generated reviews (deterministic), wording from mevi-shop's reviews model ──
 const AUTHORS = ["Nguyễn Thu Hà", "Trần Minh Khoa", "Lê Bảo Ngọc", "Phạm Gia Huy", "Võ Thị Mai", "Đỗ Quang Vinh", "Huỳnh Anh Thư", "Bùi Đức Long", "Ngô Phương Linh", "Đặng Hữu Tài"];

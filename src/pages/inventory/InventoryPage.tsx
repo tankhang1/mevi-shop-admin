@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { AlertTriangle, ArrowDownUp, Boxes, History, Package, PackageX } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, ExternalLink, Package, PackageX } from "lucide-react";
 import {
   type Column,
-  Button,
+  type RowAction,
   DataTable,
   StatsCard,
   type TableFilterDef,
@@ -79,22 +79,11 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       mobilePriority: "badge",
       render: (v) => <StatusPill {...STOCK_STATUS[v as StockStatus]} />,
     },
-    {
-      key: "id",
-      label: "",
-      width: "200px",
-      render: (_, p) => (
-        // Stop clicks reaching the table row, which would otherwise open the history page
-        <span className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="outline" onClick={() => onAdjust(p)}>
-            <ArrowDownUp className="mr-1.5 h-3.5 w-3.5" /> Nhập / Xuất
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => navigate(ROUTES.inventoryHistory(p.id))}>
-            <History className="mr-1.5 h-3.5 w-3.5" /> Lịch sử
-          </Button>
-        </span>
-      ),
-    },
+  ];
+
+  const actions: RowAction<InventoryItem>[] = [
+    { key: "adjust", label: "Nhập / Xuất kho", icon: ArrowDownUp, onClick: onAdjust },
+    { key: "product", label: "Xem sản phẩm", icon: ExternalLink, onClick: (p) => navigate(ROUTES.productDetail(p.id)) },
   ];
 
   return (
@@ -104,7 +93,9 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       filters={shopFilter.filter ? [shopFilter.filter, stockFilter] : [stockFilter]}
       searchPlaceholder="Tìm theo tên, SKU..."
       enableMobileCard
+      // "Xem chi tiết" = the product's stock history
       onView={(p) => navigate(ROUTES.inventoryHistory(p.id))}
+      rowActions={actions}
     />
   );
 }

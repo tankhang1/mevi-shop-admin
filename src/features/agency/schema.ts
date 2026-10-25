@@ -12,6 +12,7 @@ export const agencySchema = z.object({
   contactName: z.string().optional(),
   phone: z.string().optional(),
   email: z.union([z.literal(""), z.email("Email không hợp lệ")]).optional(),
+  commissionRate: z.number({ message: "Nhập số %" }).min(0, "Tối thiểu 0%").max(50, "Tối đa 50%"),
 });
 
 export type AgencyFormValues = z.infer<typeof agencySchema>;

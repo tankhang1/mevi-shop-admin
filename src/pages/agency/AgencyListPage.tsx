@@ -65,6 +65,12 @@ export default function AgencyListPage() {
       render: (v) => <span className="font-mono text-xs">{String(v)}</span>,
     },
     {
+      key: "commissionRate",
+      label: "Hoa hồng",
+      width: "96px",
+      render: (v) => <span className="font-medium">{String(v ?? 0)}%</span>,
+    },
+    {
       key: "contactName",
       label: "Liên hệ",
       render: (_, a) => (

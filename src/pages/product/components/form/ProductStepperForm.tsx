@@ -19,7 +19,7 @@ const getSteps = (shopOptions?: { label: string; value: string }[]): SchemaStep<
     id: "pricing",
     title: "Giá & quy cách",
     description: "Giá bán, nguồn gốc, bảo quản",
-    fields: ["price", "salePrice", "origin", "packaging", "shelfLife", "storage", "certifications"],
+    fields: ["price", "salePrice", "origin", "farmId", "packaging", "shelfLife", "storage", "certifications"],
     content: <PricingSection />,
   },
   {
