@@ -1,6 +1,7 @@
 import type { ListParams } from "@/types/api";
 
-export type OrderStatus = "new" | "confirmed" | "processing" | "shipped" | "completed" | "cancelled";
+/** new = Đã lên đơn, completed = Đã giao hàng, cancelled = Huỷ đơn */
+export type OrderStatus = "new" | "completed" | "cancelled";
 
 export interface OrderItem {
   productId: string;

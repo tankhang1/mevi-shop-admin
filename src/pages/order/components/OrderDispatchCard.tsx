@@ -14,6 +14,7 @@ import {
   SelectValue,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { useAccess } from "@/features/auth";
 import { useDispatchTeams } from "@/features/dispatch-team";
 import {
   type OrderDetail,
@@ -27,6 +28,7 @@ const NONE = "none";
 /** Which dispatch team (and which member of it) handles this order */
 export function OrderDispatchCard({ order }: { order: OrderDetail }) {
   const { toast } = useToast();
+  const { isStaff } = useAccess();
   const { data: teams } = useDispatchTeams({ shopId: order.shopId, size: 100 });
   const assign = useAssignOrder();
   const [teamId, setTeamId] = useState(order.teamId ?? NONE);
@@ -39,7 +41,8 @@ export function OrderDispatchCard({ order }: { order: OrderDetail }) {
   const dirty =
     teamId !== (order.teamId ?? NONE) ||
     assigneeId !== (order.assigneeId ?? NONE);
-  const locked = isFinalOrderStatus(order.status);
+  // Staff see who handles the order; only the admin can move it
+  const locked = isFinalOrderStatus(order.status) || isStaff;
 
   const onSave = async () => {
     try {

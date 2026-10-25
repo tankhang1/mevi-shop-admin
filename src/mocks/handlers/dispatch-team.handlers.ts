@@ -18,6 +18,10 @@ function toRow(t: DispatchTeam): DispatchTeamRow {
       const s = db.staff.find((x) => x.id === id);
       return s ? [{ id: s.id, name: s.name }] : [];
     }),
+    productGroups: t.productGroupIds.flatMap((id) => {
+      const g = db.productGroups.find((x) => x.id === id);
+      return g ? [{ id: g.id, name: g.name }] : [];
+    }),
     openOrders: db.orders.filter((o) => o.teamId === t.id && !isFinalOrderStatus(o.status)).length,
   };
 }
@@ -30,21 +34,45 @@ function resolveShopId(requested: string | undefined) {
   return requested;
 }
 
-/** Members must be the shop's own staff, and the lead one of them */
+/** Members and product groups must be the shop's own; a group may belong to only one team */
 function validate(shopId: string, body: Partial<DispatchTeamInput>, current?: DispatchTeam) {
   const memberIds = body.memberIds ?? current?.memberIds ?? [];
   if (memberIds.some((id) => db.staff.find((s) => s.id === id)?.shopId !== shopId))
     throw new HttpError(400, "Thành viên phải là nhân viên của gian hàng");
   const leaderId = body.leaderId === undefined ? current?.leaderId : body.leaderId;
   if (leaderId && !memberIds.includes(leaderId)) throw new HttpError(400, "Trưởng nhóm phải là thành viên của nhóm");
+  for (const gid of body.productGroupIds ?? []) {
+    const g = db.productGroups.find((x) => x.id === gid);
+    if (g?.shopId !== shopId) throw new HttpError(400, "Nhóm sản phẩm không thuộc gian hàng");
+    const owner = db.dispatchTeams.find((t) => t.id !== current?.id && t.productGroupIds.includes(gid));
+    if (owner) throw new HttpError(409, `Nhóm sản phẩm "${g.name}" đã được gán cho "${owner.name}"`);
+  }
 }
 
-/** First active team of the order's shop whose area appears in the address */
-export function matchTeam(o: Pick<Order, "shopId" | "address">) {
-  const addr = o.address.toLowerCase();
-  return db.dispatchTeams.find(
-    (t) => t.active && t.shopId === o.shopId && t.regions.some((r) => addr.includes(r.toLowerCase())),
-  );
+/** Active team owning the product group of the order's first grouped item */
+export function teamForOrder(o: Pick<Order, "shopId" | "items">) {
+  for (const it of o.items ?? []) {
+    const groupIds = db.productGroups.filter((g) => g.productIds.includes(it.productId)).map((g) => g.id);
+    const team = db.dispatchTeams.find(
+      (t) => t.active && t.shopId === o.shopId && t.productGroupIds.some((g) => groupIds.includes(g)),
+    );
+    if (team) return team;
+  }
+  return undefined;
+}
+
+/** Next active member in turn; skips locked accounts */
+export function nextMember(t: DispatchTeam) {
+  const n = t.memberIds.length;
+  for (let k = 0; k < n; k++) {
+    const i = ((t.nextMemberIndex ?? 0) + k) % n;
+    const s = db.staff.find((x) => x.id === t.memberIds[i]);
+    if (s && s.status !== "disabled") {
+      t.nextMemberIndex = (i + 1) % n;
+      return s.id;
+    }
+  }
+  return null;
 }
 
 export const dispatchTeamHandlers: MockHandler[] = [
@@ -59,11 +87,12 @@ export const dispatchTeamHandlers: MockHandler[] = [
     handle: () => {
       let assigned = 0;
       let unmatched = 0;
-      for (const o of scoped(db.orders)) {
+      for (const o of scoped(db.orders).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
         if (o.teamId || isFinalOrderStatus(o.status)) continue;
-        const team = matchTeam(o);
+        const team = teamForOrder(o);
         if (team) {
           o.teamId = team.id;
+          o.assigneeId = nextMember(team);
           assigned++;
         } else unmatched++;
       }
@@ -83,7 +112,8 @@ export const dispatchTeamHandlers: MockHandler[] = [
         description: body.description?.trim() || undefined,
         leaderId: body.leaderId || null,
         memberIds: body.memberIds,
-        regions: body.regions,
+        productGroupIds: body.productGroupIds,
+        nextMemberIndex: 0,
         active: true,
         createdAt: new Date().toISOString(),
       };
@@ -97,13 +127,14 @@ export const dispatchTeamHandlers: MockHandler[] = [
     handle: ({ params, body }: { params: Record<string, string>; body: Partial<DispatchTeamInput> }) => {
       const t = findOwned(params.id);
       validate(t.shopId, body, t);
-      const { name, description, leaderId, memberIds, regions, active } = body;
+      const { name, description, leaderId, memberIds, productGroupIds, active } = body;
       Object.assign(
         t,
         Object.fromEntries(
-          Object.entries({ name, description, leaderId, memberIds, regions, active }).filter(([, v]) => v !== undefined),
+          Object.entries({ name, description, leaderId, memberIds, productGroupIds, active }).filter(([, v]) => v !== undefined),
         ),
       );
+      if (memberIds) t.nextMemberIndex = 0;
       // People who left the team stop owning its orders
       db.orders.forEach((o) => {
         if (o.teamId === t.id && o.assigneeId && !t.memberIds.includes(o.assigneeId)) o.assigneeId = null;

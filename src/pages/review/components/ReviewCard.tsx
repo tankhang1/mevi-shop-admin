@@ -46,49 +46,60 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
       },
     );
 
-  return (
-    <Card className={cn(r.hidden && "border-dashed opacity-70")}>
-      <CardContent className="space-y-3 p-4">
-        {showProduct && (
-          <Link href={ROUTES.productDetail(r.productId)} className="flex items-center gap-2 text-sm hover:underline">
-            <img src={r.productImage || placeholder} alt="" className="h-8 w-8 rounded-md border object-cover" />
-            <span className="truncate font-medium">{r.productName}</span>
-            {showShop && r.shopName && <span className="shrink-0 text-xs text-muted-foreground">· {r.shopName}</span>}
-          </Link>
-        )}
+  // Avatar tint follows the rating so bad reviews stand out while scrolling
+  const tone =
+    r.rating >= 4 ? "bg-emerald-100 text-emerald-800" : r.rating === 3 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700";
+  const initials = r.author
+    .split(" ")
+    .slice(-2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="font-medium">{r.author}</p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Stars value={r.rating} /> {formatDate(r.createdAt)}
+  return (
+    <Card className={cn("overflow-hidden", r.hidden && "border-dashed opacity-70")}>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-start gap-3">
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", tone)}>
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{r.author}</p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+              <Stars value={r.rating} />
+              <span>{formatDate(r.createdAt)}</span>
               {r.helpful > 0 && (
                 <span className="inline-flex items-center gap-0.5">
-                  · <ThumbsUp className="h-3 w-3" /> {r.helpful}
+                  <ThumbsUp className="h-3 w-3" /> {r.helpful}
                 </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {r.hidden && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">Đang ẩn</span>}
-            <Button variant="ghost" size="sm" onClick={toggleHidden} disabled={visibility.isPending} title={r.hidden ? "Hiện lại" : "Ẩn khỏi cửa hàng"}>
-              {r.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              <span className="ml-1 max-sm:hidden">{r.hidden ? "Hiện" : "Ẩn"}</span>
-            </Button>
-          </div>
+          {r.hidden ? (
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Đang ẩn</span>
+          ) : (
+            !r.reply && (
+              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">Chưa trả lời</span>
+            )
+          )}
         </div>
 
-        <p className="text-sm leading-relaxed">{r.content}</p>
-        {(r.tags.length > 0 || r.images.length > 0) && (
-          <div className="flex flex-wrap items-center gap-1.5">
+        <p className="text-[15px] leading-relaxed">{r.content}</p>
+
+        {r.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
             {r.tags.map((t) => (
-              <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+              <span key={t} className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground">
                 {t}
               </span>
             ))}
+          </div>
+        )}
+        {r.images.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
             {r.images.map((src) => (
-              <a key={src} href={src} target="_blank" rel="noreferrer">
-                <img src={src} alt="Ảnh khách hàng" className="h-14 w-14 rounded-md border object-cover" />
+              <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0">
+                <img src={src} alt="Ảnh khách hàng" className="h-20 w-20 rounded-xl border object-cover" />
               </a>
             ))}
           </div>
@@ -118,25 +129,54 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
               </Button>
             </div>
           </div>
-        ) : r.reply ? (
-          <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-sm">
-            <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-muted-foreground">
-                {r.reply.by === "mevi" ? "Mevi" : "Phản hồi của shop"} · {formatDate(r.reply.repliedAt)}
-              </p>
-              <p className="mt-0.5">{r.reply.content}</p>
-            </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit} aria-label="Sửa phản hồi">
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-          </div>
         ) : (
-          <Button variant="outline" size="sm" onClick={startEdit}>
+          r.reply && (
+            <div className="flex gap-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-sm">
+              <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-emerald-800">
+                  {r.reply.by === "mevi" ? "Mevi" : "Phản hồi của shop"}
+                  <span className="font-normal text-emerald-700/80"> · {formatDate(r.reply.repliedAt)}</span>
+                </p>
+                <p className="mt-0.5">{r.reply.content}</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit} aria-label="Sửa phản hồi">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )
+        )}
+      </CardContent>
+
+      <div className="flex items-center gap-2 border-t bg-muted/30 px-4 py-2">
+        {showProduct ? (
+          <Link href={ROUTES.productDetail(r.productId)} className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+            <img src={r.productImage || placeholder} alt="" className="h-7 w-7 shrink-0 rounded-md border object-cover" />
+            <span className="truncate">
+              {r.productName}
+              {showShop && r.shopName && ` · ${r.shopName}`}
+            </span>
+          </Link>
+        ) : (
+          <span className="flex-1" />
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 shrink-0 px-2 text-muted-foreground"
+          onClick={toggleHidden}
+          disabled={visibility.isPending}
+          title={r.hidden ? "Hiện lại" : "Ẩn khỏi cửa hàng"}
+        >
+          {r.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          <span className="ml-1">{r.hidden ? "Hiện" : "Ẩn"}</span>
+        </Button>
+        {!r.reply && !editing && (
+          <Button size="sm" className="h-8 shrink-0 rounded-full" onClick={startEdit}>
             <MessageSquareReply className="mr-1.5 h-4 w-4" /> Trả lời
           </Button>
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 }

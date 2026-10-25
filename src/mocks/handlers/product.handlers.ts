@@ -90,6 +90,7 @@ export const productHandlers: MockHandler[] = [
         id: uid("p"),
         status: "pending",
         listed: false,
+        source: "self",
         stock: 0,
         lowStockThreshold: 10,
         createdAt: new Date().toISOString(),

@@ -25,6 +25,12 @@ export const inventoryApi = {
   adjust: async (productId: string, data: AdjustStockInput) =>
     (await apiClient.post<ApiResponse<StockMovement>>(EP.adjust(productId), data)).data.data,
 
+  approve: async (movementId: string) =>
+    (await apiClient.post<ApiResponse<StockMovement>>(EP.approve(movementId))).data.data,
+
+  reject: async (movementId: string, reason: string) =>
+    (await apiClient.post<ApiResponse<StockMovement>>(EP.reject(movementId), { reason })).data.data,
+
   setThreshold: async (productId: string, lowStockThreshold: number) =>
     (await apiClient.patch<ApiResponse<InventoryItem>>(EP.threshold(productId), { lowStockThreshold })).data.data,
 };

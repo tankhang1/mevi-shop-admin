@@ -1,7 +1,7 @@
 import type { Column, TableFilterDef } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
-import { PRODUCT_CATEGORIES, PRODUCT_STATUS, type Product, type ProductStatus } from "@/features/product";
+import { PRODUCT_CATEGORIES, PRODUCT_SOURCE, PRODUCT_STATUS, type Product, type ProductStatus } from "@/features/product";
 import { formatVnd } from "@/lib/format";
 import { ShelfToggle } from "./ShelfToggle";
 
@@ -23,6 +23,7 @@ export const productColumns: Column<Product>[] = [
     render: (v) => <span className="font-mono text-xs">{String(v)}</span>,
   },
   { key: "category", label: "Danh mục" },
+  { key: "source", label: "Nguồn", render: (_, p) => <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} /> },
   {
     key: "price",
     label: "Giá",

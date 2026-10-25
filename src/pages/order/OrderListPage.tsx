@@ -8,6 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import {
@@ -25,6 +26,8 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ROUTES } from "@/config/routes";
 import { useDispatchTeams } from "@/features/dispatch-team";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
+import { OrderMobileCard } from "./components/OrderMobileCard";
+import { OrderStatusChips } from "./components/OrderStatusChips";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
@@ -36,6 +39,7 @@ import {
 export default function OrderListPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const search = useSearch();
   const { data: teams } = useDispatchTeams({ size: 100 });
@@ -167,16 +171,37 @@ export default function OrderListPage() {
 
   return (
     <>
+      {isMobile && (
+        <OrderStatusChips
+          value={table.state.filters.status ?? "all"}
+          onChange={(v) =>
+            table.bind(page, isFetching).onFilterChange("status", v)
+          }
+        />
+      )}
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
         filters={
-          shopFilter.filter
-            ? [shopFilter.filter, ...orderFilters, teamFilter]
-            : [...orderFilters, teamFilter]
+          [
+            ...(shopFilter.filter ? [shopFilter.filter] : []),
+            // Status is in the chips on mobile
+            ...(isMobile ? [] : orderFilters),
+            teamFilter,
+          ]
         }
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
         enableMobileCard
+        renderMobileCard={(o, helpers) => (
+          <OrderMobileCard
+            order={o}
+            helpers={helpers}
+            onDeliver={(order) => setPending({ order, next: "completed" })}
+            onCancel={setCancelTarget}
+          />
+        )}
         onView={(o) => navigate(ROUTES.orderDetail(o.id))}
       />
       <ConfirmDialog

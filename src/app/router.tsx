@@ -3,7 +3,7 @@ import { Redirect, Route, Switch } from "wouter";
 import { RequireRole } from "@/components/common/RequireRole";
 import { LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { AuthWrapper, getAccessToken } from "@/features/auth";
+import { AuthWrapper, getAccessToken, useAccess } from "@/features/auth";
 import { ShopLayout } from "./layouts/ShopLayout";
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -13,6 +13,7 @@ const ProductListPage = lazy(() => import("@/pages/product/ProductListPage"));
 const ProductCreatePage = lazy(() => import("@/pages/product/ProductCreatePage"));
 const ProductDetailPage = lazy(() => import("@/pages/product/ProductDetailPage"));
 const ProductEditPage = lazy(() => import("@/pages/product/ProductEditPage"));
+const FarmRegistrationPage = lazy(() => import("@/pages/farm-registration/FarmRegistrationPage"));
 const ProductApprovalPage = lazy(() => import("@/pages/product/ProductApprovalPage"));
 const ProductGroupListPage = lazy(() => import("@/pages/product-group/ProductGroupListPage"));
 const ProductGroupDetailPage = lazy(() => import("@/pages/product-group/ProductGroupDetailPage"));
@@ -42,6 +43,13 @@ const rootOnly = (Page: ComponentType) =>
     );
   };
 const ApprovalRoute = rootOnly(ProductApprovalPage);
+
+/** Staff work from their order queue; the dashboard shows shop-wide numbers they shouldn't see */
+function DashboardRoute() {
+  const { isStaff, isLoading } = useAccess();
+  if (isLoading) return <LoadingBlock />;
+  return isStaff ? <Redirect to={ROUTES.orders} replace /> : <DashboardPage />;
+}
 const AgencyListRoute = rootOnly(AgencyListPage);
 const AgencyDetailRoute = rootOnly(AgencyDetailPage);
 
@@ -51,13 +59,14 @@ function ProtectedRoutes() {
       <ShopLayout>
         <Suspense fallback={<LoadingBlock />}>
           <Switch>
-            <Route path={ROUTES.dashboard} component={DashboardPage} />
+            <Route path={ROUTES.dashboard} component={DashboardRoute} />
             {/* Static segments before productDetail(":id") */}
             <Route path={ROUTES.productApproval} component={ApprovalRoute} />
             <Route path={ROUTES.productCreate} component={ProductCreatePage} />
             <Route path={ROUTES.productEdit(":id")} component={ProductEditPage} />
             <Route path={ROUTES.productDetail(":id")} component={ProductDetailPage} />
             <Route path={ROUTES.products} component={ProductListPage} />
+            <Route path={ROUTES.farmRegistrations} component={FarmRegistrationPage} />
             <Route path={ROUTES.productGroupDetail(":id")} component={ProductGroupDetailPage} />
             <Route path={ROUTES.productGroups} component={ProductGroupListPage} />
             <Route path={ROUTES.inventoryHistory(":productId")} component={InventoryHistoryPage} />

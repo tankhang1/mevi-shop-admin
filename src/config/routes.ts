@@ -23,6 +23,8 @@ export const ROUTES = {
   reports: "/admin/reports",
   /** One page per report — /admin/reports/agency | product | group | farm */
   report: (kind: "agency" | "product" | "group" | "farm") => `/admin/reports/${kind}`,
+  /** Same value as SHOP_ROUTES.farmRegistrations (eco-shared-ui ≥ next release) */
+  farmRegistrations: "/admin/farm-registrations",
   agencyDetail: (id: string) => `${SHOP_ROUTES.agencies}/${id}`,
   reviews: "/admin/reviews",
   /** Shop admin: their own storefront settings */

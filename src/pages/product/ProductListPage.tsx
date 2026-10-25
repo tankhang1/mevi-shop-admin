@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CheckCircle2, Clock, Package, Plus, Store, XCircle } from "lucide-react";
-import { Button, DataTable, DeleteDialog, StatsCard, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { Button, DataTable, DeleteDialog, StatsCard, useIsMobile, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
 import {
@@ -14,11 +14,14 @@ import {
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
+import { ProductMobileCard } from "./components/ProductMobileCard";
+import { ProductMobileSummary } from "./components/ProductMobileSummary";
 import { productColumns, productFilters } from "./components/product-columns";
 
 export default function ProductListPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const table = useTableParams<Pick<ProductListParams, "status" | "category"> & { shopId: string }>({
     status: "all",
@@ -30,9 +33,11 @@ export default function ProductListPage() {
   const [target, setTarget] = useState<Product | null>(null);
 
   usePageActions(() => (
-    <Button asChild>
+    <Button asChild className="h-8! min-h-8! rounded-full px-3! text-sm md:h-10! md:min-h-10! md:rounded-md md:px-4!">
       <Link href={ROUTES.productCreate}>
-        <Plus className="mr-1 h-4 w-4" /> Thêm sản phẩm
+        {/* The mobile title row already says "Quản lý sản phẩm" — keep the button short there */}
+        <Plus className="mr-1 h-4 w-4" /> <span className="md:hidden">Thêm</span>
+        <span className="hidden md:inline">Thêm sản phẩm</span>
       </Link>
     </Button>
   ));
@@ -50,20 +55,35 @@ export default function ProductListPage() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatsCard title="Tổng sản phẩm" value={stats?.total ?? "—"} icon={Package} />
-        <StatsCard title="Đã duyệt" value={stats?.approved ?? "—"} icon={CheckCircle2} />
-        <StatsCard title="Đang lên kệ" value={stats?.listed ?? "—"} icon={Store} />
-        <StatsCard title="Chờ duyệt" value={stats?.pending ?? "—"} icon={Clock} />
-        <StatsCard title="Bị từ chối" value={stats?.rejected ?? "—"} icon={XCircle} />
-      </div>
+      {isMobile ? (
+        <ProductMobileSummary
+          stats={stats}
+          status={table.state.filters.status ?? "all"}
+          onStatusChange={(s) => table.bind(page, isFetching).onFilterChange("status", s)}
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <StatsCard title="Tổng sản phẩm" value={stats?.total ?? "—"} icon={Package} />
+          <StatsCard title="Đã duyệt" value={stats?.approved ?? "—"} icon={CheckCircle2} />
+          <StatsCard title="Đang lên kệ" value={stats?.listed ?? "—"} icon={Store} />
+          <StatsCard title="Chờ duyệt" value={stats?.pending ?? "—"} icon={Clock} />
+          <StatsCard title="Bị từ chối" value={stats?.rejected ?? "—"} icon={XCircle} />
+        </div>
+      )}
 
       <DataTable
         {...table.bind(page, isFetching)}
         columns={[...productColumns.slice(0, 2), ...shopFilter.column<Product>(), ...productColumns.slice(2)]}
-        filters={shopFilter.filter ? [shopFilter.filter, ...productFilters] : productFilters}
+        filters={[
+          ...(shopFilter.filter ? [shopFilter.filter] : []),
+          ...productFilters.filter((f) => !isMobile || f.key !== "status"),
+        ]}
         searchPlaceholder="Tìm theo tên, SKU..."
         enableMobileCard
+        renderMobileCard={(p, helpers) => <ProductMobileCard product={p} helpers={helpers} />}
+        // Status lives in the chips on mobile; column toggle / export aren't useful on a phone
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         onView={(p) => navigate(ROUTES.productDetail(p.id))}
         onEdit={(p) => navigate(ROUTES.productEdit(p.id))}
         onDelete={setTarget}

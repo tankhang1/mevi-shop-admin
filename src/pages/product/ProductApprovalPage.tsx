@@ -12,6 +12,7 @@ import {
   DialogTitle,
   Label,
   Textarea,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
@@ -23,6 +24,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
 import { useListView } from "@/stores/ui-prefs.store";
 import { ApprovalGrid } from "./components/ApprovalGrid";
+import { ApprovalMobileList } from "./components/ApprovalMobileList";
 import { productColumns, productFilters } from "./components/product-columns";
 
 const GRID_SIZE = 12;
@@ -38,7 +40,10 @@ const filters = productFilters.filter((f) => f.key !== "status");
 export default function ProductApprovalPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [view, setView] = useListView("product-approval", "grid");
+  const isMobile = useIsMobile();
+  const [savedView, setView] = useListView("product-approval", "grid");
+  // Phones always get the card list; the table/grid switch is a desktop thing
+  const view = isMobile ? "grid" : savedView;
   const table = useTableParams({ category: "all" }, view === "grid" ? GRID_SIZE : TABLE_SIZE);
   const { data: page, isFetching } = useProducts({ ...table.params, status: "pending" });
   const moderate = useModerateProduct();
@@ -50,7 +55,7 @@ export default function ProductApprovalPage() {
     table.reset(v === "grid" ? GRID_SIZE : TABLE_SIZE);
   };
 
-  usePageActions(() => <ViewToggle value={view} onChange={switchView} />, [view]);
+  usePageActions(() => !isMobile && <ViewToggle value={view} onChange={switchView} />, [view, isMobile]);
 
   const approve = async (p: Product) => {
     try {
@@ -112,6 +117,20 @@ export default function ProductApprovalPage() {
           searchPlaceholder="Tìm theo tên, SKU..."
           enableMobileCard
           onView={(p) => navigate(ROUTES.productDetail(p.id))}
+        />
+      ) : isMobile ? (
+        <ApprovalMobileList
+          page={page}
+          loading={isFetching}
+          keyword={table.state.keyword}
+          category={table.state.filters.category}
+          onSearch={table.bind(page, isFetching).onSearch}
+          onCategory={(v) => table.bind(page, isFetching).onFilterChange("category", v)}
+          onPage={table.bind(page, isFetching).onIndexChange}
+          onView={(p) => navigate(ROUTES.productDetail(p.id))}
+          onApprove={(p) => void approve(p)}
+          onReject={setRejecting}
+          busy={moderate.isPending}
         />
       ) : (
         <ApprovalGrid

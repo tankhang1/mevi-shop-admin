@@ -10,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { useAccess } from "@/features/auth";
@@ -19,6 +20,7 @@ import { useShops } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatPercent } from "@/lib/format";
 import { ReviewCard } from "./components/ReviewCard";
+import { ReviewMobileHeader } from "./components/ReviewMobileHeader";
 
 type Filters = Required<Pick<ReviewListParams, "rating" | "replied">> & { shopId: string };
 
@@ -43,6 +45,7 @@ function FilterSelect({ value, onChange, options, className }: { value: string; 
 
 export default function ReviewListPage() {
   const { isRoot } = useAccess();
+  const isMobile = useIsMobile();
   const table = useTableParams<Filters>({ rating: "all", replied: "all", shopId: "all" }, 10);
   const { data: page, isFetching } = useReviews(table.params);
   const { data: stats } = useReviewStats();
@@ -66,6 +69,15 @@ export default function ReviewListPage() {
 
   return (
     <div className="space-y-5">
+      {isMobile ? (
+        <ReviewMobileHeader
+          stats={stats}
+          replied={f.replied}
+          rating={f.rating}
+          onReplied={(v) => bound.onFilterChange("replied", v)}
+          onRating={(v) => bound.onFilterChange("rating", v)}
+        />
+      ) : (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card>
           <CardContent className="p-5">{stats ? <RatingSummary stats={stats} /> : <LoadingBlock />}</CardContent>
@@ -98,12 +110,15 @@ export default function ReviewListPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <div className="relative max-sm:w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo khách, nội dung, sản phẩm..." className="pl-9!" />
         </div>
+        {!isMobile && (
+        <>
         <FilterSelect
           className="max-sm:w-full sm:w-40"
           value={f.rating}
@@ -116,6 +131,8 @@ export default function ReviewListPage() {
           onChange={(v) => bound.onFilterChange("replied", v)}
           options={[["all", "Tất cả trạng thái"], ["no", "Chưa trả lời"], ["yes", "Đã trả lời"]]}
         />
+        </>
+        )}
         {isRoot && (
           <FilterSelect
             className="max-sm:w-full sm:w-52"

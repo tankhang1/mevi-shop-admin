@@ -71,9 +71,9 @@ export default function DispatchTeamListPage() {
       toast({
         title: r.assigned
           ? `Đã phân ${r.assigned} đơn cho các nhóm`
-          : "Không có đơn nào khớp khu vực",
+          : "Không có đơn nào cần phân",
         description: r.unmatched
-          ? `${r.unmatched} đơn chưa khớp khu vực nào — cần phân thủ công.`
+          ? `${r.unmatched} đơn có sản phẩm chưa thuộc nhóm điều phối nào — cần phân thủ công.`
           : undefined,
       });
     } catch (e) {
@@ -125,13 +125,22 @@ export default function DispatchTeamListPage() {
       ),
     },
     {
-      key: "regions",
-      label: "Khu vực",
+      key: "productGroupIds",
+      label: "Nhóm sản phẩm",
       render: (_, t) =>
-        t.regions.length ? (
-          <span className="text-sm">{t.regions.join(", ")}</span>
+        t.productGroups.length ? (
+          <div className="flex flex-wrap gap-1">
+            {t.productGroups.map((g) => (
+              <span
+                key={g.id}
+                className="rounded-full bg-muted px-2 py-0.5 text-xs"
+              >
+                {g.name}
+              </span>
+            ))}
+          </div>
         ) : (
-          <span className="text-sm text-muted-foreground">Phân thủ công</span>
+          <span className="text-sm text-muted-foreground">Chưa gán</span>
         ),
     },
     {
@@ -230,7 +239,7 @@ export default function DispatchTeamListPage() {
         onOpenChange={setConfirmAuto}
         loading={auto.isPending}
         title="Tự động phân đơn?"
-        description="Các đơn chưa có nhóm và chưa hoàn tất sẽ được giao cho nhóm đang hoạt động có khu vực khớp với địa chỉ nhận hàng."
+        description="Các đơn chưa có nhóm và chưa giao sẽ được chuyển cho nhóm điều phối phụ trách nhóm sản phẩm của đơn, lần lượt cho từng thành viên."
         confirmLabel="Phân đơn"
         onConfirm={() => void runAuto()}
       />

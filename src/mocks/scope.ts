@@ -12,7 +12,8 @@ export function actor() {
   if (!user) throw new HttpError(401, "Phiên đăng nhập không hợp lệ");
   const isRoot = isRootRole(user.roles ?? []);
   if (!isRoot && !user.shopId) throw new HttpError(403, "Tài khoản chưa được gán gian hàng");
-  return { user, isRoot, shopId: isRoot ? undefined : user.shopId };
+  // Staff accounts are pinned to their own assigned orders on top of the shop
+  return { user, isRoot, shopId: isRoot ? undefined : user.shopId, staffId: isRoot ? undefined : user.staffId };
 }
 
 export function requireRoot() {
@@ -33,4 +34,10 @@ export function assertOwns<T extends { shopId: string }>(row: T | undefined, not
   const { shopId } = actor();
   if (!row || (shopId && row.shopId !== shopId)) throw new HttpError(404, notFound);
   return row;
+}
+
+export function requireShopAdmin() {
+  const a = actor();
+  if (a.staffId) throw new HttpError(403, "Chỉ chủ gian hàng mới có quyền thực hiện");
+  return a;
 }

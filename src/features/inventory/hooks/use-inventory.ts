@@ -56,3 +56,16 @@ export function useSetLowStockThreshold() {
     onSuccess: invalidate,
   });
 }
+
+export function useApproveMovement() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({ mutationFn: (id: string) => inventoryApi.approve(id), onSuccess: invalidate });
+}
+
+export function useRejectMovement() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => inventoryApi.reject(id, reason),
+    onSuccess: invalidate,
+  });
+}

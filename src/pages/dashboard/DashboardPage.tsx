@@ -1,7 +1,19 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Ban, Receipt, ShoppingCart, Wallet } from "lucide-react";
-import { DataTable, Tabs, TabsList, TabsTrigger } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import {
+  DataTable,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  useIsMobile,
+} from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { usePageActions } from "@/app/layouts/page-header.store";
 import { LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
 import { useAccess } from "@/features/auth";
@@ -11,6 +23,7 @@ import { orderColumns } from "@/features/order/components/order-columns";
 import { formatCompactVnd, formatPercent, formatVnd } from "@/lib/format";
 import { BarList } from "./components/BarList";
 import { KpiCard } from "./components/KpiCard";
+import { MobileKpis } from "./components/MobileKpis";
 import { SnapshotStrip } from "./components/SnapshotStrip";
 import { TopProducts } from "./components/TopProducts";
 import { TrendChart } from "./components/TrendChart";
@@ -24,7 +37,29 @@ const RANGES: { value: DashboardRange; label: string }[] = [
 export default function DashboardPage() {
   const [range, setRange] = useState<DashboardRange>(30);
   const { isRoot } = useAccess();
+  const isMobile = useIsMobile();
   const { data, isLoading, isFetching } = useDashboardSummary(range);
+
+  // Mobile: the range picker sits next to the page title as a compact select
+  usePageActions(
+    () =>
+      isMobile && (
+        <Select value={String(range)} onValueChange={(v) => setRange(Number(v) as DashboardRange)}>
+          <SelectTrigger className="h-9 w-[7.5rem]" aria-label="Khoảng thời gian">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {RANGES.map((r) => (
+              <SelectItem key={r.value} value={String(r.value)}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    [isMobile, range],
+  );
+
   if (isLoading || !data) return <LoadingBlock />;
 
   const rangeLabel = RANGES.find((r) => r.value === range)!.label;
@@ -33,6 +68,8 @@ export default function DashboardPage() {
   return (
     <div className={isFetching ? "space-y-5 opacity-70 transition-opacity" : "space-y-5 transition-opacity"}>
       {/* Filters live in one row above everything they control */}
+      {/* Mobile has the range select in the title row instead */}
+      {!isMobile && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           Số liệu {rangeLabel} gần nhất · doanh thu tính trên đơn hoàn tất
@@ -47,9 +84,13 @@ export default function DashboardPage() {
           </TabsList>
         </Tabs>
       </div>
+      )}
 
       <SnapshotStrip snapshot={data.snapshot} isRoot={isRoot} />
 
+      {isMobile ? (
+        <MobileKpis kpis={data.kpis} rangeLabel={rangeLabel} />
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Doanh thu" metric={data.kpis.revenue} format={formatVnd} icon={Wallet} rangeLabel={rangeLabel} />
         <KpiCard label="Đơn hàng" metric={data.kpis.orders} format={String} icon={ShoppingCart} rangeLabel={rangeLabel} />
@@ -69,6 +110,7 @@ export default function DashboardPage() {
           rangeLabel={rangeLabel}
         />
       </div>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
@@ -107,15 +149,35 @@ export default function DashboardPage() {
             Xem tất cả
           </Link>
         </div>
-        <DataTable
-          columns={orderColumns.filter((c) => c.key !== "address")}
-          data={data.recentOrders}
-          pageSize={6}
-          searchable={false}
-          columnToggleable={false}
-          downloadable={false}
-          enableMobileCard
-        />
+        {isMobile ? (
+          // A short list, no table chrome / pager on a phone
+          <div className="space-y-2">
+            {data.recentOrders.slice(0, 4).map((o) => (
+            <Link key={o.id} href={ROUTES.orderDetail(o.id)} className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-xs">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-semibold">{o.code}</span>
+                  <StatusPill {...ORDER_STATUS[o.status]} />
+                </div>
+                <p className="truncate text-xs text-muted-foreground">
+                  {o.recipientName} · {new Date(o.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+                </p>
+              </div>
+              <span className="text-sm font-semibold tabular-nums">{formatCompactVnd(o.total)}</span>
+            </Link>
+            ))}
+          </div>
+        ) : (
+          <DataTable
+            columns={orderColumns.filter((c) => c.key !== "address")}
+            data={data.recentOrders}
+            pageSize={6}
+            searchable={false}
+            columnToggleable={false}
+            downloadable={false}
+            enableMobileCard
+          />
+        )}
       </section>
     </div>
   );

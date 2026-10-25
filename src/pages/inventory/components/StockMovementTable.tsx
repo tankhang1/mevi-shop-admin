@@ -6,6 +6,8 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
 import {
+  MOVEMENT_SOURCE,
+  MOVEMENT_STATUS,
   MOVEMENT_TYPE,
   type MovementListParams,
   type MovementType,
@@ -77,6 +79,37 @@ export function StockMovementTable({ productId }: { productId?: string }) {
       label: "Loại",
       mobilePriority: "badge",
       render: (v) => <StatusPill {...MOVEMENT_TYPE[v as MovementType]} />,
+    },
+    {
+      key: "source",
+      label: "Nguồn",
+      render: (_, m) =>
+        m.orderCode ? (
+          <span className="whitespace-nowrap font-mono text-xs">
+            {m.orderCode}
+          </span>
+        ) : (
+          <span className="whitespace-nowrap text-sm">
+            {m.source ? MOVEMENT_SOURCE[m.source] : "—"}
+          </span>
+        ),
+    },
+    {
+      key: "status",
+      label: "Duyệt",
+      render: (_, m) => (
+        <div>
+          <StatusPill {...MOVEMENT_STATUS[m.status]} />
+          {m.rejectionReason && (
+            <div
+              className="mt-0.5 max-w-40 truncate text-xs text-destructive"
+              title={m.rejectionReason}
+            >
+              {m.rejectionReason}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: "delta",

@@ -18,9 +18,9 @@ export function DemoAccountSwitcher() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-[60] text-sm">
+    <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-3 z-[60] flex flex-col items-end text-sm md:bottom-4 md:left-4 md:right-auto md:items-start">
       {open && (
-        <div className="mb-2 w-72 overflow-hidden rounded-xl border bg-background shadow-xl">
+        <div className="mb-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border bg-background shadow-xl">
           <p className="border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Đổi tài khoản demo
           </p>
@@ -48,17 +48,19 @@ export function DemoAccountSwitcher() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-2 font-medium text-amber-900 shadow-lg",
+          "flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 p-2.5 font-medium text-amber-900 shadow-lg md:px-3 md:py-2",
           "hover:bg-amber-100",
         )}
         aria-expanded={open}
+        aria-label="Đổi tài khoản demo"
       >
         <FlaskConical className="h-4 w-4" />
-        <span className="max-w-48 truncate">
+        {/* Mobile shows just the flask so it never covers content above the bottom nav */}
+        <span className="hidden max-w-48 truncate md:inline">
           {current ? `${current.name} · ${current.title}` : "Chưa đăng nhập"}
         </span>
         <ChevronUp
-          className={cn("h-4 w-4 transition-transform", !open && "rotate-180")}
+          className={cn("hidden h-4 w-4 transition-transform md:block", !open && "rotate-180")}
         />
       </button>
     </div>

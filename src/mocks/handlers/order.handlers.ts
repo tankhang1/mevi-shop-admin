@@ -2,7 +2,8 @@ import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { ORDER_FLOW, isFinalOrderStatus } from "@/features/order/constants";
 import type { Order, OrderDetail, OrderStatus } from "@/features/order/types";
 import { db } from "../db";
-import { actor, assertOwns, scoped } from "../scope";
+import { deductOrderStock } from "./inventory.handlers";
+import { actor, assertOwns, requireShopAdmin, scoped } from "../scope";
 import { HttpError, type MockHandler, paginate } from "../utils";
 
 const BASE = API_ENDPOINTS.admin.orders.base;
@@ -10,7 +11,13 @@ const BASE = API_ENDPOINTS.admin.orders.base;
 const teamName = (id?: string | null) => (id ? db.dispatchTeams.find((t) => t.id === id)?.name : undefined);
 const staffName = (id?: string | null) => (id ? db.staff.find((s) => s.id === id)?.name : undefined);
 
-const findOwned = (id: string) => assertOwns(db.orders.find((x) => x.id === id), "Không tìm thấy đơn hàng");
+/** Shop scope, plus staff only reach orders assigned to them */
+const findOwned = (id: string) => {
+  const o = assertOwns(db.orders.find((x) => x.id === id), "Không tìm thấy đơn hàng");
+  const { staffId } = actor();
+  if (staffId && o.assigneeId !== staffId) throw new HttpError(404, "Không tìm thấy đơn hàng");
+  return o;
+};
 
 function toDetail(o: Order): OrderDetail {
   return {
@@ -41,7 +48,9 @@ export const orderHandlers: MockHandler[] = [
       const customerPhone = query.customerId
         ? db.customers.find((c) => c.id === query.customerId)?.phone ?? "—"
         : undefined;
-      const sorted = scoped(db.orders, query.shopId).map(withShop).sort((a, b) =>
+      const { staffId } = actor();
+      const sorted = scoped(db.orders, query.shopId)
+        .filter((o) => !staffId || o.assigneeId === staffId).map(withShop).sort((a, b) =>
         b.createdAt.localeCompare(a.createdAt),
       );
       const rows = sorted.filter(
@@ -71,6 +80,8 @@ export const orderHandlers: MockHandler[] = [
     method: "PATCH",
     path: `${BASE}/:id/assign`,
     handle: ({ params, body }: { params: Record<string, string>; body: { teamId: string | null; assigneeId: string | null } }) => {
+      // Moving an order to someone else is the admin's call
+      requireShopAdmin();
       const o = findOwned(params.id);
       const team = body.teamId ? db.dispatchTeams.find((t) => t.id === body.teamId && t.shopId === o.shopId) : null;
       if (body.teamId && !team) throw new HttpError(400, "Nhóm điều phối không thuộc gian hàng của đơn");
@@ -111,6 +122,8 @@ export const orderHandlers: MockHandler[] = [
         throw new HttpError(400, "Không thể chuyển đơn về bước trước");
       if (body.status === "cancelled" && !body.note?.trim())
         throw new HttpError(400, "Vui lòng nhập lý do huỷ đơn");
+      // Delivery takes the goods out of the warehouse
+      if (body.status === "completed") deductOrderStock(o, actor().user.name ?? "—");
       o.status = body.status;
       if (body.status === "cancelled") o.cancelReason = body.note!.trim();
       o.statusHistory = [

@@ -24,15 +24,15 @@ import { EmptyBlock } from "@/components/common/ui-bits";
 import {
   type DispatchTeam,
   type DispatchTeamFormValues,
-  REGION_SUGGESTIONS,
   dispatchTeamSchema,
   useCreateDispatchTeam,
+  useDispatchTeams,
   useUpdateDispatchTeam,
 } from "@/features/dispatch-team";
+import { useProductGroups } from "@/features/product-group";
 import { useShopFilter } from "@/features/shop";
 import { STAFF_ROLE, useStaffList } from "@/features/staff";
 import { getErrorMessage } from "@/lib/api-error";
-import { TagInput } from "@/pages/customer/components/TagInput";
 import { Initials } from "@/pages/customer/CustomerListPage";
 
 interface Props {
@@ -48,7 +48,7 @@ const toFormValues = (t?: DispatchTeam): DispatchTeamFormValues => ({
   description: t?.description ?? "",
   memberIds: t?.memberIds ?? [],
   leaderId: t?.leaderId ?? null,
-  regions: t?.regions ?? [],
+  productGroupIds: t?.productGroupIds ?? [],
   shopId: t?.shopId ?? "",
 });
 
@@ -78,6 +78,16 @@ export function DispatchTeamFormDialog({ open, onOpenChange, team }: Props) {
 
   const shopId = useWatch({ control, name: "shopId" }) || team?.shopId;
   const memberIds = useWatch({ control, name: "memberIds" });
+  const { data: groupPage } = useProductGroups({
+    size: 200,
+    shopId: isRoot ? shopId || "none" : undefined,
+  });
+  const { data: teamPage } = useDispatchTeams({ size: 200 });
+  // 1 product group → 1 team: show who already owns each group
+  const ownerOf = (gid: string) =>
+    teamPage?.items.find(
+      (t) => t.id !== team?.id && t.productGroupIds.includes(gid),
+    );
   // Locked staff can't work orders, so only offer active / invited people
   const { data: staffPage } = useStaffList({
     size: 200,
@@ -179,21 +189,56 @@ export function DispatchTeamFormDialog({ open, onOpenChange, team }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Khu vực phụ trách</Label>
+            <Label>Nhóm sản phẩm phụ trách</Label>
             <Controller
               control={control}
-              name="regions"
+              name="productGroupIds"
               render={({ field }) => (
-                <TagInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  suggestions={REGION_SUGGESTIONS}
-                />
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {(groupPage?.items ?? []).map((g) => {
+                    const owner = ownerOf(g.id);
+                    const on = field.value.includes(g.id);
+                    return (
+                      <label
+                        key={g.id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-3 py-2",
+                          owner
+                            ? "cursor-not-allowed opacity-60"
+                            : "cursor-pointer",
+                          on && "bg-muted/40",
+                        )}
+                      >
+                        <Checkbox
+                          checked={on}
+                          disabled={!!owner}
+                          onCheckedChange={(v) =>
+                            field.onChange(
+                              v
+                                ? [...field.value, g.id]
+                                : field.value.filter((x) => x !== g.id),
+                            )
+                          }
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm">
+                            {g.name}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {owner
+                              ? `Đã thuộc ${owner.name}`
+                              : `${g.productIds.length} sản phẩm`}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               )}
             />
             <p className="text-xs text-muted-foreground">
-              “Tự động phân đơn” giao đơn cho nhóm khi địa chỉ nhận hàng chứa
-              một trong các khu vực này.
+              Mỗi nhóm sản phẩm chỉ thuộc một nhóm điều phối. Đơn có sản phẩm
+              trong các nhóm này được giao lần lượt cho từng thành viên.
             </p>
           </div>
 

@@ -26,6 +26,10 @@ export const API_ENDPOINTS = {
       movements: "/api/admin/shop/inventory/movements",
       /** POST { type, quantity, note } */
       adjust: (productId: string) => `/api/admin/shop/inventory/${productId}/adjust`,
+      /** POST — admin approves a pending farm stock change (adds the delta to current stock) */
+      approve: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/approve`,
+      /** POST { reason } */
+      reject: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/reject`,
       /** PATCH { lowStockThreshold } */
       threshold: (productId: string) => `/api/admin/shop/inventory/${productId}/threshold`,
     },
@@ -43,7 +47,7 @@ export const API_ENDPOINTS = {
     dispatchTeams: {
       base: "/api/admin/shop/dispatch-teams",
       detail: (id: string) => `/api/admin/shop/dispatch-teams/${id}`,
-      /** POST — assigns open, unassigned orders to the team whose area matches the address */
+      /** POST — routes unassigned open orders to the team owning their product group, members in turn */
       autoAssign: "/api/admin/shop/dispatch-teams/auto-assign",
     },
     /** Farmer households / cooperatives supplying products (synced from eco-farm workspaces) */
@@ -51,6 +55,14 @@ export const API_ENDPOINTS = {
     reports: {
       /** ?groupBy=agency|product|group|farm&from=YYYY-MM-DD&to=YYYY-MM-DD&category=&source=all|agency|direct */
       revenue: "/api/admin/shop/reports/revenue",
+    },
+    farmRegistrations: {
+      base: "/api/admin/shop/farm-registrations",
+      stats: "/api/admin/shop/farm-registrations/stats",
+      /** POST { sku, price, salePrice?, productGroupIds? } — creates the product */
+      approve: (id: string) => `/api/admin/shop/farm-registrations/${id}/approve`,
+      /** POST { reason } */
+      reject: (id: string) => `/api/admin/shop/farm-registrations/${id}/reject`,
     },
     orders: {
       base: "/api/admin/shop/orders",

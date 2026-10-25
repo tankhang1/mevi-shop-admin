@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import type { Staff, StaffInput, StaffStatus } from "@/features/staff/types";
 import { db } from "../db";
-import { actor, assertOwns, scoped } from "../scope";
+import { actor, assertOwns, requireShopAdmin, scoped } from "../scope";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const EP = API_ENDPOINTS.admin.staff;
@@ -41,6 +41,7 @@ export const staffHandlers: MockHandler[] = [
     method: "POST",
     path: EP.base,
     handle: ({ body }: { body: StaffInput }) => {
+      requireShopAdmin();
       const shopId = resolveShopId(body.shopId);
       assertUnique(body.phone, body.email);
       const now = new Date().toISOString();

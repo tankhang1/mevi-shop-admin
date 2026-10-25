@@ -17,6 +17,8 @@ export interface Product {
   images: string[];
   /** VietGAP, OCOP 4 sao, Hữu cơ… — shown on the storefront trace card */
   certifications: string[];
+  /** farm = came from an approved farmer registration, self = created by the admin */
+  source?: "farm" | "self";
   /** Supplying farmer household / cooperative (eco-farm workspace) */
   farmId?: string | null;
   /** Owning seller; set from the token for shop admins, chosen in the form by root */
@@ -34,7 +36,7 @@ export interface Product {
   createdAt: string;
 }
 
-export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "stock" | "lowStockThreshold" | "createdAt" | "shopName">;
+export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "stock" | "lowStockThreshold" | "source" | "createdAt" | "shopName">;
 
 export interface ProductListParams extends ListParams {
   status?: "all" | ProductStatus;

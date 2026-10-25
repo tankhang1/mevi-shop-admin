@@ -292,11 +292,11 @@ export default function AgencyDetailPage() {
               icon={ShoppingBag}
             />
             <StatCard
-              label="Đang xử lý"
+              label="Đã lên đơn"
               value={String(
                 orders.filter((o) => !isFinalOrderStatus(o.status)).length,
               )}
-              note="Chưa hoàn tất"
+              note="Chưa giao hàng"
               icon={Clock3}
             />
             <StatCard

@@ -19,6 +19,8 @@ import { ROUTES } from "./routes";
 
 const ROOT = ["MEVI_SUPER_ADMIN", "MEVI_ADMIN"] as const;
 const SHOP = ["MEVI_SHOP_ADMIN"] as const;
+/** Order-processing staff: their own orders and the customers on them */
+const STAFF = ["MEVI_SHOP_STAFF"] as const;
 const ALL = [...ROOT, ...SHOP];
 
 /**
@@ -43,6 +45,7 @@ export const shopMenu: AdminMenuSection[] = [
           { id: "product-create", label: "Thêm sản phẩm", href: ROUTES.productCreate, roles: [...ALL] },
         ],
       },
+      { id: "farm-registrations", label: "Đăng ký từ nông hộ", icon: Sprout, href: ROUTES.farmRegistrations, roles: [...ALL] },
       { id: "product-groups", label: "Nhóm sản phẩm", icon: FolderTree, href: ROUTES.productGroups, roles: [...ALL] },
       { id: "inventory", label: "Quản lý kho", icon: Warehouse, href: ROUTES.inventory, roles: [...ALL] },
       { id: "product-approval", label: "Duyệt sản phẩm", icon: ClipboardCheck, href: ROUTES.productApproval, roles: [...ROOT] },
@@ -51,8 +54,9 @@ export const shopMenu: AdminMenuSection[] = [
   },
   {
     title: "Bán hàng",
+    roles: [...ALL, ...STAFF],
     items: [
-      { id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL] },
+      { id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL, ...STAFF] },
       { id: "dispatch-teams", label: "Nhóm điều phối", icon: Network, href: ROUTES.dispatchTeams, roles: [...ALL] },
       { id: "customers", label: "Khách hàng", icon: Users, href: ROUTES.customers, roles: [...ALL] },
     ],
@@ -107,8 +111,13 @@ type MobileNavItem = (typeof SHOP_MOBILE_NAV_ITEMS)[number];
 const navByHref = (href: string) => SHOP_MOBILE_NAV_ITEMS.find((i) => i.href === href);
 
 /** Bottom nav: root keeps the library default (with "Duyệt SP"); shop admins get Reviews + their shop instead */
-export function mobileNavFor(isRoot: boolean): MobileNavItem[] {
+export function mobileNavFor(isRoot: boolean, isStaff = false): MobileNavItem[] {
   if (isRoot) return SHOP_MOBILE_NAV_ITEMS;
+  if (isStaff)
+    return [
+      navByHref(ROUTES.orders) ?? { label: "Đơn hàng", href: ROUTES.orders, icon: ShoppingCart, matchPrefixes: [ROUTES.orders] },
+      { label: "Tài khoản", href: ROUTES.profile, icon: Users, matchPrefixes: [ROUTES.profile] },
+    ];
   const dashboard = navByHref(ROUTES.dashboard);
   return [
     navByHref(ROUTES.products) ?? { label: "Sản phẩm", href: ROUTES.products, icon: Package, matchPrefixes: [ROUTES.products] },

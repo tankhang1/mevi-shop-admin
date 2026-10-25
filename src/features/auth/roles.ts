@@ -5,5 +5,7 @@
  */
 export const ROOT_ROLES = ["MEVI_SUPER_ADMIN", "MEVI_ADMIN"] as const;
 export const SHOP_ADMIN_ROLE = "MEVI_SHOP_ADMIN";
+/** Shop employee with an account: sees only the orders assigned to them */
+export const SHOP_STAFF_ROLE = "MEVI_SHOP_STAFF";
 
 export const isRootRole = (roles: readonly string[]) => roles.some((r) => (ROOT_ROLES as readonly string[]).includes(r));

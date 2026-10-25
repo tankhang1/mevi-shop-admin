@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { AlertTriangle, ArrowDownUp, Boxes, ExternalLink, Package, PackageX } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownUp,
+  Boxes,
+  ClipboardCheck,
+  ExternalLink,
+  PackageX,
+} from "lucide-react";
 import {
   type Column,
   type RowAction,
@@ -14,6 +21,7 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
+import { PRODUCT_SOURCE } from "@/features/product";
 import { ROUTES } from "@/config/routes";
 import {
   type InventoryItem,
@@ -26,6 +34,7 @@ import {
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
+import { PendingMovementsTable } from "./components/PendingMovementsTable";
 import { StockMovementTable } from "./components/StockMovementTable";
 
 const nf = new Intl.NumberFormat("vi-VN");
@@ -33,13 +42,18 @@ const nf = new Intl.NumberFormat("vi-VN");
 const stockFilter: TableFilterDef = {
   key: "stockStatus",
   label: "Tồn kho",
-  options: (Object.keys(STOCK_STATUS) as StockStatus[]).map((s) => ({ label: STOCK_STATUS[s].label, value: s })),
+  options: (Object.keys(STOCK_STATUS) as StockStatus[]).map((s) => ({
+    label: STOCK_STATUS[s].label,
+    value: s,
+  })),
 };
 
 function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
   const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
-  const table = useTableParams<Pick<InventoryListParams, "stockStatus"> & { shopId: string }>({
+  const table = useTableParams<
+    Pick<InventoryListParams, "stockStatus"> & { shopId: string }
+  >({
     stockStatus: "all",
     shopId: shopFilter.initialShopId,
   });
@@ -52,10 +66,16 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       mobilePriority: "primary",
       render: (_, p) => (
         <div className="flex min-w-0 items-center gap-3">
-          <img src={p.images[0] || placeholder} alt="" className="h-10 w-10 shrink-0 rounded-md border object-cover" />
+          <img
+            src={p.images[0] || placeholder}
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-md border object-cover"
+          />
           <div className="min-w-0">
             <div className="truncate font-medium">{p.name}</div>
-            <div className="font-mono text-xs text-muted-foreground">{p.sku}</div>
+            <div className="font-mono text-xs text-muted-foreground">
+              {p.sku}
+            </div>
           </div>
         </div>
       ),
@@ -63,13 +83,29 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
     ...shopFilter.column<InventoryItem>(),
     { key: "category", label: "Danh mục" },
     {
+      key: "source",
+      label: "Nguồn",
+      render: (_, p) => (
+        <div className="flex flex-col items-start gap-1">
+          <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} />
+          {!!p.pendingCount && (
+            <span className="text-xs text-amber-700">
+              {p.pendingCount} chờ duyệt
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "stock",
       label: "Tồn kho",
       mobilePriority: "secondary",
       render: (_, p) => (
         <div className="whitespace-nowrap">
           <span className="text-base font-semibold">{nf.format(p.stock)}</span>
-          <span className="ml-1.5 text-xs text-muted-foreground">/ cảnh báo ≤ {p.lowStockThreshold}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">
+            / cảnh báo ≤ {p.lowStockThreshold}
+          </span>
         </div>
       ),
     },
@@ -82,15 +118,27 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
   ];
 
   const actions: RowAction<InventoryItem>[] = [
-    { key: "adjust", label: "Nhập / Xuất kho", icon: ArrowDownUp, onClick: onAdjust },
-    { key: "product", label: "Xem sản phẩm", icon: ExternalLink, onClick: (p) => navigate(ROUTES.productDetail(p.id)) },
+    {
+      key: "adjust",
+      label: "Nhập / Xuất kho",
+      icon: ArrowDownUp,
+      onClick: onAdjust,
+    },
+    {
+      key: "product",
+      label: "Xem sản phẩm",
+      icon: ExternalLink,
+      onClick: (p) => navigate(ROUTES.productDetail(p.id)),
+    },
   ];
 
   return (
     <DataTable
       {...table.bind(page, isFetching)}
       columns={columns}
-      filters={shopFilter.filter ? [shopFilter.filter, stockFilter] : [stockFilter]}
+      filters={
+        shopFilter.filter ? [shopFilter.filter, stockFilter] : [stockFilter]
+      }
       searchPlaceholder="Tìm theo tên, SKU..."
       enableMobileCard
       // "Xem chi tiết" = the product's stock history
@@ -107,26 +155,52 @@ export default function InventoryPage() {
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard title="Sản phẩm" value={stats ? nf.format(stats.products) : "—"} icon={Package} />
-        <StatsCard title="Tổng tồn kho" value={stats ? nf.format(stats.units) : "—"} icon={Boxes} />
-        <StatsCard title="Sắp hết hàng" value={stats?.low ?? "—"} icon={AlertTriangle} />
+        <StatsCard
+          title="Chờ duyệt nhập/xuất"
+          value={stats?.pending ?? "—"}
+          icon={ClipboardCheck}
+        />
+        <StatsCard
+          title="Tổng tồn kho"
+          value={stats ? nf.format(stats.units) : "—"}
+          icon={Boxes}
+        />
+        <StatsCard
+          title="Sắp hết hàng"
+          value={stats?.low ?? "—"}
+          icon={AlertTriangle}
+        />
         <StatsCard title="Hết hàng" value={stats?.out ?? "—"} icon={PackageX} />
       </div>
 
       <Tabs defaultValue="stock" className="space-y-4">
         <TabsList>
           <TabsTrigger value="stock">Tồn kho</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-1.5">
+            Chờ duyệt
+            {!!stats?.pending && (
+              <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
+                {stats.pending}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="history">Lịch sử nhập xuất</TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
           <StockTable onAdjust={setAdjusting} />
+        </TabsContent>
+        <TabsContent value="pending" className="mt-0">
+          <PendingMovementsTable />
         </TabsContent>
         <TabsContent value="history" className="mt-0">
           <StockMovementTable />
         </TabsContent>
       </Tabs>
 
-      <StockAdjustDialog item={adjusting} onOpenChange={(o) => !o && setAdjusting(null)} />
+      <StockAdjustDialog
+        item={adjusting}
+        onOpenChange={(o) => !o && setAdjusting(null)}
+      />
     </div>
   );
 }

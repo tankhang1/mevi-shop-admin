@@ -14,3 +14,8 @@ export const PRODUCT_IMAGE = {
   maxSize: 8 * 1024 * 1024,
   types: ["image/jpeg", "image/png", "image/webp"],
 };
+
+export const PRODUCT_SOURCE: Record<"farm" | "self", { label: string; className: string }> = {
+  farm: { label: "Từ nông hộ", className: "bg-lime-100 text-lime-800" },
+  self: { label: "Tự tạo", className: "bg-slate-100 text-slate-700" },
+};

@@ -20,6 +20,7 @@ function titleFor(path: string) {
   if (/^\/admin\/products\/[^/]+\/edit$/.test(path)) return "Sửa sản phẩm";
   if (/^\/admin\/products\/[^/]+$/.test(path)) return "Chi tiết sản phẩm";
   if (path.startsWith(ROUTES.products)) return "Quản lý sản phẩm";
+  if (path === ROUTES.farmRegistrations) return "Đăng ký sản phẩm từ nông hộ";
   if (path === ROUTES.productGroups) return "Nhóm sản phẩm";
   if (path.startsWith(ROUTES.productGroups)) return "Chi tiết nhóm sản phẩm";
   if (path === ROUTES.inventory) return "Quản lý kho";
@@ -48,10 +49,14 @@ export function ShopLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [location] = useLocation();
   const actions = usePageHeaderStore((s) => s.actions);
-  const { isRoot, roles } = useAccess();
+  const { isRoot, isStaff, roles } = useAccess();
   const layout = isMobile ? (
-    <ShopMobileLayout brandTitle={BRAND_TITLE} navItems={mobileNavFor(isRoot)}>
-      {actions && <div className="mb-4 flex justify-end gap-2">{actions}</div>}
+    <ShopMobileLayout brandTitle={BRAND_TITLE} navItems={mobileNavFor(isRoot, isStaff)}>
+      {/* Desktop shows the title in the layout header; mobile gets it here, next to the page actions */}
+      <div className="mb-4 flex min-h-9 items-center gap-2">
+        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">{titleFor(location)}</h1>
+        {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
+      </div>
       {children}
     </ShopMobileLayout>
   ) : (

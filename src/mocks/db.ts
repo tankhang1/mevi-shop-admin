@@ -2,6 +2,7 @@ import type { Agency } from "@/features/agency/types";
 import type { Customer } from "@/features/customer/types";
 import type { Farm } from "@/features/farm/types";
 import type { DispatchTeam } from "@/features/dispatch-team/types";
+import type { FarmRegistration } from "@/features/farm-registration/types";
 import type { StockMovement } from "@/features/inventory/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
@@ -21,6 +22,7 @@ export const db: {
   customers: Customer[];
   staff: Staff[];
   farms: Farm[];
+  farmRegistrations: FarmRegistration[];
   dispatchTeams: DispatchTeam[];
   orders: Order[];
   agencies: Agency[];
@@ -104,8 +106,13 @@ export const db: {
     reviews: [],
     customers: [],
     dispatchTeams: [
-      { id: "t1", shopId: "s1", name: "Nhóm miền Nam", description: "Giao nội thành TP.HCM và Cần Thơ", leaderId: "st1", memberIds: ["st1", "st2"], regions: ["TP.HCM", "Cần Thơ"], active: true, createdAt: daysAgo(40) },
-      { id: "t2", shopId: "s1", name: "Nhóm miền Bắc & Trung", description: "Gửi xe đi Hà Nội, Đà Nẵng, Vinh", leaderId: "st2", memberIds: ["st2", "st4"], regions: ["Hà Nội", "Đà Nẵng", "Vinh"], active: true, createdAt: daysAgo(30) },
+      { id: "t1", shopId: "s1", name: "Nhóm gạo & ngũ cốc", description: "Xử lý đơn nhóm Gạo đặc sản", leaderId: "st1", memberIds: ["st1", "st2"], productGroupIds: ["g1"], active: true, createdAt: daysAgo(40) },
+      { id: "t2", shopId: "s1", name: "Nhóm quà tặng", description: "Đóng gói & giao set quà", leaderId: "st2", memberIds: ["st2", "st4"], productGroupIds: ["g2"], active: true, createdAt: daysAgo(30) },
+    ],
+    farmRegistrations: [
+      { id: "fr1", shopId: "s1", farmId: "f1", name: "Gạo ST24 thơm dẻo", category: "Gạo", description: "Vụ Đông Xuân, canh tác theo hướng hữu cơ.", packaging: "Túi 5kg", proposedPrice: 150000, quantity: 200, images: [img("rice-st24")], certifications: ["VietGAP"], status: "pending", createdAt: daysAgo(1) },
+      { id: "fr2", shopId: "s1", farmId: "f6", name: "Nước mắm cá cơm Phú Quốc 40 độ đạm", category: "Gia vị", packaging: "Chai 500ml", proposedPrice: 95000, quantity: 120, images: [img("fish-sauce")], certifications: [], status: "pending", createdAt: daysAgo(3) },
+      { id: "fr3", shopId: "s1", farmId: "f2", name: "Xoài cát Hoà Lộc sấy dẻo", category: "Trái cây sấy", packaging: "Túi 200g", proposedPrice: 75000, quantity: 0, images: [img("mango-hl")], certifications: ["OCOP 3 sao"], status: "rejected", rejectionReason: "Chưa có giấy kiểm nghiệm an toàn thực phẩm", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(8), createdAt: daysAgo(10) },
     ],
     farms: [
       { id: "f1", name: "Nông hộ Lâm Văn Sáu", ownerName: "Lâm Văn Sáu", location: "Mỹ Xuyên, Sóc Trăng", type: "farm_household" },
@@ -123,24 +130,26 @@ export const db: {
       { id: "st5", shopId: "s2", name: "H'Nhi Êban", phone: "0911000005", email: "nhi@caphetaynguyen.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(70), lastActiveAt: daysAgo(3), createdAt: daysAgo(70) },
     ],
     stockMovements: [
-      { id: "mh0", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(40) },
-      { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
-      { id: "mh2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -8, before: 64, after: 56, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(36) },
-      { id: "mh3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 56, after: 106, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(34) },
-      { id: "mh4", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -12, before: 106, after: 94, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(32) },
-      { id: "mh5", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -12, before: 94, after: 82, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(30) },
-      { id: "mh6", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 82, after: 132, note: "Nhập bổ sung", createdBy: "Lê Chủ Shop", createdAt: daysAgo(28) },
-      { id: "mh7", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 132, after: 121, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(26) },
-      { id: "mh8", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -6, before: 121, after: 115, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(24) },
-      { id: "mh9", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 115, after: 165, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(22) },
-      { id: "mh10", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 165, after: 154, note: "Xuất cho đại lý", createdBy: "Lê Chủ Shop", createdAt: daysAgo(20) },
-      { id: "mh11", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -9, before: 154, after: 145, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(18) },
-      { id: "mh12", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 29, before: 145, after: 174, note: "Nhập lô mới từ HTX", createdBy: "Lê Chủ Shop", createdAt: daysAgo(16) },
-      { id: "mh13", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -5, before: 174, after: 169, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(14) },
-      { id: "m1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -29, before: 169, after: 140, note: "Xuất cho HTX đối tác", createdBy: "Lê Chủ Shop", createdAt: daysAgo(9) },
-      { id: "m2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -18, before: 140, after: 122, note: "Xuất cho đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(4) },
-      { id: "m3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "adjust", delta: -2, before: 122, after: 120, note: "Kiểm kê cuối tháng — 2 bao rách", createdBy: "Lê Chủ Shop", createdAt: daysAgo(1) },
-      { id: "m4", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", delta: 45, before: 0, after: 45, createdBy: "Nguyễn Quản Trị", createdAt: daysAgo(6) },
+      { id: "mp1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "pending", delta: 80, before: 120, after: 200, note: "Nông hộ Lâm Văn Sáu giao thêm lô thu hoạch tháng 10", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(0) },
+      { id: "mp2", productId: "p9", productName: "Gạo lứt đỏ hữu cơ", sku: "GAO-LUT-2KG", shopId: "s1", type: "in", source: "farm", status: "pending", delta: 40, before: 15, after: 55, note: "Bổ sung hàng", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(1) },
+      { id: "mh0", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(40) },
+      { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
+      { id: "mh2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -8, before: 64, after: 56, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(36) },
+      { id: "mh3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 50, before: 56, after: 106, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(34) },
+      { id: "mh4", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -12, before: 106, after: 94, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(32) },
+      { id: "mh5", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -12, before: 94, after: 82, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(30) },
+      { id: "mh6", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 50, before: 82, after: 132, note: "Nhập bổ sung", createdBy: "Lê Chủ Shop", createdAt: daysAgo(28) },
+      { id: "mh7", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -11, before: 132, after: 121, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(26) },
+      { id: "mh8", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -6, before: 121, after: 115, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(24) },
+      { id: "mh9", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 50, before: 115, after: 165, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(22) },
+      { id: "mh10", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -11, before: 165, after: 154, note: "Xuất cho đại lý", createdBy: "Lê Chủ Shop", createdAt: daysAgo(20) },
+      { id: "mh11", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -9, before: 154, after: 145, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(18) },
+      { id: "mh12", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 29, before: 145, after: 174, note: "Nhập lô mới từ HTX", createdBy: "Lê Chủ Shop", createdAt: daysAgo(16) },
+      { id: "mh13", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -5, before: 174, after: 169, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(14) },
+      { id: "m1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -29, before: 169, after: 140, note: "Xuất cho HTX đối tác", createdBy: "Lê Chủ Shop", createdAt: daysAgo(9) },
+      { id: "m2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -18, before: 140, after: 122, note: "Xuất cho đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(4) },
+      { id: "m3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "adjust", status: "approved", delta: -2, before: 122, after: 120, note: "Kiểm kê cuối tháng — 2 bao rách", createdBy: "Lê Chủ Shop", createdAt: daysAgo(1) },
+      { id: "m4", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", source: "farm", status: "approved", delta: 45, before: 0, after: 45, createdBy: "Nguyễn Quản Trị", createdAt: daysAgo(6) },
     ],
     productGroups: [
       {
@@ -174,6 +183,7 @@ export const db: {
     products: [
       {
         id: "p1",
+        source: "farm",
         farmId: "f1",
         shopId: "s1",
         certifications: ["VietGAP", "Hữu cơ"],
@@ -196,6 +206,7 @@ export const db: {
       },
       {
         id: "p2",
+        source: "farm",
         farmId: "f3",
         shopId: "s2",
         certifications: ["OCOP 4 sao"],
@@ -289,6 +300,7 @@ export const db: {
       },
       {
         id: "p7",
+        source: "farm",
         farmId: "f2",
         shopId: "s1",
         certifications: [],
@@ -325,6 +337,7 @@ export const db: {
       },
       {
         id: "p9",
+        source: "farm",
         farmId: "f1",
         shopId: "s1",
         certifications: ["Hữu cơ"],
@@ -344,6 +357,7 @@ export const db: {
       },
       {
         id: "p10",
+        source: "farm",
         farmId: "f3",
         shopId: "s2",
         certifications: [],
@@ -417,7 +431,7 @@ export const db: {
         recipientPhone: "0912345678",
         address: "45 Kim Mã, Ba Đình, Hà Nội",
         total: 330000,
-        status: "confirmed",
+        status: "new",
         createdAt: daysAgo(1),
       },
       {
@@ -428,7 +442,7 @@ export const db: {
         recipientPhone: "0987654321",
         address: "8 Trần Phú, Hải Châu, Đà Nẵng",
         total: 870000,
-        status: "processing",
+        status: "new",
         createdAt: daysAgo(2),
       },
       {
@@ -439,7 +453,7 @@ export const db: {
         recipientPhone: "0934567890",
         address: "102 Nguyễn Huệ, TP. Huế",
         total: 210000,
-        status: "shipped",
+        status: "new",
         createdAt: daysAgo(3),
       },
       {
@@ -558,9 +572,8 @@ const pickBuyer = () => BUYERS[Math.floor(Math.pow(rand(), 1.8) * BUYERS.length)
 function statusFor(age: number): OrderStatus {
   const r = rand();
   if (r < 0.08) return "cancelled";
-  if (age > 6) return "completed";
-  if (age > 3) return r < 0.5 ? "completed" : "shipped";
-  return pick<OrderStatus>(["new", "confirmed", "processing", "shipped"]);
+  if (age > 4) return "completed";
+  return r < 0.4 ? "completed" : "new";
 }
 
 for (let i = 0; i < 140; i++) {
@@ -602,7 +615,7 @@ for (let i = 0; i < 140; i++) {
 }
 
 // ── Order details: items for the hand-written orders + a status trail for every order ──
-const FLOW: OrderStatus[] = ["new", "confirmed", "processing", "shipped", "completed"];
+const FLOW: OrderStatus[] = ["new", "completed"];
 for (const o of db.orders) {
   if (!o.items?.length) {
     const p = db.products.find((x) => x.shopId === o.shopId) ?? db.products[0];
@@ -613,7 +626,7 @@ for (const o of db.orders) {
   }
   const placed = new Date(o.createdAt).getTime();
   const shop = db.shops.find((x) => x.id === o.shopId)?.contactName ?? "Chủ shop";
-  const reached = o.status === "cancelled" ? FLOW.slice(0, 1 + Math.floor(rand() * 3)) : FLOW.slice(0, FLOW.indexOf(o.status) + 1);
+  const reached = o.status === "cancelled" ? FLOW.slice(0, 1) : FLOW.slice(0, FLOW.indexOf(o.status) + 1);
   o.statusHistory = reached.map((status, i) => ({
     status,
     at: new Date(Math.min(Date.now(), placed + i * (6 + rand() * 18) * 3_600_000)).toISOString(),
@@ -630,14 +643,16 @@ for (const o of db.orders) {
   }
 }
 
-// ── Dispatch: route each order to the shop team covering its address ──
-for (const o of db.orders) {
-  const addr = o.address.toLowerCase();
-  const team = db.dispatchTeams.find((t) => t.shopId === o.shopId && t.regions.some((r) => addr.includes(r.toLowerCase())));
+// ── Dispatch: route each order to the team owning its product group, members in turn ──
+for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+  const groupIds = db.productGroups.filter((g) => o.items?.some((it) => g.productIds.includes(it.productId))).map((g) => g.id);
+  const team = db.dispatchTeams.find((t) => t.shopId === o.shopId && t.productGroupIds.some((g) => groupIds.includes(g)));
   // Leave the newest few unassigned so "Tự động phân đơn" has work to do
   if (!team || Date.now() - new Date(o.createdAt).getTime() < 2 * 86_400_000) continue;
   o.teamId = team.id;
-  o.assigneeId = o.status === "new" ? null : team.memberIds[o.code.length % team.memberIds.length];
+  const i = team.nextMemberIndex ?? 0;
+  o.assigneeId = team.memberIds[i % team.memberIds.length];
+  team.nextMemberIndex = (i + 1) % team.memberIds.length;
 }
 
 // ── Customers: one per distinct buyer phone, first seen = first order ──

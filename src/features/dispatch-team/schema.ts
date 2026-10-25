@@ -6,7 +6,7 @@ export const dispatchTeamSchema = z
     description: z.string().trim().max(200, "Tối đa 200 ký tự").optional(),
     memberIds: z.array(z.string()).min(1, "Chọn ít nhất một thành viên"),
     leaderId: z.string().nullable().optional(),
-    regions: z.array(z.string()),
+    productGroupIds: z.array(z.string()),
     shopId: z.string().optional(),
   })
   .refine((v) => !v.leaderId || v.memberIds.includes(v.leaderId), {
@@ -15,5 +15,3 @@ export const dispatchTeamSchema = z
   });
 
 export type DispatchTeamFormValues = z.infer<typeof dispatchTeamSchema>;
-
-export const REGION_SUGGESTIONS = ["TP.HCM", "Hà Nội", "Cần Thơ", "Đà Nẵng", "Đà Lạt", "Vinh", "Buôn Ma Thuột"];
