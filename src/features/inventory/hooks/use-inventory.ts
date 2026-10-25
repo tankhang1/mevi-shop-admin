@@ -57,6 +57,15 @@ export function useSetLowStockThreshold() {
   });
 }
 
+export function useSetVariantThresholds() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: ({ productId, value }: { productId: string; value: Record<string, number> }) =>
+      inventoryApi.setVariantThresholds(productId, value),
+    onSuccess: invalidate,
+  });
+}
+
 export function useApproveMovement() {
   const invalidate = useInvalidateInventory();
   return useMutation({ mutationFn: (id: string) => inventoryApi.approve(id), onSuccess: invalidate });

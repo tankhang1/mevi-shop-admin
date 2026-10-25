@@ -16,11 +16,11 @@ export function ShopShelf() {
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="font-semibold">Sản phẩm kinh doanh</h2>
-          <p className="text-sm text-muted-foreground">Bật "Tạm dừng" để ẩn sản phẩm khỏi cửa hàng và không cho thêm vào giỏ hàng.</p>
+          <p className="text-sm text-muted-foreground">Bật "Lên kệ" để sản phẩm hiển thị trên cửa hàng và cho phép thêm vào giỏ hàng.</p>
         </div>
         {!isLoading && (
           <span className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{listed}</span>/{products.length} đang kinh doanh
+            <span className="font-medium text-foreground">{listed}</span>/{products.length} đang lên kệ
           </span>
         )}
       </div>
@@ -40,7 +40,7 @@ export function ShopShelf() {
                   {p.sku} · {formatVnd(p.salePrice ?? p.price)}
                 </div>
               </div>
-              <ShelfToggle product={p} />
+              <ShelfToggle product={p} mode="shelf" showLabel />
             </li>
           ))}
         </ul>

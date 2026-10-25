@@ -8,8 +8,8 @@ export const STOCK_STATUS: Record<StockStatus, { label: string; className: strin
 };
 
 export const MOVEMENT_TYPE: Record<MovementType, { label: string; className: string }> = {
-  in: { label: "Nhập kho", className: "bg-emerald-100 text-emerald-800" },
-  out: { label: "Xuất kho", className: "bg-orange-100 text-orange-800" },
+  in: { label: "Nhập hàng", className: "bg-emerald-100 text-emerald-800" },
+  out: { label: "Xuất hàng", className: "bg-orange-100 text-orange-800" },
   adjust: { label: "Kiểm kê", className: "bg-sky-100 text-sky-800" },
 };
 
@@ -17,6 +17,7 @@ export const stockStatusOf = (p: Pick<Product, "stock" | "lowStockThreshold">): 
   p.stock <= 0 ? "out" : p.stock <= p.lowStockThreshold ? "low" : "in_stock";
 
 export const MOVEMENT_SOURCE: Record<MovementSource, string> = {
+  mevi: "Mevi",
   farm: "Nông hộ",
   external: "Nguồn ngoài",
   order: "Đơn hàng",

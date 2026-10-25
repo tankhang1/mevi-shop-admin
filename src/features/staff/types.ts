@@ -23,7 +23,8 @@ export interface Staff {
   createdAt: string;
 }
 
-export type StaffInput = Pick<Staff, "name" | "phone" | "email" | "role" | "permissions"> & { shopId?: string };
+/** Dispatch staff: just who they are — role / permissions / shop are set by the backend */
+export type StaffInput = Pick<Staff, "name" | "phone" | "email"> & { password?: string };
 
 export interface StaffListParams extends ListParams {
   role?: "all" | StaffRole;

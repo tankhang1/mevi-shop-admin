@@ -44,6 +44,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import { formatDate, formatVnd } from "@/lib/format";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { OrderDispatchCard } from "./components/OrderDispatchCard";
+import { OrderTrackingCard } from "./components/OrderTrackingCard";
 import { OrderTimeline } from "./components/OrderTimeline";
 
 const Row = ({
@@ -271,6 +272,11 @@ export default function OrderDetailPage() {
 
           <OrderDispatchCard
             key={`${order.id}-${order.teamId}-${order.assigneeId}`}
+            order={order}
+          />
+
+          <OrderTrackingCard
+            key={`${order.id}-${order.carrier}-${order.trackingCode}`}
             order={order}
           />
 

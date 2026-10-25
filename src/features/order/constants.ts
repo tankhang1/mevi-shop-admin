@@ -22,3 +22,5 @@ export const nextOrderStatus = (s: OrderStatus): OrderStatus | undefined =>
   isFinalOrderStatus(s) ? undefined : ORDER_FLOW[ORDER_FLOW.indexOf(s) + 1];
 
 export const CANCEL_REASONS = ["Khách yêu cầu huỷ", "Hết hàng", "Không liên lạc được khách", "Sai địa chỉ giao hàng"];
+
+export const SHIPPING_CARRIERS = ["Giao Hàng Nhanh", "Giao Hàng Tiết Kiệm", "Viettel Post", "J&T Express", "SPX Express", "VNPost", "Ahamove", "Khác"];

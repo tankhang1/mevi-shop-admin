@@ -30,7 +30,7 @@ export const API_ENDPOINTS = {
       approve: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/approve`,
       /** POST { reason } */
       reject: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/reject`,
-      /** PATCH { lowStockThreshold } */
+      /** PATCH { lowStockThreshold?, variantThresholds? } */
       threshold: (productId: string) => `/api/admin/shop/inventory/${productId}/threshold`,
     },
     customers: {
@@ -71,6 +71,8 @@ export const API_ENDPOINTS = {
       status: (id: string) => `/api/admin/shop/orders/${id}/status`,
       /** PATCH { internalNote } */
       note: (id: string) => `/api/admin/shop/orders/${id}/note`,
+      /** PATCH { carrier, trackingCode } */
+      tracking: (id: string) => `/api/admin/shop/orders/${id}/tracking`,
       /** PATCH { teamId, assigneeId } */
       assign: (id: string) => `/api/admin/shop/orders/${id}/assign`,
     },

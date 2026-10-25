@@ -33,4 +33,6 @@ export const inventoryApi = {
 
   setThreshold: async (productId: string, lowStockThreshold: number) =>
     (await apiClient.patch<ApiResponse<InventoryItem>>(EP.threshold(productId), { lowStockThreshold })).data.data,
+  setVariantThresholds: async (productId: string, variantThresholds: Record<string, number>) =>
+    (await apiClient.patch<ApiResponse<InventoryItem>>(EP.threshold(productId), { variantThresholds })).data.data,
 };

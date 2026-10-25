@@ -39,6 +39,10 @@ export interface Order {
   /** Oldest first; the first entry is the order being placed */
   statusHistory?: OrderStatusEvent[];
   cancelReason?: string | null;
+  /** Mã vận đơn from the shipping carrier */
+  trackingCode?: string | null;
+  /** Shipping carrier — one of SHIPPING_CARRIERS or free text */
+  carrier?: string | null;
   /** Seller-side note, never shown to the customer */
   internalNote?: string | null;
   /** Dispatch team handling the order */

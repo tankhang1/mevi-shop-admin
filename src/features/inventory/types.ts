@@ -5,14 +5,22 @@ export type StockStatus = "in_stock" | "low" | "out";
 
 export type InventoryItem = Pick<
   Product,
-  "id" | "name" | "sku" | "category" | "images" | "shopId" | "shopName" | "status" | "stock" | "lowStockThreshold" | "source" | "farmId"
-> & { stockStatus: StockStatus; /** Farm stock changes waiting for approval */ pendingCount?: number };
+  "id" | "name" | "sku" | "category" | "images" | "shopId" | "shopName" | "status" | "stock" | "lowStockThreshold" | "source" | "farmId" | "packaging" | "variants" | "suppliers" | "variantThresholds" | "variantStock"
+> & {
+  /** The product this row belongs to — `id` is per row (product + quy cách) in the stock list */
+  productId: string;
+  /** Set on stock-list rows: `stock` / `lowStockThreshold` / `stockStatus` are for this quy cách */
+  variant?: string;
+  stockStatus: StockStatus;
+  /** Farm stock changes waiting for approval */
+  pendingCount?: number;
+};
 
 /** in = nhập kho, out = xuất kho, adjust = kiểm kê (set the counted total) */
 export type MovementType = "in" | "out" | "adjust";
 
-/** Where stock came from / went to: a farmer household, an outside supplier, or a delivered order */
-export type MovementSource = "farm" | "external" | "order";
+/** Where stock came from / went to: Mevi, a farmer household, a delivered order. `external` = older records */
+export type MovementSource = "mevi" | "farm" | "external" | "order";
 
 /** Farm-product changes wait for admin approval; everything else applies immediately */
 export type MovementStatus = "pending" | "approved" | "rejected";
@@ -32,6 +40,12 @@ export interface StockMovement {
   orderCode?: string;
   /** Signed change — for pending ones, the change that will be added on approval */
   delta: number;
+  /** Quy cách the goods came in */
+  variant?: string;
+  /** Inbound: which farm (if any) and the price paid per unit */
+  farmId?: string;
+  farmName?: string;
+  importPrice?: number;
   /** Stock before/after it was applied; pending ones show the projection at request time */
   before: number;
   after: number;
@@ -45,8 +59,13 @@ export interface StockMovement {
 
 export interface AdjustStockInput {
   type: MovementType;
-  /** Inbound only */
+  /** Inbound only — mevi applies at once, farm waits for approval */
   source?: MovementSource;
+  variant?: string;
+  /** source = farm */
+  farmId?: string;
+  /** Per unit of `variant`, for both Mevi and farm imports */
+  importPrice?: number;
   /** Units moved for in/out; the counted total for adjust */
   quantity: number;
   note?: string;
@@ -60,7 +79,9 @@ export interface InventoryListParams extends ListParams {
 
 export interface MovementListParams extends ListParams {
   type?: "all" | MovementType;
-  status?: "all" | MovementStatus;
+  /** closed = đã duyệt + từ chối (everything already reviewed) */
+  status?: "all" | "closed" | MovementStatus;
+  source?: MovementSource;
   productId?: string;
   shopId?: string;
 }

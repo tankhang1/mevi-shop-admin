@@ -16,8 +16,45 @@ const EP = API_ENDPOINTS.admin.inventory;
 const shopName = (id: string) => db.shops.find((s) => s.id === id)?.name;
 
 
-const toItem = (p: Product): InventoryItem => ({
+const variantNames = (p: Product) => (p.variants?.length ? p.variants.map((v) => v.name) : [p.packaging || "Mặc định"]);
+
+/** Per-variant stock kept on the product; older/untracked products put everything on the first variant */
+function variantStockOf(p: Product) {
+  const names = variantNames(p);
+  if (!p.variantStock) p.variantStock = { [names[0]]: p.stock };
+  for (const n of names) p.variantStock[n] ??= 0;
+  return p.variantStock;
+}
+
+/** Apply a signed change to one quy cách (unknown → first); negative changes spill over to the others */
+export function moveVariantStock(p: Product, delta: number, variant?: string) {
+  const stock = variantStockOf(p);
+  const names = variantNames(p);
+  const first = variant && variant in stock ? variant : names[0];
+  if (delta >= 0) {
+    stock[first] += delta;
+    return;
+  }
+  let need = -delta;
+  for (const n of [first, ...names.filter((x) => x !== first)]) {
+    const take = Math.min(stock[n], need);
+    stock[n] -= take;
+    need -= take;
+  }
+}
+
+/** Out when nothing is left; low when any quy cách is at or below its own threshold */
+function itemStatus(p: Product, variantStock: Record<string, number>) {
+  if (p.stock <= 0) return "out" as const;
+  const low = Object.entries(variantStock).some(([n, qty]) => qty <= (p.variantThresholds?.[n] ?? p.lowStockThreshold));
+  return low || p.stock <= p.lowStockThreshold ? ("low" as const) : stockStatusOf(p);
+}
+
+const toItem = (p: Product): InventoryItem => {
+  const variantStock = { ...variantStockOf(p) };
+  return {
   id: p.id,
+  productId: p.id,
   name: p.name,
   sku: p.sku,
   category: p.category,
@@ -29,9 +66,15 @@ const toItem = (p: Product): InventoryItem => ({
   lowStockThreshold: p.lowStockThreshold,
   source: p.source,
   farmId: p.farmId,
-  stockStatus: stockStatusOf(p),
+  packaging: p.packaging,
+  variants: p.variants,
+  suppliers: p.suppliers,
+  variantThresholds: p.variantThresholds,
+  variantStock,
+  stockStatus: itemStatus(p, variantStock),
   pendingCount: db.stockMovements.filter((m) => m.productId === p.id && m.status === "pending").length,
-});
+  };
+};
 
 const findOwned = (id: string) =>
   assertOwns(db.products.find((p) => p.id === id), "Không tìm thấy sản phẩm");
@@ -71,6 +114,7 @@ export function deductOrderStock(o: Order, by: string) {
       createdBy: by,
       createdAt: now,
     });
+    moveVariantStock(p, -it.quantity, (it as { variant?: string }).variant);
     p.stock -= it.quantity;
   }
 }
@@ -82,12 +126,34 @@ export const inventoryHandlers: MockHandler[] = [
     method: "GET",
     path: EP.base,
     handle: ({ query }) => {
+      // One row per quy cách
       const rows = scoped(db.products, query.shopId)
         .map(toItem)
-        .filter((p) => is(p.stockStatus, query.stockStatus))
-        // Most urgent first: out → low → in stock
-        .sort((a, b) => a.stock - a.lowStockThreshold - (b.stock - b.lowStockThreshold));
-      return { data: paginate(rows, query, (p) => `${p.name} ${p.sku} ${p.shopName ?? ""}`) };
+        .flatMap((it): InventoryItem[] =>
+          Object.entries(it.variantStock ?? { [it.packaging || "Mặc định"]: it.stock }).map(([variant, qty]) => {
+            const limit = it.variantThresholds?.[variant] ?? it.lowStockThreshold;
+            return {
+              ...it,
+              id: `${it.productId}::${variant}`,
+              variant,
+              stock: qty,
+              lowStockThreshold: limit,
+              stockStatus: qty <= 0 ? "out" : qty <= limit ? "low" : "in_stock",
+            };
+          }),
+        )
+        .filter((p) => is(p.stockStatus, query.stockStatus));
+      // Most urgent product first (by its tightest quy cách); a product's quy cách stay together, in order
+      const urgency = new Map<string, number>();
+      for (const r of rows) urgency.set(r.productId, Math.min(urgency.get(r.productId) ?? Infinity, r.stock - r.lowStockThreshold));
+      const order = new Map(rows.map((r, i) => [r.id, i]));
+      rows.sort(
+        (a, b) =>
+          urgency.get(a.productId)! - urgency.get(b.productId)! ||
+          a.productId.localeCompare(b.productId) ||
+          order.get(a.id)! - order.get(b.id)!,
+      );
+      return { data: paginate(rows, query, (p) => `${p.name} ${p.sku} ${p.variant ?? ""} ${p.shopName ?? ""}`) };
     },
   },
   {
@@ -99,8 +165,8 @@ export const inventoryHandlers: MockHandler[] = [
         data: {
           products: rows.length,
           units: rows.reduce((s, p) => s + p.stock, 0),
-          low: rows.filter((p) => stockStatusOf(p) === "low").length,
-          out: rows.filter((p) => stockStatusOf(p) === "out").length,
+          low: rows.filter((p) => toItem(p).stockStatus === "low").length,
+          out: rows.filter((p) => p.stock <= 0).length,
           pending: scoped(db.stockMovements).filter((m) => m.status === "pending").length,
         },
       };
@@ -119,7 +185,7 @@ export const inventoryHandlers: MockHandler[] = [
         totalOut: applied.reduce((s, m) => s + Math.max(0, -m.delta), 0),
       };
       const rows = all
-        .filter((m) => is(m.type, query.type) && is(m.status, query.status))
+        .filter((m) => is(m.type, query.type) && (query.status === "closed" ? m.status !== "pending" : is(m.status, query.status)) && is(m.source ?? "", query.source))
         .map((m) => ({ ...m, shopName: shopName(m.shopId) }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       return { data: { ...paginate(rows, query, (m) => `${m.productName} ${m.sku} ${m.note ?? ""}`), summary } };
@@ -134,14 +200,17 @@ export const inventoryHandlers: MockHandler[] = [
       if (!Number.isInteger(qty) || qty < 0 || (body.type !== "adjust" && qty === 0)) {
         throw new HttpError(400, "Số lượng không hợp lệ");
       }
-      const fromFarm = p.source === "farm";
+      // Nhập từ nông hộ waits for approval; nhập từ Mevi applies at once
+      const fromFarm = body.type === "in" ? body.source === "farm" : p.source === "farm";
+      const farm = fromFarm && body.type === "in" ? db.farms.find((f) => f.id === body.farmId) : undefined;
+      if (fromFarm && body.type === "in" && !farm) throw new HttpError(400, "Vui lòng chọn nông hộ");
       // Farm stock only ever moves by adding/subtracting — never overwritten with a counted total
       if (fromFarm && body.type === "adjust")
         throw new HttpError(400, "Sản phẩm từ nông hộ chỉ được nhập / xuất cộng dồn, không kiểm kê ghi đè");
       const before = p.stock;
       const after = body.type === "in" ? before + qty : body.type === "out" ? before - qty : qty;
-      if (after < 0) throw new HttpError(400, `Không đủ hàng để xuất (tồn kho: ${before})`);
-      if (after === before) throw new HttpError(400, "Số lượng tồn kho không thay đổi");
+      if (after < 0) throw new HttpError(400, `Không đủ hàng để xuất (tồn hàng: ${before})`);
+      if (after === before) throw new HttpError(400, "Số lượng tồn hàng không thay đổi");
       const movement: StockMovement = {
         id: uid("m"),
         productId: p.id,
@@ -149,7 +218,11 @@ export const inventoryHandlers: MockHandler[] = [
         sku: p.sku,
         shopId: p.shopId,
         type: body.type,
-        source: body.type === "in" ? (fromFarm ? "farm" : body.source ?? "external") : undefined,
+        source: body.type === "in" ? (fromFarm ? "farm" : body.source ?? "mevi") : undefined,
+        variant: body.variant || undefined,
+        farmId: farm?.id,
+        farmName: farm?.name,
+        importPrice: body.type === "in" ? Number(body.importPrice) || undefined : undefined,
         // Farm products: the change waits for admin approval and leaves stock untouched until then
         status: fromFarm ? "pending" : "approved",
         delta: after - before,
@@ -159,7 +232,10 @@ export const inventoryHandlers: MockHandler[] = [
         createdBy: actor().user.name ?? "—",
         createdAt: new Date().toISOString(),
       };
-      if (!fromFarm) p.stock = after;
+      if (!fromFarm) {
+        moveVariantStock(p, after - before, body.variant);
+        p.stock = after;
+      }
       db.stockMovements.unshift(movement);
       return { data: movement };
     },
@@ -175,6 +251,7 @@ export const inventoryHandlers: MockHandler[] = [
       const after = p.stock + m.delta;
       if (after < 0) throw new HttpError(400, `Không đủ hàng để xuất (tồn kho hiện tại: ${p.stock})`);
       Object.assign(m, { status: "approved", before: p.stock, after, reviewedBy: a.user.name, reviewedAt: new Date().toISOString() });
+      moveVariantStock(p, m.delta, m.variant);
       p.stock = after;
       return { data: m };
     },
@@ -198,11 +275,22 @@ export const inventoryHandlers: MockHandler[] = [
   {
     method: "PATCH",
     path: `${EP.base}/:id/threshold`,
-    handle: ({ params, body }: { params: Record<string, string>; body: { lowStockThreshold: number } }) => {
+    handle: ({
+      params,
+      body,
+    }: {
+      params: Record<string, string>;
+      body: { lowStockThreshold?: number; variantThresholds?: Record<string, number> };
+    }) => {
       const p = findOwned(params.id);
-      const v = Number(body.lowStockThreshold);
-      if (!Number.isInteger(v) || v < 0) throw new HttpError(400, "Ngưỡng cảnh báo không hợp lệ");
-      p.lowStockThreshold = v;
+      const valid = (v: unknown) => Number.isInteger(Number(v)) && Number(v) >= 0;
+      if (body.variantThresholds) {
+        if (!Object.values(body.variantThresholds).every(valid)) throw new HttpError(400, "Ngưỡng cảnh báo không hợp lệ");
+        p.variantThresholds = Object.fromEntries(Object.entries(body.variantThresholds).map(([k, v]) => [k, Number(v)]));
+      } else {
+        if (!valid(body.lowStockThreshold)) throw new HttpError(400, "Ngưỡng cảnh báo không hợp lệ");
+        p.lowStockThreshold = Number(body.lowStockThreshold);
+      }
       return { data: toItem(p) };
     },
   },

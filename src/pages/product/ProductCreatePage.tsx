@@ -23,7 +23,7 @@ export default function ProductCreatePage() {
 
   return (
     <div className="space-y-4">
-      <BackLink to={ROUTES.products} label="Danh sách sản phẩm" />
+      <BackLink to={ROUTES.products} label="Danh mục sản phẩm" />
       <ProductStepperForm
         defaultValues={EMPTY_PRODUCT}
         submitLabel="Tạo sản phẩm"

@@ -67,11 +67,13 @@ export const customerHandlers: MockHandler[] = [
     path: EP.stats,
     handle: () => {
       const rows = visible();
-      const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      // Since the 1st of the current month
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       return {
         data: {
           total: rows.length,
-          newThisMonth: rows.filter((c) => c.createdAt >= monthAgo).length,
+          newThisMonth: rows.filter((c) => c.createdAt >= monthStart).length,
           returning: rows.filter((c) => c.segment === "returning").length,
           vip: rows.filter((c) => c.segment === "vip").length,
         },

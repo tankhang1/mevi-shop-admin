@@ -50,6 +50,10 @@ export interface Product {
   stock: number;
   /** At or below this the product counts as "sắp hết" */
   lowStockThreshold: number;
+  /** Per quy cách override of `lowStockThreshold`, keyed by variant name */
+  variantThresholds?: Record<string, number>;
+  /** Units on hand per quy cách (sums to `stock`) */
+  variantStock?: Record<string, number>;
   createdAt: string;
 }
 

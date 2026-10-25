@@ -33,6 +33,14 @@ export function useUpdateOrderNote() {
   });
 }
 
+export function useUpdateOrderTracking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; carrier: string; trackingCode: string }) => orderApi.updateTracking(id, data),
+    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+  });
+}
+
 export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({

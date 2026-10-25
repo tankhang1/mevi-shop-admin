@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Crown, Plus, Repeat, UserPlus, Users } from "lucide-react";
+import { Plus, UserPlus, Users } from "lucide-react";
 import {
   type Column,
   Button,
@@ -10,13 +10,9 @@ import {
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
-import { StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
 import {
-  CUSTOMER_SEGMENT,
   CUSTOMER_TAG_SUGGESTIONS,
-  type CustomerListParams,
-  type CustomerSegment,
   type CustomerWithStats,
   useCustomerStats,
   useCustomers,
@@ -27,14 +23,6 @@ import { CustomerMobileCard } from "./components/CustomerMobileCard";
 import { CustomerFormDialog } from "./components/CustomerFormDialog";
 
 const filters: TableFilterDef[] = [
-  {
-    key: "segment",
-    label: "Phân loại",
-    options: (Object.keys(CUSTOMER_SEGMENT) as CustomerSegment[]).map((s) => ({
-      label: CUSTOMER_SEGMENT[s].label,
-      value: s,
-    })),
-  },
   {
     key: "tag",
     label: "Nhãn",
@@ -65,8 +53,8 @@ export default function CustomerListPage() {
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
   const table = useTableParams<
-    Required<Pick<CustomerListParams, "segment">> & { tag: string }
-  >({ segment: "all", tag: "all" });
+    { tag: string }
+  >({ tag: "all" });
   const { data: page, isFetching } = useCustomers(table.params);
   const { data: stats } = useCustomerStats();
   const [open, setOpen] = useState(false);
@@ -119,7 +107,7 @@ export default function CustomerListPage() {
     },
     {
       key: "orderCount",
-      label: "Số đơn",
+      label: "Tổng đơn",
       sortable: true,
       render: (v) => <span className="tabular-nums">{String(v)}</span>,
     },
@@ -143,25 +131,17 @@ export default function CustomerListPage() {
         </span>
       ),
     },
-    {
-      key: "segment",
-      label: "Phân loại",
-      mobilePriority: "badge",
-      render: (v) => <StatusPill {...CUSTOMER_SEGMENT[v as CustomerSegment]} />,
-    },
   ];
 
   const statItems = [
-    { title: "Tổng khách hàng", short: "Tổng", value: stats?.total ?? "—", icon: Users, tone: "text-primary" },
-    { title: "Mới 30 ngày", short: "Mới 30 ngày", value: stats?.newThisMonth ?? "—", icon: UserPlus, tone: "text-sky-600" },
-    { title: "Khách quen", short: "Khách quen", value: stats?.returning ?? "—", icon: Repeat, tone: "text-emerald-600" },
-    { title: "VIP", short: "VIP", value: stats?.vip ?? "—", icon: Crown, tone: "text-amber-500" },
+    { title: "Tổng khách hàng", short: "Tổng khách hàng", value: stats?.total ?? "—", icon: Users, tone: "text-primary" },
+    { title: "Khách hàng mới trong tháng", short: "Mới trong tháng", value: stats?.newThisMonth ?? "—", icon: UserPlus, tone: "text-sky-600" },
   ];
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Mobile: one compact row instead of four stacked cards */}
-      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden">
+      {/* Mobile: one compact row instead of stacked cards */}
+      <div className="grid grid-cols-2 divide-x rounded-xl border bg-card md:hidden!">
         {statItems.map((it) => (
           <div key={it.title} className="flex flex-col items-center gap-1 px-1 py-3">
             <it.icon className={`h-4 w-4 ${it.tone}`} />
@@ -170,7 +150,7 @@ export default function CustomerListPage() {
           </div>
         ))}
       </div>
-      <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+      <div className="hidden gap-4 md:grid! md:grid-cols-2">
         {statItems.map((it) => (
           <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
         ))}

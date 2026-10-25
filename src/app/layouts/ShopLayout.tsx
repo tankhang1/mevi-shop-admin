@@ -19,12 +19,12 @@ function titleFor(path: string) {
   if (path === ROUTES.productApproval) return "Duyệt sản phẩm";
   if (/^\/admin\/products\/[^/]+\/edit$/.test(path)) return "Sửa sản phẩm";
   if (/^\/admin\/products\/[^/]+$/.test(path)) return "Chi tiết sản phẩm";
-  if (path.startsWith(ROUTES.products)) return "Quản lý sản phẩm";
+  if (path.startsWith(ROUTES.products)) return "Danh mục sản phẩm";
   if (path === ROUTES.farmRegistrations) return "Đăng ký sản phẩm từ nông hộ";
   if (path === ROUTES.productGroups) return "Nhóm sản phẩm";
   if (path.startsWith(ROUTES.productGroups)) return "Chi tiết nhóm sản phẩm";
-  if (path === ROUTES.inventory) return "Quản lý kho";
-  if (path.startsWith(ROUTES.inventory)) return "Lịch sử kho";
+  if (path === ROUTES.inventory) return "Kho sản phẩm";
+  if (path.startsWith(ROUTES.inventory)) return "Lịch sử nhập hàng";
   if (path === ROUTES.customers) return "Khách hàng";
   if (path.startsWith(ROUTES.customers)) return "Chi tiết khách hàng";
   if (path === ROUTES.orders) return "Đơn đặt hàng";
@@ -36,7 +36,7 @@ function titleFor(path: string) {
   if (path === ROUTES.report("product")) return "Doanh thu theo sản phẩm";
   if (path === ROUTES.report("group")) return "Doanh thu theo nhóm sản phẩm";
   if (path === ROUTES.report("farm")) return "Doanh thu theo nông hộ";
-  if (path === ROUTES.staff) return "Nhân viên";
+  if (path === ROUTES.staff) return "Nhân viên điều phối";
   if (path === ROUTES.myShop) return "Thông tin gian hàng";
   if (path === ROUTES.shops) return "Gian hàng";
   if (path.startsWith(ROUTES.shops)) return "Chi tiết gian hàng";

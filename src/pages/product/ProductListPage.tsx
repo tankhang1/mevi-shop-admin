@@ -35,7 +35,7 @@ export default function ProductListPage() {
   usePageActions(() => (
     <Button asChild className="h-8! min-h-8! px-3! text-sm max-md:rounded-full md:h-10! md:min-h-10! md:px-4!">
       <Link href={ROUTES.productCreate}>
-        {/* The mobile title row already says "Quản lý sản phẩm" — keep the button short there.
+        {/* The mobile title row already says "Danh mục sản phẩm" — keep the button short there.
             max-md:* instead of hidden/md:inline: shared-ui's prebuilt `.hidden`/`.rounded-full` load later and win */}
         <Plus className="mr-1 h-4 w-4" /> <span className="md:hidden">Thêm</span>
         <span className="max-md:hidden">Thêm sản phẩm</span>

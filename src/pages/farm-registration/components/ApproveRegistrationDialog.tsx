@@ -83,7 +83,7 @@ function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
       });
       toast({
         title: "Đã duyệt — sản phẩm đã được tạo",
-        description: `${r.name} · tồn kho ban đầu ${r.quantity}`,
+        description: `${r.name} · hàng tồn ban đầu ${r.quantity}`,
       });
       onDone();
     } catch (e) {

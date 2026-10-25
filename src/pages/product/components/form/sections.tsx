@@ -25,7 +25,7 @@ export function BasicInfoSection() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <TextField<ProductFormValues> name="name" label="Tên sản phẩm" required className="sm:col-span-2" placeholder="VD: Gạo ST25 hữu cơ" />
-      <TextField<ProductFormValues> name="sku" label="Mã sản phẩm" required placeholder="VD: GAO-ST25-5KG" description="Mã duy nhất, dùng để quản lý kho" />
+      <TextField<ProductFormValues> name="sku" label="Mã sản phẩm" required placeholder="VD: GAO-ST25-5KG" description="Mã duy nhất, dùng để quản lý hàng" />
       <SelectField<ProductFormValues> name="category" label="Nhóm sản phẩm" required options={CATEGORY_OPTIONS} placeholder="Chọn nhóm sản phẩm" />
       <TextareaField<ProductFormValues> name="description" label="Mô tả" className="sm:col-span-2" rows={5} placeholder="Đặc điểm, câu chuyện sản phẩm..." />
       <TextField<ProductFormValues> name="shelfLife" label="Hạn sử dụng" placeholder="VD: 12 tháng" />

@@ -13,14 +13,14 @@ export const STAFF_ROLE: Record<StaffRole, { label: string; description: string;
   },
   warehouse: {
     label: "Kho",
-    description: "Nhập xuất kho và chuẩn bị đơn hàng",
+    description: "Nhập hàng và chuẩn bị đơn hàng",
     permissions: ["inventory", "orders"],
   },
 };
 
 export const STAFF_PERMISSION: Record<StaffPermission, { label: string; description: string }> = {
   products: { label: "Sản phẩm", description: "Thêm, sửa sản phẩm và nhóm sản phẩm" },
-  inventory: { label: "Kho hàng", description: "Nhập / xuất / kiểm kê tồn kho" },
+  inventory: { label: "Kho sản phẩm", description: "Nhập hàng, theo dõi hàng tồn" },
   orders: { label: "Đơn hàng", description: "Xem và cập nhật trạng thái đơn" },
   customers: { label: "Khách hàng", description: "Xem, sửa thông tin và ghi chú khách" },
   reviews: { label: "Đánh giá", description: "Trả lời và ẩn đánh giá" },

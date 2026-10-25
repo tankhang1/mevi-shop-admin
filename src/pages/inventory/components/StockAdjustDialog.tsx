@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Building2, Sprout } from "lucide-react";
 import {
   Button,
+  Combobox,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -9,246 +10,206 @@ import {
   DialogTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   cn,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
-import {
-  type InventoryItem,
-  MOVEMENT_SOURCE,
-  MOVEMENT_TYPE,
-  type MovementSource,
-  type MovementType,
-  useAdjustStock,
-  useSetLowStockThreshold,
-} from "@/features/inventory";
+import { type InventoryItem, useAdjustStock } from "@/features/inventory";
+import { useFarms } from "@/features/farm";
 import { getErrorMessage } from "@/lib/api-error";
+import { formatVnd } from "@/lib/format";
 
 interface Props {
   item: InventoryItem | null;
   onOpenChange: (open: boolean) => void;
 }
 
-const TYPES: MovementType[] = ["in", "out", "adjust"];
-const QTY_LABEL: Record<MovementType, string> = {
-  in: "Số lượng nhập",
-  out: "Số lượng xuất",
-  adjust: "Số lượng thực tế sau kiểm kê",
-};
+type ImportSource = "mevi" | "farm";
 
-/** Record a stock movement (nhập / xuất / kiểm kê) and tune the low-stock threshold */
+const SOURCES: { value: ImportSource; label: string; hint: string; icon: typeof Sprout }[] = [
+  { value: "mevi", label: "Nhập từ Mevi", hint: "Cộng vào hàng tồn ngay", icon: Building2 },
+  { value: "farm", label: "Nhập từ Nông hộ", hint: "Chờ chủ gian hàng duyệt", icon: Sprout },
+];
+
+/** Nhập hàng from Mevi or a farm. Xuất only happens through orders */
 export function StockAdjustDialog({ item, onOpenChange }: Props) {
   return (
     <Dialog open={!!item} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md [&>*]:min-w-0">
         {/* Mounted only while open, so each product starts from a clean form */}
-        {item && <AdjustBody item={item} onDone={() => onOpenChange(false)} />}
+        {item && <ImportBody item={item} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AdjustBody({
-  item,
-  onDone,
-}: {
-  item: InventoryItem;
-  onDone: () => void;
-}) {
+function ImportBody({ item, onDone }: { item: InventoryItem; onDone: () => void }) {
   const { toast } = useToast();
   const adjust = useAdjustStock();
-  const setThreshold = useSetLowStockThreshold();
-  const [type, setType] = useState<MovementType>("in");
-  const fromFarm = item.source === "farm";
-  const [source, setSource] = useState<MovementSource>(
-    fromFarm ? "farm" : "external",
-  );
-  // Farm stock is additive only — no overwrite by stock count
-  const types = fromFarm ? TYPES.filter((t) => t !== "adjust") : TYPES;
+  const { data: farms } = useFarms();
+
+  // Older products have no variant list — fall back to their single packaging
+  const variants = item.variants?.length ? item.variants.map((v) => v.name) : [item.packaging || "Mặc định"];
+  const suppliers = item.suppliers ?? [];
+
+  const [source, setSource] = useState<ImportSource>(item.source === "farm" ? "farm" : "mevi");
+  const [variant, setVariant] = useState(item.variant && variants.includes(item.variant) ? item.variant : variants[0]);
+  const [farmId, setFarmId] = useState(suppliers[0]?.farmId ?? item.farmId ?? "");
+  const [importPrice, setImportPrice] = useState(suppliers[0]?.importPrice ? String(suppliers[0].importPrice) : "");
   const [qty, setQty] = useState("");
   const [note, setNote] = useState("");
-  const [threshold, setThresholdValue] = useState(
-    String(item.lowStockThreshold),
-  );
+
+  // The product's own suppliers first, then every other farm
+  const farmOptions = [...(farms ?? [])]
+    .sort((a, b) => Number(suppliers.some((s) => s.farmId === b.id)) - Number(suppliers.some((s) => s.farmId === a.id)))
+    .map((f) => ({ label: `${f.name} · ${f.location}`, value: f.id }));
+
+  const pickFarm = (id: string) => {
+    setFarmId(id);
+    const known = suppliers.find((s) => s.farmId === id)?.importPrice;
+    if (known) setImportPrice(String(known));
+  };
 
   const n = Number(qty);
-  const valid =
-    qty !== "" && Number.isInteger(n) && n >= 0 && (type === "adjust" || n > 0);
-  const after = !valid
-    ? null
-    : type === "in"
-      ? item.stock + n
-      : type === "out"
-        ? item.stock - n
-        : n;
-  const error =
-    after !== null && after < 0
-      ? `Không đủ hàng để xuất (tồn kho: ${item.stock})`
-      : after === item.stock
-        ? "Tồn kho không thay đổi"
-        : null;
+  const price = Number(importPrice);
+  const qtyValid = qty !== "" && Number.isInteger(n) && n > 0;
+  const priceValid = importPrice !== "" && Number.isInteger(price) && price > 0;
+  const farmValid = source === "mevi" || !!farmId;
+  const valid = qtyValid && priceValid && farmValid && !!variant;
 
   const onSave = async () => {
     try {
       await adjust.mutateAsync({
-        productId: item.id,
+        productId: item.productId,
         data: {
-          type,
+          type: "in",
+          source,
+          variant,
           quantity: n,
           note,
-          source: type === "in" ? source : undefined,
+          importPrice: price,
+          ...(source === "farm" && { farmId }),
         },
       });
       toast(
-        fromFarm
-          ? {
-              title: "Đã gửi yêu cầu chờ duyệt",
-              description: `${MOVEMENT_TYPE[type].label} ${n} · ${item.name}`,
-            }
-          : {
-              title: `${MOVEMENT_TYPE[type].label}: ${item.name}`,
-              description: `Tồn kho ${item.stock} → ${after}`,
-            },
+        source === "farm"
+          ? { title: "Đã gửi phiếu nhập chờ duyệt", description: `${n} × ${variant} · ${item.name}` }
+          : { title: `Đã nhập hàng: ${item.name}`, description: `Hàng tồn ${item.stock} → ${item.stock + n}` },
       );
       onDone();
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Không thể cập nhật",
-        description: getErrorMessage(e),
-      });
+      toast({ variant: "destructive", title: "Không thể nhập hàng", description: getErrorMessage(e) });
     }
   };
-
-  const onSaveThreshold = async () => {
-    try {
-      await setThreshold.mutateAsync({
-        productId: item.id,
-        value: Number(threshold),
-      });
-      toast({
-        title: "Đã lưu ngưỡng cảnh báo",
-        description: `${item.name}: ≤ ${threshold}`,
-      });
-    } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Không thể lưu",
-        description: getErrorMessage(e),
-      });
-    }
-  };
-
-  const thresholdValid =
-    threshold !== "" &&
-    Number.isInteger(Number(threshold)) &&
-    Number(threshold) >= 0;
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Cập nhật tồn kho</DialogTitle>
+        <DialogTitle>Nhập hàng</DialogTitle>
       </DialogHeader>
 
       <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
-        <img
-          src={item.images[0] || placeholder}
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-md border object-cover"
-        />
+        <img src={item.images[0] || placeholder} alt="" className="h-10 w-10 shrink-0 rounded-md border object-cover" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{item.name}</div>
-          <div className="font-mono text-xs text-muted-foreground">
-            {item.sku}
-          </div>
+          <div className="font-mono text-xs text-muted-foreground">{item.sku}</div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-muted-foreground">Tồn kho</div>
+          <div className="text-xs text-muted-foreground">Hàng tồn</div>
           <div className="font-semibold">{item.stock}</div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {fromFarm && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Sản phẩm từ nông hộ: thay đổi được <b>cộng dồn</b> vào tồn kho và
-            chỉ áp dụng sau khi chủ gian hàng duyệt.
-            {!!item.pendingCount &&
-              ` Đang có ${item.pendingCount} yêu cầu chờ duyệt.`}
-          </p>
-        )}
-        <div
-          className={cn(
-            "grid gap-1 rounded-lg bg-muted p-1",
-            types.length === 3 ? "grid-cols-3" : "grid-cols-2",
-          )}
-        >
-          {types.map((t) => (
+      <div className="min-w-0 space-y-4">
+        <div className="grid grid-cols-2 gap-2">
+          {SOURCES.map((s) => (
             <button
-              key={t}
+              key={s.value}
               type="button"
-              onClick={() => setType(t)}
+              onClick={() => setSource(s.value)}
               className={cn(
-                "rounded-md py-1.5 text-sm font-medium transition-colors",
-                type === t
-                  ? "bg-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition",
+                source === s.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/50",
               )}
             >
-              {MOVEMENT_TYPE[t].label}
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                <s.icon className={cn("h-4 w-4", source === s.value ? "text-primary" : "text-muted-foreground")} />
+                {s.label}
+              </span>
+              <span className="text-xs text-muted-foreground">{s.hint}</span>
             </button>
           ))}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="qty">{QTY_LABEL[type]}</Label>
-          <Input
-            id="qty"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            autoFocus
-          />
-          {after !== null && (
-            <p
-              className={cn(
-                "flex items-center gap-1.5 text-sm",
-                error ? "text-destructive" : "text-muted-foreground",
-              )}
-            >
-              {error ?? (
-                <>
-                  Tồn kho {item.stock} <ArrowRight className="h-3.5 w-3.5" />
-                  <span className="font-semibold text-foreground">{after}</span>
-                </>
-              )}
-            </p>
-          )}
+        {source === "farm" && (
+          <div className="space-y-1.5">
+            <Label>Nông hộ</Label>
+            <Combobox
+              options={farmOptions}
+              value={farmId}
+              onChange={pickFarm}
+              placeholder="Chọn nông hộ / HTX"
+              searchPlaceholder="Tìm theo tên, địa phương..."
+              emptyText="Không tìm thấy nông hộ"
+              className="w-full min-w-0 max-w-full overflow-hidden"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Quy cách</Label>
+            <Select value={variant} onValueChange={setVariant}>
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn quy cách" />
+              </SelectTrigger>
+              <SelectContent>
+                {variants.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qty">Số lượng</Label>
+            <Input id="qty" type="number" min={1} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} autoFocus />
+          </div>
         </div>
 
-        {type === "in" && !fromFarm && (
-          <div className="space-y-1.5">
-            <Label>Nguồn nhập</Label>
-            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-              {(["external", "farm"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSource(s)}
-                  className={cn(
-                    "rounded-md py-1.5 text-sm font-medium transition-colors",
-                    source === s
-                      ? "bg-background shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {MOVEMENT_SOURCE[s]}
-                </button>
-              ))}
-            </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="importPrice">Giá nhập / {variant}</Label>
+          <div className="relative">
+            <Input
+              id="importPrice"
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={importPrice}
+              onChange={(e) => setImportPrice(e.target.value)}
+              className="pr-20! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-sm text-muted-foreground">VND</span>
+          </div>
+        </div>
+
+        {qtyValid && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              Hàng tồn {item.stock} <ArrowRight className="h-3.5 w-3.5" />
+              <span className="font-semibold text-foreground">{item.stock + n}</span>
+              {source === "farm" && <span className="text-xs">(sau khi duyệt)</span>}
+            </span>
+            {priceValid && (
+              <span className="font-semibold tabular-nums">Thành tiền {formatVnd(n * price)}</span>
+            )}
           </div>
         )}
 
@@ -259,13 +220,7 @@ function AdjustBody({
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={
-              type === "in"
-                ? "VD: Nhập lô mới từ vườn"
-                : type === "out"
-                  ? "VD: Xuất đơn sỉ, hàng hỏng"
-                  : "VD: Kiểm kê cuối tháng"
-            }
+            placeholder={source === "farm" ? "VD: Lô thu hoạch tháng 10" : "VD: Nhập lô mới"}
           />
         </div>
       </div>
@@ -274,37 +229,11 @@ function AdjustBody({
         <Button variant="outline" onClick={onDone}>
           Huỷ
         </Button>
-        <Button
-          onClick={() => void onSave()}
-          disabled={!valid || !!error || adjust.isPending}
-        >
-          {fromFarm ? "Gửi duyệt" : "Xác nhận"}
+        <Button onClick={() => void onSave()} disabled={!valid || adjust.isPending}>
+          {source === "farm" ? "Gửi duyệt" : "Nhập hàng"}
         </Button>
       </DialogFooter>
 
-      <div className="flex items-end gap-2 border-t pt-4">
-        <div className="flex-1 space-y-1.5">
-          <Label htmlFor="threshold">Cảnh báo sắp hết khi tồn kho ≤</Label>
-          <Input
-            id="threshold"
-            type="number"
-            min={0}
-            value={threshold}
-            onChange={(e) => setThresholdValue(e.target.value)}
-          />
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => void onSaveThreshold()}
-          disabled={
-            !thresholdValid ||
-            Number(threshold) === item.lowStockThreshold ||
-            setThreshold.isPending
-          }
-        >
-          Lưu ngưỡng
-        </Button>
-      </div>
     </>
   );
 }

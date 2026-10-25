@@ -23,10 +23,9 @@ import { BackLink } from "@/components/common/BackLink";
 import {
   EmptyBlock,
   LoadingBlock,
-  StatusPill,
 } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { CUSTOMER_SEGMENT, useCustomer } from "@/features/customer";
+import { useCustomer } from "@/features/customer";
 import { type OrderListParams, useOrders } from "@/features/order";
 import {
   orderColumns,
@@ -91,7 +90,6 @@ export default function CustomerDetailPage() {
               <Initials name={c.name} size="h-14 w-14 text-lg" />
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-semibold">{c.name}</h2>
-                <StatusPill {...CUSTOMER_SEGMENT[c.segment]} />
               </div>
             </div>
             <div className="space-y-2.5 border-t pt-4">
@@ -147,7 +145,7 @@ export default function CustomerDetailPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                label: "Số đơn",
+                label: "Tổng đơn",
                 value: String(c.orderCount),
                 icon: ShoppingBag,
               },
@@ -171,7 +169,7 @@ export default function CustomerDetailPage() {
                   <div className="mt-1 text-xl font-bold tabular-nums">
                     {s.value}
                   </div>
-                  {c.lastOrderAt && s.label === "Số đơn" && (
+                  {c.lastOrderAt && s.label === "Tổng đơn" && (
                     <div className="text-xs text-muted-foreground">
                       Gần nhất {formatDate(c.lastOrderAt)}
                     </div>

@@ -19,4 +19,6 @@ export const orderApi = {
 
   updateNote: async (id: string, internalNote: string) =>
     (await apiClient.patch<ApiResponse<Order>>(EP.note(id), { internalNote })).data.data,
+  updateTracking: async (id: string, data: { carrier: string; trackingCode: string }) =>
+    (await apiClient.patch<ApiResponse<Order>>(EP.tracking(id), data)).data.data,
 };

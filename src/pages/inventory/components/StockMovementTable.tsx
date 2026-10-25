@@ -5,10 +5,8 @@ import {
   cn,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { StatusPill } from "@/components/common/ui-bits";
 import {
   MOVEMENT_SOURCE,
-  MOVEMENT_STATUS,
   MOVEMENT_TYPE,
   type MovementListParams,
   type MovementType,
@@ -16,7 +14,9 @@ import {
   useStockMovements,
 } from "@/features/inventory";
 import { useShopFilter } from "@/features/shop";
+import { StatusPill } from "@/components/common/ui-bits";
 import { useTableParams } from "@/hooks/useTableParams";
+import { formatVnd } from "@/lib/format";
 
 const dt = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",
@@ -32,18 +32,30 @@ const typeFilter: TableFilterDef = {
   })),
 };
 
-/** Nhập / xuất / kiểm kê history, newest first. With `productId` it shows one product's movements. */
+const statusFilter: TableFilterDef = {
+  key: "status",
+  label: "Trạng thái",
+  options: [
+    { label: "Đã duyệt", value: "approved" },
+    { label: "Từ chối", value: "rejected" },
+  ],
+};
+
+/** Reviewed nhập hàng / bán history (đã duyệt + từ chối), newest first. With `productId` it shows one product's movements. */
 export function StockMovementTable({ productId }: { productId?: string }) {
   const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const table = useTableParams<
-    Pick<MovementListParams, "type"> & { shopId: string }
+    Pick<MovementListParams, "type" | "status"> & { shopId: string }
   >({
     type: "all",
+    status: "all",
     shopId: shopFilter.initialShopId,
   });
   const { data: page, isFetching } = useStockMovements({
     ...table.params,
+    // Pending imports live in "Chờ duyệt nhập hàng"
+    status: !table.params.status || table.params.status === "all" ? "closed" : table.params.status,
     productId,
   });
 
@@ -74,13 +86,13 @@ export function StockMovementTable({ productId }: { productId?: string }) {
               </div>
             ),
           },
-          ...shopFilter.column<StockMovement>(),
         ] satisfies Column<StockMovement>[])),
     {
-      key: "type",
-      label: "Loại",
-      mobilePriority: "badge",
-      render: (v) => <StatusPill {...MOVEMENT_TYPE[v as MovementType]} />,
+      key: "variant",
+      label: "Quy cách",
+      render: (v) => (
+        <span className="whitespace-nowrap text-sm">{String(v ?? "—")}</span>
+      ),
     },
     {
       key: "source",
@@ -91,22 +103,29 @@ export function StockMovementTable({ productId }: { productId?: string }) {
             {m.orderCode}
           </span>
         ) : (
-          <span className="whitespace-nowrap text-sm">
-            {m.source ? MOVEMENT_SOURCE[m.source] : "—"}
-          </span>
+          <div className="text-sm">
+            <div className="whitespace-nowrap">
+              {m.farmName ?? (m.source ? MOVEMENT_SOURCE[m.source] : "—")}
+            </div>
+            {!!m.importPrice && (
+              <div className="whitespace-nowrap text-xs text-muted-foreground">
+                Giá nhập {formatVnd(m.importPrice)}
+              </div>
+            )}
+          </div>
         ),
     },
     {
       key: "status",
-      label: "Duyệt",
+      label: "Trạng thái",
       render: (_, m) => (
         <div>
-          <StatusPill {...MOVEMENT_STATUS[m.status]} />
+          <StatusPill
+            label={m.status === "rejected" ? "Từ chối" : "Đã duyệt"}
+            className={m.status === "rejected" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"}
+          />
           {m.rejectionReason && (
-            <div
-              className="mt-0.5 max-w-40 truncate text-xs text-destructive"
-              title={m.rejectionReason}
-            >
+            <div className="mt-0.5 max-w-40 truncate text-xs text-destructive" title={m.rejectionReason}>
               {m.rejectionReason}
             </div>
           )}
@@ -125,9 +144,6 @@ export function StockMovementTable({ productId }: { productId?: string }) {
             )}
           >
             {m.delta > 0 ? `+${m.delta}` : m.delta}
-          </span>
-          <span className="ml-2 text-xs text-muted-foreground">
-            {m.before} → {m.after}
           </span>
         </div>
       ),
@@ -148,6 +164,13 @@ export function StockMovementTable({ productId }: { productId?: string }) {
         <span className="whitespace-nowrap text-sm">{String(v)}</span>
       ),
     },
+    {
+      key: "reviewedBy",
+      label: "Người duyệt",
+      render: (v) => (
+        <span className="whitespace-nowrap text-sm">{v ? String(v) : "-"}</span>
+      ),
+    },
   ];
 
   return (
@@ -156,8 +179,8 @@ export function StockMovementTable({ productId }: { productId?: string }) {
       columns={columns}
       filters={
         shopFilter.filter && !productId
-          ? [shopFilter.filter, typeFilter]
-          : [typeFilter]
+          ? [shopFilter.filter, typeFilter, statusFilter]
+          : [typeFilter, statusFilter]
       }
       searchPlaceholder={
         productId ? "Tìm theo ghi chú..." : "Tìm theo sản phẩm, mã, ghi chú..."

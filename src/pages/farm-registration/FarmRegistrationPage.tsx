@@ -90,7 +90,7 @@ export default function FarmRegistrationPage() {
             </div>
             {/* Mobile card: the badge slot is too narrow for the reason */}
             {r.rejectionReason && (
-              <div className="mt-0.5 line-clamp-2 text-xs text-destructive md:hidden">
+              <div className="mt-0.5 line-clamp-2 text-xs text-destructive md:hidden!">
                 {r.rejectionReason}
               </div>
             )}

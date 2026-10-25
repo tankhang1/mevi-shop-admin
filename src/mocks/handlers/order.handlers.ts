@@ -66,7 +66,7 @@ export const orderHandlers: MockHandler[] = [
         data: paginate(
           rows,
           query,
-          (o) => `${o.code} ${o.recipientName} ${o.recipientPhone} ${o.shopName ?? ""}`,
+          (o) => `${o.code} ${o.trackingCode ?? ""} ${o.recipientName} ${o.recipientPhone} ${o.shopName ?? ""}`,
         ),
       };
     },
@@ -89,6 +89,16 @@ export const orderHandlers: MockHandler[] = [
         throw new HttpError(400, "Người xử lý phải là thành viên của nhóm");
       o.teamId = team?.id ?? null;
       o.assigneeId = team ? body.assigneeId || null : null;
+      return { data: o };
+    },
+  },
+  {
+    method: "PATCH",
+    path: `${BASE}/:id/tracking`,
+    handle: ({ params, body }: { params: Record<string, string>; body: { carrier?: string; trackingCode?: string } }) => {
+      const o = findOwned(params.id);
+      o.carrier = body.carrier?.trim() || null;
+      o.trackingCode = body.trackingCode?.trim() || null;
       return { data: o };
     },
   },

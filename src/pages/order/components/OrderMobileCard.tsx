@@ -1,4 +1,4 @@
-import { Check, MapPin, Network, Package, Phone, X } from "lucide-react";
+import { Check, MapPin, Network, Package, Phone, Truck, X } from "lucide-react";
 import { type MobileCardHelpers, cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
 import { ORDER_STATUS, type Order, isFinalOrderStatus } from "@/features/order";
@@ -36,6 +36,13 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
               <MapPin className="h-3 w-3 shrink-0" /> {o.address}
             </p>
+            {o.trackingCode && (
+              <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                <Truck className="h-3 w-3 shrink-0" />
+                <span className="font-mono text-foreground">{o.trackingCode}</span>
+                {o.carrier && ` · ${o.carrier}`}
+              </p>
+            )}
           </div>
           <div className="shrink-0 text-right">
             <p className="text-base font-bold tabular-nums text-primary">{formatVnd(o.total)}</p>

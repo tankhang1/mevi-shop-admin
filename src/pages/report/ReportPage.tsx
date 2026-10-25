@@ -173,7 +173,7 @@ export default function ReportPage() {
       ) : (
         <>
           {/* Mobile: 2×2 compact tiles — money values are too wide for one row */}
-          <div className="grid grid-cols-2 gap-2 md:hidden">
+          <div className="grid grid-cols-2 gap-2 md:hidden!">
             {statItems.map((it) => (
               <div key={it.title} className="rounded-xl border bg-card p-3">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -184,7 +184,7 @@ export default function ReportPage() {
               </div>
             ))}
           </div>
-          <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+          <div className="hidden gap-4 md:grid! md:grid-cols-2 xl:grid-cols-4">
             {statItems.map((it) => (
               <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
             ))}

@@ -36,6 +36,7 @@ export interface CustomerListParams extends ListParams {
 
 export interface CustomerStats {
   total: number;
+  /** Created since the 1st of the current month */
   newThisMonth: number;
   returning: number;
   vip: number;

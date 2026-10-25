@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <BackLink to={ROUTES.products} label="Danh sách sản phẩm" />
+        <BackLink to={ROUTES.products} label="Danh mục sản phẩm" />
         <StatusPill {...PRODUCT_STATUS[product.status]} />
         <span className="text-xs text-muted-foreground">Tạo lúc {formatDate(product.createdAt)}</span>
       </div>
@@ -84,12 +84,12 @@ export default function ProductDetailPage() {
 
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <div className="text-sm text-muted-foreground">
-          Tồn kho: <span className="text-base font-semibold text-foreground">{product.stock}</span>
+          Hàng tồn: <span className="text-base font-semibold text-foreground">{product.stock}</span>
         </div>
         <StatusPill {...STOCK_STATUS[stockStatusOf(product)]} />
         <Button variant="outline" size="sm" className="ml-auto" asChild>
           <Link href={ROUTES.inventoryHistory(product.id)}>
-            <History className="mr-1.5 h-4 w-4" /> Lịch sử kho
+            <History className="mr-1.5 h-4 w-4" /> Lịch sử nhập hàng
           </Link>
         </Button>
       </Card>

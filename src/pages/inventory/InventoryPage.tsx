@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   AlertTriangle,
-  ArrowDownUp,
+  ArrowDownToLine,
+  BellRing,
   Boxes,
   ClipboardCheck,
   ExternalLink,
+  History,
   PackageX,
 } from "lucide-react";
 import {
@@ -36,6 +38,7 @@ import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
+import { StockAlertDialog } from "./components/StockAlertDialog";
 import { PendingMovementsTable } from "./components/PendingMovementsTable";
 import { StockMovementTable } from "./components/StockMovementTable";
 
@@ -43,14 +46,20 @@ const nf = new Intl.NumberFormat("vi-VN");
 
 const stockFilter: TableFilterDef = {
   key: "stockStatus",
-  label: "Tồn kho",
+  label: "Hàng tồn",
   options: (Object.keys(STOCK_STATUS) as StockStatus[]).map((s) => ({
     label: STOCK_STATUS[s].label,
     value: s,
   })),
 };
 
-function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
+function StockTable({
+  onAdjust,
+  onAlert,
+}: {
+  onAdjust: (item: InventoryItem) => void;
+  onAlert: (item: InventoryItem) => void;
+}) {
   const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
   const isMobile = useIsMobile();
@@ -75,7 +84,13 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
             className="h-10 w-10 shrink-0 rounded-md border object-cover"
           />
           <div className="min-w-0">
-            <div className="truncate font-medium">{p.name}</div>
+            <Link
+              href={ROUTES.productDetail(p.productId)}
+              onClick={(e) => e.stopPropagation()}
+              className="block truncate font-medium text-primary hover:underline"
+            >
+              {p.name}
+            </Link>
             <div className="font-mono text-xs text-muted-foreground">
               {p.sku}
             </div>
@@ -83,7 +98,11 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
         </div>
       ),
     },
-    ...shopFilter.column<InventoryItem>(),
+    {
+      key: "variant",
+      label: "Quy cách",
+      render: (v) => <span className="whitespace-nowrap font-medium">{String(v ?? "—")}</span>,
+    },
     { key: "category", label: "Nhóm sản phẩm" },
     {
       key: "source",
@@ -101,14 +120,12 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
     },
     {
       key: "stock",
-      label: "Tồn kho",
+      label: "Số lượng",
       mobilePriority: "secondary",
       render: (_, p) => (
         <div className="whitespace-nowrap">
           <span className="text-base font-semibold">{nf.format(p.stock)}</span>
-          <span className="ml-1.5 text-xs text-muted-foreground">
-            / cảnh báo ≤ {p.lowStockThreshold}
-          </span>
+          <span className="ml-1.5 text-xs text-muted-foreground">/ cảnh báo ≤ {p.lowStockThreshold}</span>
         </div>
       ),
     },
@@ -122,16 +139,28 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
 
   const actions: RowAction<InventoryItem>[] = [
     {
-      key: "adjust",
-      label: "Nhập / Xuất kho",
-      icon: ArrowDownUp,
+      key: "history",
+      label: "Lịch sử",
+      icon: History,
+      onClick: (p) => navigate(ROUTES.inventoryHistory(p.productId)),
+    },
+    {
+      key: "import",
+      label: "Nhập hàng",
+      icon: ArrowDownToLine,
       onClick: onAdjust,
+    },
+    {
+      key: "alert",
+      label: "Cảnh báo hàng tồn",
+      icon: BellRing,
+      onClick: onAlert,
     },
     {
       key: "product",
       label: "Xem sản phẩm",
       icon: ExternalLink,
-      onClick: (p) => navigate(ROUTES.productDetail(p.id)),
+      onClick: (p) => navigate(ROUTES.productDetail(p.productId)),
     },
   ];
 
@@ -144,19 +173,18 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       }
       searchPlaceholder="Tìm theo tên, mã sản phẩm..."
       enableMobileCard
-      renderMobileCard={(p, helpers) => (
+      renderMobileCard={(p) => (
         <InventoryMobileCard
           item={p}
           showShop={shopFilter.isRoot}
           onAdjust={() => onAdjust(p)}
-          onProduct={() => navigate(ROUTES.productDetail(p.id))}
-          helpers={helpers}
+          onAlert={() => onAlert(p)}
+          onHistory={() => navigate(ROUTES.inventoryHistory(p.productId))}
+          onProduct={() => navigate(ROUTES.productDetail(p.productId))}
         />
       )}
       columnToggleable={!isMobile}
       downloadable={!isMobile}
-      // "Xem chi tiết" = the product's stock history
-      onView={(p) => navigate(ROUTES.inventoryHistory(p.id))}
       rowActions={actions}
     />
   );
@@ -165,49 +193,86 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
 export default function InventoryPage() {
   const { data: stats } = useInventoryStats();
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
+  const [alerting, setAlerting] = useState<InventoryItem | null>(null);
 
   const statItems = [
-    { title: "Chờ duyệt nhập/xuất", short: "Chờ duyệt", value: stats?.pending ?? "—", icon: ClipboardCheck, tone: "text-sky-600" },
-    { title: "Tổng tồn kho", short: "Tổng tồn", value: stats ? nf.format(stats.units) : "—", icon: Boxes, tone: "text-primary" },
-    { title: "Sắp hết hàng", short: "Sắp hết", value: stats?.low ?? "—", icon: AlertTriangle, tone: "text-amber-600" },
-    { title: "Hết hàng", short: "Hết hàng", value: stats?.out ?? "—", icon: PackageX, tone: "text-destructive" },
+    {
+      title: "Chờ duyệt nhập hàng",
+      short: "Chờ duyệt",
+      value: stats?.pending ?? "—",
+      icon: ClipboardCheck,
+      tone: "text-sky-600",
+    },
+    {
+      title: "Tổng hàng tồn",
+      short: "Tổng tồn",
+      value: stats ? nf.format(stats.units) : "—",
+      icon: Boxes,
+      tone: "text-primary",
+    },
+    {
+      title: "Sắp hết hàng",
+      short: "Sắp hết",
+      value: stats?.low ?? "—",
+      icon: AlertTriangle,
+      tone: "text-amber-600",
+    },
+    {
+      title: "Hết hàng",
+      short: "Hết hàng",
+      value: stats?.out ?? "—",
+      icon: PackageX,
+      tone: "text-destructive",
+    },
   ];
 
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Mobile: one compact row instead of four stacked cards */}
-      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden">
+      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden!">
         {statItems.map((it) => (
-          <div key={it.title} className="flex flex-col items-center gap-1 px-1 py-3">
+          <div
+            key={it.title}
+            className="flex flex-col items-center gap-1 px-1 py-3"
+          >
             <it.icon className={`h-4 w-4 ${it.tone}`} />
-            <span className="text-lg font-bold leading-none tabular-nums">{it.value}</span>
-            <span className="text-center text-[11px] leading-tight text-muted-foreground">{it.short}</span>
+            <span className="text-lg font-bold leading-none tabular-nums">
+              {it.value}
+            </span>
+            <span className="text-center text-[11px] leading-tight text-muted-foreground">
+              {it.short}
+            </span>
           </div>
         ))}
       </div>
-      <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+      <div className="hidden gap-4 md:grid! md:grid-cols-2 xl:grid-cols-4">
         {statItems.map((it) => (
-          <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+          <StatsCard
+            key={it.title}
+            title={it.title}
+            value={it.value}
+            icon={it.icon}
+          />
         ))}
       </div>
 
-      <Tabs defaultValue="stock" className="space-y-4">
+      <Tabs defaultValue="history" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 md:inline-flex md:w-auto">
-          <TabsTrigger value="stock">Tồn kho</TabsTrigger>
+          <TabsTrigger value="history">
+            Lịch sử<span className="max-md:hidden">&nbsp;hàng</span>
+          </TabsTrigger>
           <TabsTrigger value="pending" className="gap-1.5">
-            Chờ duyệt
+            Chờ duyệt<span className="max-md:hidden">nhập hàng</span>
             {!!stats?.pending && (
               <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
                 {stats.pending}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="history">
-            Lịch sử<span className="max-md:hidden">&nbsp;nhập xuất</span>
-          </TabsTrigger>
+          <TabsTrigger value="stock">Hàng tồn</TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
-          <StockTable onAdjust={setAdjusting} />
+          <StockTable onAdjust={setAdjusting} onAlert={setAlerting} />
         </TabsContent>
         <TabsContent value="pending" className="mt-0">
           <PendingMovementsTable />
@@ -220,6 +285,10 @@ export default function InventoryPage() {
       <StockAdjustDialog
         item={adjusting}
         onOpenChange={(o) => !o && setAdjusting(null)}
+      />
+      <StockAlertDialog
+        item={alerting}
+        onOpenChange={(o) => !o && setAlerting(null)}
       />
     </div>
   );

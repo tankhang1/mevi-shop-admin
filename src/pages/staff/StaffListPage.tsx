@@ -13,12 +13,9 @@ import { usePageActions } from "@/app/layouts/page-header.store";
 import { StatusPill } from "@/components/common/ui-bits";
 import { useShopFilter } from "@/features/shop";
 import {
-  STAFF_PERMISSION,
-  STAFF_ROLE,
   STAFF_STATUS,
   type Staff,
   type StaffListParams,
-  type StaffRole,
   type StaffStatus,
   useDeleteStaff,
   useResendInvite,
@@ -33,11 +30,6 @@ import { StaffFormDialog } from "./components/StaffFormDialog";
 
 const baseFilters: TableFilterDef[] = [
   {
-    key: "role",
-    label: "Vai trò",
-    options: (Object.keys(STAFF_ROLE) as StaffRole[]).map((r) => ({ label: STAFF_ROLE[r].label, value: r })),
-  },
-  {
     key: "status",
     label: "Trạng thái",
     options: (Object.keys(STAFF_STATUS) as StaffStatus[]).map((s) => ({ label: STAFF_STATUS[s].label, value: s })),
@@ -47,8 +39,7 @@ const baseFilters: TableFilterDef[] = [
 export default function StaffListPage() {
   const { toast } = useToast();
   const shopFilter = useShopFilter();
-  const table = useTableParams<Required<Pick<StaffListParams, "role" | "status">> & { shopId: string }>({
-    role: "all",
+  const table = useTableParams<Required<Pick<StaffListParams, "status">> & { shopId: string }>({
     status: "all",
     shopId: shopFilter.initialShopId,
   });
@@ -67,7 +58,7 @@ export default function StaffListPage() {
         setOpen(true);
       }}
     >
-      <Plus className="mr-1 h-4 w-4" /> Mời nhân viên
+      <Plus className="mr-1 h-4 w-4" /> Thêm nhân viên
     </Button>
   ));
 
@@ -94,26 +85,6 @@ export default function StaffListPage() {
               {s.email} · {s.phone}
             </div>
           </div>
-        </div>
-      ),
-    },
-    ...shopFilter.column<Staff>(),
-    {
-      key: "role",
-      label: "Vai trò",
-      mobilePriority: "secondary",
-      render: (_, s) => <span className="text-sm font-medium">{STAFF_ROLE[s.role].label}</span>,
-    },
-    {
-      key: "permissions",
-      label: "Quyền",
-      render: (_, s) => (
-        <div className="flex max-w-xs flex-wrap gap-1">
-          {s.permissions.map((p) => (
-            <span key={p} className="rounded-full bg-muted px-2 py-0.5 text-xs">
-              {STAFF_PERMISSION[p].label}
-            </span>
-          ))}
         </div>
       ),
     },

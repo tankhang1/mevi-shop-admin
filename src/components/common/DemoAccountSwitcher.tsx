@@ -18,7 +18,7 @@ export function DemoAccountSwitcher() {
   };
 
   return (
-    <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-3 z-[60] flex flex-col items-end text-sm md:bottom-4 md:left-4 md:right-auto md:items-start">
+    <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-3 z-[60] flex flex-col items-end text-sm md:bottom-4 md:right-4">
       {open && (
         <div className="mb-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border bg-background shadow-xl">
           <p className="border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

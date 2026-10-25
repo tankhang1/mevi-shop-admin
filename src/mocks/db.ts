@@ -149,6 +149,7 @@ export const db: {
       { id: "m1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -29, before: 169, after: 140, note: "Xuất cho HTX đối tác", createdBy: "Lê Chủ Shop", createdAt: daysAgo(9) },
       { id: "m2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -18, before: 140, after: 122, note: "Xuất cho đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(4) },
       { id: "m3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "adjust", status: "approved", delta: -2, before: 122, after: 120, note: "Kiểm kê cuối tháng — 2 bao rách", createdBy: "Lê Chủ Shop", createdAt: daysAgo(1) },
+      { id: "mr1", productId: "p9", productName: "Gạo lứt đỏ hữu cơ", sku: "GAO-LUT-2KG", shopId: "s1", type: "in", source: "farm", status: "rejected", delta: 60, before: 15, after: 75, note: "Giao bổ sung cuối vụ", rejectionReason: "Hàng chưa đạt độ ẩm, đề nghị phơi lại", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(5), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(6) },
       { id: "m4", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", source: "farm", status: "approved", delta: 45, before: 0, after: 45, createdBy: "Nguyễn Quản Trị", createdAt: daysAgo(6) },
     ],
     productGroups: [
@@ -715,3 +716,115 @@ for (const p of db.products.filter((x) => x.status === "approved")) {
   }
 }
 db.reviews.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+// ---------------------------------------------------------------------------
+// Quy cách, nông hộ cung cấp và chi tiết phiếu nhập — so every screen has data
+// ---------------------------------------------------------------------------
+
+/** Extra quy cách per product: [name, price multiplier vs the first one] */
+const EXTRA_VARIANTS: Record<string, [string, number][]> = {
+  p1: [["Túi 10kg", 1.9], ["Bao 25kg", 4.6]],
+  p2: [["Túi 1kg", 1.9]],
+  p3: [["Chai 500ml", 0.55]],
+  p4: [["Hộp 500g", 2.3]],
+  p5: [["Hũ 500g", 1.85]],
+  p6: [["Hũ 1kg", 1.9]],
+  p7: [["Túi 500g", 1.9], ["Hộp quà 1kg", 3.8]],
+  p8: [["Hộp 250g", 2.4]],
+  p9: [["Túi 5kg", 2.4]],
+  p10: [["Hũ 1kg", 1.9]],
+  p11: [["Túi 500g", 1.9]],
+  p12: [],
+};
+/** Second supplier for a few products */
+const EXTRA_SUPPLIER: Record<string, string> = { p1: "f2", p2: "f4", p7: "f1", p9: "f6" };
+const round = (n: number) => Math.round(n / 1000) * 1000;
+
+for (const p of db.products) {
+  const base = p.salePrice ?? p.price;
+  const original = p.salePrice ? p.price : null;
+  p.variants = [
+    { name: p.packaging ?? "Mặc định", price: base, originalPrice: original },
+    ...(EXTRA_VARIANTS[p.id] ?? []).map(([name, k]) => ({
+      name,
+      price: round(base * k * 0.95),
+      originalPrice: original ? round(original * k * 0.95) : null,
+    })),
+  ];
+  const farms = [p.farmId, EXTRA_SUPPLIER[p.id]].filter((x): x is string => !!x);
+  p.suppliers = farms.map((farmId, i) => ({ farmId, importPrice: round(base * (0.62 + i * 0.05)) }));
+  // ~60% of the stock on the base pack, the rest spread over bigger packs
+  const others = p.variants.slice(1);
+  const share = others.length ? Math.floor((p.stock * 0.4) / others.length) : 0;
+  p.variantStock = Object.fromEntries(p.variants.map((v, i) => [v.name, i === 0 ? p.stock - share * others.length : share]));
+  // Bigger packs sell slower — warn earlier on the base pack only
+  p.variantThresholds = Object.fromEntries(p.variants.map((v, i) => [v.name, i === 0 ? p.lowStockThreshold : 5]));
+}
+
+const REVIEWERS = ["Lê Chủ Shop", "Phạm Thu Hà"];
+db.stockMovements.forEach((m, i) => {
+  const p = db.products.find((x) => x.id === m.productId);
+  if (!p?.variants) return;
+  // Spread movements over the quy cách, most on the base pack
+  const v = p.variants[i % 3 === 2 && p.variants[1] ? 1 : 0];
+  m.variant = v.name;
+  if (m.type !== "in") return;
+  if (m.source === "farm") {
+    const s = p.suppliers?.[i % (p.suppliers.length || 1)];
+    const f = db.farms.find((x) => x.id === s?.farmId);
+    const k = v.price / p.variants[0].price;
+    Object.assign(m, { farmId: f?.id, farmName: f?.name, importPrice: s && round(s.importPrice * k) });
+    if (f && m.createdBy.endsWith("(nông hộ)")) m.createdBy = `${f.ownerName} (nông hộ)`;
+    if (m.status === "approved") Object.assign(m, { reviewedBy: REVIEWERS[i % 2], reviewedAt: m.createdAt });
+  } else {
+    Object.assign(m, { source: "mevi", importPrice: round(v.price * 0.7) });
+  }
+});
+
+// Nhập từ Mevi / nông hộ for the other products, so their history isn't empty
+const NOTES_IN = ["Nhập lô mới", "Bổ sung hàng bán Tết", "Nhập theo kế hoạch tháng", "Lô thu hoạch mới"];
+db.products
+  .filter((p) => p.id !== "p1")
+  .forEach((p, i) => {
+    const farm = db.farms.find((f) => f.id === p.suppliers?.[0]?.farmId);
+    const fromFarm = i % 2 === 0 && !!farm;
+    const qty = 20 + ((i * 7) % 30);
+    const age = 3 + ((i * 5) % 25);
+    const v = p.variants![i % p.variants!.length];
+    const variant = v.name;
+    const k = v.price / p.variants![0].price;
+    db.stockMovements.push({
+      id: `ms${p.id}`,
+      productId: p.id,
+      productName: p.name,
+      sku: p.sku,
+      shopId: p.shopId,
+      type: "in",
+      source: fromFarm ? "farm" : "mevi",
+      status: "approved",
+      variant,
+      delta: qty,
+      before: Math.max(0, p.stock - qty),
+      after: p.stock,
+      note: NOTES_IN[i % NOTES_IN.length],
+      createdBy: fromFarm ? `${farm!.ownerName} (nông hộ)` : "Nguyễn Quản Trị",
+      createdAt: daysAgo(age),
+      ...(fromFarm
+        ? { farmId: farm!.id, farmName: farm!.name, importPrice: round(p.suppliers![0].importPrice * k), reviewedBy: REVIEWERS[i % 2], reviewedAt: daysAgo(age) }
+        : { importPrice: round(v.price * 0.7) }),
+    });
+  });
+
+// Mã vận đơn: delivered orders always have one, about half of the open ones already do
+const CARRIER_PREFIX: [string, string][] = [
+  ["Giao Hàng Nhanh", "GHN"],
+  ["Giao Hàng Tiết Kiệm", "GHTK"],
+  ["Viettel Post", "VTP"],
+  ["J&T Express", "JT"],
+];
+db.orders.forEach((o, i) => {
+  if (o.status === "cancelled" || (o.status === "new" && i % 2 === 0)) return;
+  const [carrier, prefix] = CARRIER_PREFIX[i % CARRIER_PREFIX.length];
+  o.carrier = carrier;
+  o.trackingCode = `${prefix}${String(84_000_000 + i * 7919).padStart(9, "0")}`;
+});

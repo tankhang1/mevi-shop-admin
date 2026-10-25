@@ -10,11 +10,8 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ReasonDialog } from "@/components/common/ReasonDialog";
-import { StatusPill } from "@/components/common/ui-bits";
 import { useAccess } from "@/features/auth";
 import {
-  MOVEMENT_TYPE,
-  type MovementType,
   type StockMovement,
   useApproveMovement,
   useRejectMovement,
@@ -22,13 +19,14 @@ import {
 } from "@/features/inventory";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
+import { formatVnd } from "@/lib/format";
 
 const dt = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",
   timeStyle: "short",
 });
 
-/** Farm stock changes waiting for the shop admin; approval adds the delta to the stock as it is then */
+/** "Chờ duyệt nhập hàng": farm imports waiting for review; approval adds the delta to the stock as it is then */
 export function PendingMovementsTable() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -37,6 +35,8 @@ export function PendingMovementsTable() {
   const { data: page, isFetching } = useStockMovements({
     ...table.params,
     status: "pending",
+    type: "in",
+    source: "farm",
   });
   const approve = useApproveMovement();
   const reject = useRejectMovement();
@@ -63,14 +63,25 @@ export function PendingMovementsTable() {
       ),
     },
     {
-      key: "type",
-      label: "Loại",
-      mobilePriority: "badge",
-      render: (v) => <StatusPill {...MOVEMENT_TYPE[v as MovementType]} />,
+      key: "variant",
+      label: "Quy cách",
+      render: (v) => <span className="whitespace-nowrap text-sm">{String(v ?? "—")}</span>,
+    },
+    {
+      key: "farmName",
+      label: "Nông hộ",
+      render: (_, m) => (
+        <div className="text-sm">
+          <div className="whitespace-nowrap">{m.farmName ?? "—"}</div>
+          {!!m.importPrice && (
+            <div className="whitespace-nowrap text-xs text-muted-foreground">Giá nhập {formatVnd(m.importPrice)}</div>
+          )}
+        </div>
+      ),
     },
     {
       key: "delta",
-      label: "Đề xuất",
+      label: "Số lượng",
       mobilePriority: "secondary",
       render: (_, m) => (
         <span
@@ -113,13 +124,14 @@ export function PendingMovementsTable() {
   const canReview = isShopAdmin || isRoot;
   const actions: RowAction<StockMovement>[] = canReview
     ? [
-        { key: "approve", label: "Duyệt", icon: Check, onClick: setApproving },
+        { key: "approve", label: "Duyệt", icon: Check, onClick: setApproving, hidden: (m) => m.status !== "pending" },
         {
           key: "reject",
           label: "Từ chối",
           icon: X,
           destructive: true,
           onClick: setRejecting,
+          hidden: (m) => m.status !== "pending",
         },
       ]
     : [];
@@ -140,8 +152,8 @@ export function PendingMovementsTable() {
         open={!!approving}
         onOpenChange={(o) => !o && setApproving(null)}
         loading={approve.isPending}
-        title={`Duyệt thay đổi tồn kho "${approving?.productName ?? ""}"?`}
-        description={`${approving && approving.delta > 0 ? "+" : ""}${approving?.delta ?? 0} sẽ được cộng dồn vào tồn kho hiện tại.`}
+        title={`Duyệt phiếu nhập hàng "${approving?.productName ?? ""}"?`}
+        description={`${approving && approving.delta > 0 ? "+" : ""}${approving?.delta ?? 0} sẽ được cộng dồn vào hàng tồn hiện tại.`}
         confirmLabel="Duyệt"
         onConfirm={() =>
           approving &&
@@ -149,7 +161,7 @@ export function PendingMovementsTable() {
             .mutateAsync(approving.id)
             .then(() =>
               toast({
-                title: "Đã duyệt, tồn kho đã cập nhật",
+                title: "Đã duyệt, hàng tồn đã cập nhật",
                 description: approving.productName,
               }),
             )
@@ -160,7 +172,7 @@ export function PendingMovementsTable() {
       <ReasonDialog
         open={!!rejecting}
         onOpenChange={(o) => !o && setRejecting(null)}
-        title={`Từ chối thay đổi tồn kho "${rejecting?.productName ?? ""}"?`}
+        title={`Từ chối phiếu nhập hàng "${rejecting?.productName ?? ""}"?`}
         loading={reject.isPending}
         onConfirm={(reason) =>
           rejecting &&

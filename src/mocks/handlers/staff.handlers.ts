@@ -9,12 +9,12 @@ const EP = API_ENDPOINTS.admin.staff;
 const withShop = (s: Staff): Staff => ({ ...s, shopName: db.shops.find((x) => x.id === s.shopId)?.name });
 const findOwned = (id: string) => assertOwns(db.staff.find((x) => x.id === id), "Không tìm thấy nhân viên");
 
-/** Shop admins always add to their own shop; root must name an existing shop */
-function resolveShopId(requested: string | undefined) {
+/** Shop admins add to their own shop; root's dispatch staff go to the first shop */
+function resolveShopId() {
   const a = actor();
   if (a.shopId) return a.shopId;
-  if (!requested || !db.shops.some((s) => s.id === requested)) throw new HttpError(400, "Vui lòng chọn gian hàng");
-  return requested;
+  if (!db.shops[0]) throw new HttpError(400, "Chưa có gian hàng nào");
+  return db.shops[0].id;
 }
 
 /** Phone and email each identify one login across the platform */
@@ -42,7 +42,7 @@ export const staffHandlers: MockHandler[] = [
     path: EP.base,
     handle: ({ body }: { body: StaffInput }) => {
       requireShopAdmin();
-      const shopId = resolveShopId(body.shopId);
+      const shopId = resolveShopId();
       assertUnique(body.phone, body.email);
       const now = new Date().toISOString();
       const s: Staff = {
@@ -51,9 +51,11 @@ export const staffHandlers: MockHandler[] = [
         name: body.name.trim(),
         phone: body.phone.trim(),
         email: body.email.trim(),
-        role: body.role,
-        permissions: body.permissions,
-        status: "invited",
+        // Nhân viên điều phối: handle orders and the customers on them
+        role: "sales",
+        permissions: ["orders", "customers"],
+        // Admin sets the password, so the account is usable right away
+        status: body.password ? "active" : "invited",
         invitedAt: now,
         lastActiveAt: null,
         createdAt: now,
@@ -71,10 +73,10 @@ export const staffHandlers: MockHandler[] = [
       if (body.status === "active" && s.status === "invited")
         throw new HttpError(400, "Nhân viên cần tự kích hoạt tài khoản qua lời mời");
       // Moving staff between shops isn't supported — shopId is ignored on update
-      const { name, phone, email, role, permissions, status } = body;
+      const { name, phone, email, status } = body;
       Object.assign(
         s,
-        Object.fromEntries(Object.entries({ name, phone, email, role, permissions, status }).filter(([, v]) => v !== undefined)),
+        Object.fromEntries(Object.entries({ name, phone, email, status }).filter(([, v]) => v !== undefined)),
       );
       return { data: withShop(s) };
     },

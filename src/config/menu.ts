@@ -1,6 +1,5 @@
 import {
   Sprout,
-  ClipboardCheck,
   LayoutDashboard,
   Network,
   MessageSquareText,
@@ -35,20 +34,10 @@ export const shopMenu: AdminMenuSection[] = [
   {
     title: "Sản phẩm",
     items: [
-      {
-        id: "products",
-        label: "Quản lý sản phẩm",
-        icon: Package,
-        roles: [...ALL],
-        children: [
-          { id: "product-list", label: "Danh sách sản phẩm", href: ROUTES.products, roles: [...ALL] },
-          { id: "product-create", label: "Thêm sản phẩm", href: ROUTES.productCreate, roles: [...ALL] },
-        ],
-      },
+      { id: "products", label: "Danh mục sản phẩm", icon: Package, href: ROUTES.products, roles: [...ALL] },
       { id: "farm-registrations", label: "Đăng ký từ nông hộ", icon: Sprout, href: ROUTES.farmRegistrations, roles: [...ALL] },
       { id: "product-groups", label: "Nhóm sản phẩm", icon: FolderTree, href: ROUTES.productGroups, roles: [...ALL] },
-      { id: "inventory", label: "Quản lý kho", icon: Warehouse, href: ROUTES.inventory, roles: [...ALL] },
-      { id: "product-approval", label: "Duyệt sản phẩm", icon: ClipboardCheck, href: ROUTES.productApproval, roles: [...ROOT] },
+      { id: "inventory", label: "Kho sản phẩm", icon: Warehouse, href: ROUTES.inventory, roles: [...ALL] },
       { id: "reviews", label: "Đánh giá khách hàng", icon: MessageSquareText, href: ROUTES.reviews, roles: [...ALL] },
     ],
   },
@@ -59,6 +48,7 @@ export const shopMenu: AdminMenuSection[] = [
       { id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL, ...STAFF] },
       { id: "dispatch-teams", label: "Nhóm điều phối", icon: Network, href: ROUTES.dispatchTeams, roles: [...ALL] },
       { id: "customers", label: "Khách hàng", icon: Users, href: ROUTES.customers, roles: [...ALL] },
+      { id: "staff", label: "Nhân viên điều phối", icon: UserCog, href: ROUTES.staff, roles: [...ALL] },
     ],
   },
   {
@@ -74,7 +64,6 @@ export const shopMenu: AdminMenuSection[] = [
     title: "Gian hàng",
     items: [
       { id: "my-shop", label: "Thông tin gian hàng", icon: Store, href: ROUTES.myShop, roles: [...SHOP] },
-      { id: "staff", label: "Nhân viên", icon: UserCog, href: ROUTES.staff, roles: [...ALL] },
     ],
   },
   {

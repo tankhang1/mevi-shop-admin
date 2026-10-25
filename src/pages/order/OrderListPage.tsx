@@ -114,6 +114,19 @@ export default function OrderListPage() {
     ...shopFilter.column<Order>(),
     ...orderColumns.slice(2),
     {
+      key: "trackingCode",
+      label: "Mã vận đơn",
+      render: (_, o) =>
+        o.trackingCode ? (
+          <div className="text-sm">
+            <div className="whitespace-nowrap font-mono font-medium">{o.trackingCode}</div>
+            {o.carrier && <div className="whitespace-nowrap text-xs text-muted-foreground">{o.carrier}</div>}
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        ),
+    },
+    {
       key: "teamName",
       label: "Điều phối",
       render: (_, o) =>
@@ -192,7 +205,7 @@ export default function OrderListPage() {
         }
         columnToggleable={!isMobile}
         downloadable={!isMobile}
-        searchPlaceholder="Tìm theo mã đơn, người nhận, SĐT..."
+        searchPlaceholder="Tìm theo mã đơn, mã vận đơn, người nhận, SĐT..."
         enableMobileCard
         renderMobileCard={(o, helpers) => (
           <OrderMobileCard

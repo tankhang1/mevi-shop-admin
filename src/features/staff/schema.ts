@@ -7,11 +7,11 @@ export const staffSchema = z.object({
     .trim()
     .regex(/^0\d{9}$/, "Số điện thoại gồm 10 số, bắt đầu bằng 0"),
   email: z.email("Email không hợp lệ"),
-  role: z.enum(["manager", "sales", "warehouse"]),
-  permissions: z
-    .array(z.enum(["products", "inventory", "orders", "customers", "reviews", "shop"]))
-    .min(1, "Chọn ít nhất một quyền"),
-  shopId: z.string().optional(),
+  /** Required when creating; blank on edit keeps the current password */
+  password: z
+    .string()
+    .refine((v) => !v || v.length >= 8, "Mật khẩu tối thiểu 8 ký tự")
+    .optional(),
 });
 
 export type StaffFormValues = z.infer<typeof staffSchema>;
