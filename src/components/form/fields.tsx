@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { type FieldPath, type FieldValues, useFormContext } from "react-hook-form";
 import {
+  Combobox,
   FormControl,
   FormDescription,
   FormField,
@@ -58,7 +59,7 @@ export function TextField<T extends FieldValues>({
                 placeholder={placeholder}
                 {...field}
                 value={field.value ?? ""}
-                className={suffix ? "pr-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : undefined}
+                className={suffix ? "pr-20! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : undefined}
               />
               {/* right-9 leaves room for eco-shared-ui Input's clear (x) button */}
               {suffix && (
@@ -135,6 +136,45 @@ export function SelectField<T extends FieldValues>({
               ))}
             </SelectContent>
           </Select>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+/** Searchable select (eco-shared-ui `Combobox`) for long option lists */
+export function ComboboxField<T extends FieldValues>({
+  name,
+  label,
+  required,
+  description,
+  className,
+  options,
+  placeholder = "Chọn...",
+  searchPlaceholder = "Tìm kiếm...",
+  emptyText = "Không tìm thấy",
+}: BaseProps<T> & { options: { label: string; value: string }[]; placeholder?: string; searchPlaceholder?: string; emptyText?: string }) {
+  const { control } = useFormContext<T>();
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <Label label={label} required={required} />
+          <FormControl>
+            <Combobox
+              options={options}
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              placeholder={placeholder}
+              searchPlaceholder={searchPlaceholder}
+              emptyText={emptyText}
+              className="w-full"
+            />
+          </FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>

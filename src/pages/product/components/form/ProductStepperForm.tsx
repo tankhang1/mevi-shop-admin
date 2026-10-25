@@ -2,22 +2,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SchemaStepperForm, type SchemaStep } from "@/components/form";
 import { type ProductFormValues, productSchema } from "@/features/product";
-import { BasicInfoSection, ImagesSection, PricingSection, ReviewSection } from "./sections";
+import { BasicInfoSection, ImagesSection, ReviewSection, SuppliersSection, VariantsSection } from "./sections";
 
 const STEPS: SchemaStep<ProductFormValues>[] = [
   {
     id: "info",
     title: "Thông tin cơ bản",
     description: "Tên, mã, nhóm sản phẩm",
-    fields: ["name", "sku", "category", "description"],
+    fields: ["name", "sku", "category", "description", "shelfLife", "storage", "certifications"],
     content: <BasicInfoSection />,
-  },
-  {
-    id: "pricing",
-    title: "Giá & quy cách",
-    description: "Giá bán, nguồn gốc, bảo quản",
-    fields: ["price", "salePrice", "origin", "farmId", "packaging", "shelfLife", "storage", "certifications"],
-    content: <PricingSection />,
   },
   {
     id: "images",
@@ -25,6 +18,20 @@ const STEPS: SchemaStep<ProductFormValues>[] = [
     description: "Ảnh bìa và thư viện ảnh",
     fields: ["images"],
     content: <ImagesSection />,
+  },
+  {
+    id: "variants",
+    title: "Quy cách & giá",
+    description: "Giá bán, giá gốc",
+    fields: ["variants"],
+    content: <VariantsSection />,
+  },
+  {
+    id: "suppliers",
+    title: "Nông hộ",
+    description: "Nguồn cung và giá nhập",
+    fields: ["suppliers"],
+    content: <SuppliersSection />,
   },
   {
     id: "review",
