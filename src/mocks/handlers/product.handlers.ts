@@ -90,6 +90,8 @@ export const productHandlers: MockHandler[] = [
         id: uid("p"),
         status: "pending",
         listed: false,
+        stock: 0,
+        lowStockThreshold: 10,
         createdAt: new Date().toISOString(),
       };
       db.products.unshift(product);

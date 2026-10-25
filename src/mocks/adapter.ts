@@ -9,6 +9,7 @@ import {
 import { agencyHandlers } from "./handlers/agency.handlers";
 import { authHandlers } from "./handlers/auth.handlers";
 import { dashboardHandlers } from "./handlers/dashboard.handlers";
+import { inventoryHandlers } from "./handlers/inventory.handlers";
 import { orderHandlers } from "./handlers/order.handlers";
 import { productGroupHandlers } from "./handlers/product-group.handlers";
 import { productHandlers } from "./handlers/product.handlers";
@@ -22,6 +23,7 @@ const handlers: MockHandler[] = [
   ...dashboardHandlers,
   ...productHandlers,
   ...productGroupHandlers,
+  ...inventoryHandlers,
   ...orderHandlers,
   ...agencyHandlers,
   ...shopHandlers,

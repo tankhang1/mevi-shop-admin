@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { AlertCircle, Pencil, Trash2 } from "lucide-react";
-import { Button, DeleteDialog, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { AlertCircle, History, Pencil, Trash2 } from "lucide-react";
+import { Button, Card, DeleteDialog, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
 import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
+import { STOCK_STATUS, stockStatusOf } from "@/features/inventory";
 import { PRODUCT_STATUS, useDeleteProduct, useProduct } from "@/features/product";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
@@ -78,6 +79,18 @@ export default function ProductDetailPage() {
       )}
 
       <ProductInfo product={product} />
+
+      <Card className="flex flex-wrap items-center gap-3 p-4">
+        <div className="text-sm text-muted-foreground">
+          Tồn kho: <span className="text-base font-semibold text-foreground">{product.stock}</span>
+        </div>
+        <StatusPill {...STOCK_STATUS[stockStatusOf(product)]} />
+        <Button variant="outline" size="sm" className="ml-auto" asChild>
+          <Link href={ROUTES.inventoryHistory(product.id)}>
+            <History className="mr-1.5 h-4 w-4" /> Lịch sử kho
+          </Link>
+        </Button>
+      </Card>
 
       {product.status === "approved" && <ProductReviews productId={product.id} />}
 

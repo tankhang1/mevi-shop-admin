@@ -25,10 +25,14 @@ export interface Product {
   rejectionReason?: string | null;
   /** Shown on the storefront (on the shelf). Only approved products can be listed */
   listed: boolean;
+  /** Units on hand — changed only through stock movements (Quản lý kho) */
+  stock: number;
+  /** At or below this the product counts as "sắp hết" */
+  lowStockThreshold: number;
   createdAt: string;
 }
 
-export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "createdAt" | "shopName">;
+export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "stock" | "lowStockThreshold" | "createdAt" | "shopName">;
 
 export interface ProductListParams extends ListParams {
   status?: "all" | ProductStatus;

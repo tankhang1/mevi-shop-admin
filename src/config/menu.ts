@@ -8,6 +8,7 @@ import {
   FolderTree,
   Handshake,
   Store,
+  Warehouse,
 } from "lucide-react";
 import { type AdminMenuSection, SHOP_MOBILE_NAV_ITEMS } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ROUTES } from "./routes";
@@ -39,6 +40,7 @@ export const shopMenu: AdminMenuSection[] = [
         ],
       },
       { id: "product-groups", label: "Nhóm sản phẩm", icon: FolderTree, href: ROUTES.productGroups, roles: [...ALL] },
+      { id: "inventory", label: "Quản lý kho", icon: Warehouse, href: ROUTES.inventory, roles: [...ALL] },
       { id: "product-approval", label: "Duyệt sản phẩm", icon: ClipboardCheck, href: ROUTES.productApproval, roles: [...ROOT] },
       { id: "reviews", label: "Đánh giá khách hàng", icon: MessageSquareText, href: ROUTES.reviews, roles: [...ALL] },
     ],

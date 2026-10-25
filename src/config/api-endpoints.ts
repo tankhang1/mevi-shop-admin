@@ -20,6 +20,15 @@ export const API_ENDPOINTS = {
       /** PUT { productIds } — replaces the group's members */
       products: (id: string) => `/api/admin/shop/product-groups/${id}/products`,
     },
+    inventory: {
+      base: "/api/admin/shop/inventory",
+      stats: "/api/admin/shop/inventory/stats",
+      movements: "/api/admin/shop/inventory/movements",
+      /** POST { type, quantity, note } */
+      adjust: (productId: string) => `/api/admin/shop/inventory/${productId}/adjust`,
+      /** PATCH { lowStockThreshold } */
+      threshold: (productId: string) => `/api/admin/shop/inventory/${productId}/threshold`,
+    },
     orders: {
       base: "/api/admin/shop/orders",
       status: (id: string) => `/api/admin/shop/orders/${id}/status`,

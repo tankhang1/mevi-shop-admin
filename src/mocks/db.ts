@@ -1,4 +1,5 @@
 import type { Agency } from "@/features/agency/types";
+import type { StockMovement } from "@/features/inventory/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
 import type { ProductGroup } from "@/features/product-group/types";
@@ -12,6 +13,7 @@ const img = (seed: string) => `https://picsum.photos/seed/${seed}/400/400`;
 export const db: {
   products: Product[];
   productGroups: ProductGroup[];
+  stockMovements: StockMovement[];
   orders: Order[];
   agencies: Agency[];
   shops: Shop[];
@@ -92,6 +94,26 @@ export const db: {
       },
     ],
     reviews: [],
+    stockMovements: [
+      { id: "mh0", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(40) },
+      { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
+      { id: "mh2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -8, before: 64, after: 56, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(36) },
+      { id: "mh3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 56, after: 106, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(34) },
+      { id: "mh4", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -12, before: 106, after: 94, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(32) },
+      { id: "mh5", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -12, before: 94, after: 82, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(30) },
+      { id: "mh6", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 82, after: 132, note: "Nhập bổ sung", createdBy: "Lê Chủ Shop", createdAt: daysAgo(28) },
+      { id: "mh7", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 132, after: 121, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(26) },
+      { id: "mh8", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -6, before: 121, after: 115, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(24) },
+      { id: "mh9", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 50, before: 115, after: 165, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(22) },
+      { id: "mh10", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -11, before: 165, after: 154, note: "Xuất cho đại lý", createdBy: "Lê Chủ Shop", createdAt: daysAgo(20) },
+      { id: "mh11", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -9, before: 154, after: 145, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(18) },
+      { id: "mh12", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", delta: 29, before: 145, after: 174, note: "Nhập lô mới từ HTX", createdBy: "Lê Chủ Shop", createdAt: daysAgo(16) },
+      { id: "mh13", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -5, before: 174, after: 169, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(14) },
+      { id: "m1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -29, before: 169, after: 140, note: "Xuất cho HTX đối tác", createdBy: "Lê Chủ Shop", createdAt: daysAgo(9) },
+      { id: "m2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", delta: -18, before: 140, after: 122, note: "Xuất cho đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(4) },
+      { id: "m3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "adjust", delta: -2, before: 122, after: 120, note: "Kiểm kê cuối tháng — 2 bao rách", createdBy: "Lê Chủ Shop", createdAt: daysAgo(1) },
+      { id: "m4", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", delta: 45, before: 0, after: 45, createdBy: "Nguyễn Quản Trị", createdAt: daysAgo(6) },
+    ],
     productGroups: [
       {
         id: "g1",
@@ -139,6 +161,8 @@ export const db: {
         images: [img("rice")],
         status: "approved",
         listed: true,
+        stock: 120,
+        lowStockThreshold: 10,
         createdAt: daysAgo(20),
       },
       {
@@ -155,6 +179,8 @@ export const db: {
         images: [img("coffee")],
         status: "approved",
         listed: true,
+        stock: 45,
+        lowStockThreshold: 10,
         createdAt: daysAgo(15),
       },
       {
@@ -170,6 +196,8 @@ export const db: {
         images: [img("honey")],
         status: "pending",
         listed: false,
+        stock: 0,
+        lowStockThreshold: 10,
         createdAt: daysAgo(3),
       },
       {
@@ -186,6 +214,8 @@ export const db: {
         images: [img("tea")],
         status: "pending",
         listed: false,
+        stock: 8,
+        lowStockThreshold: 10,
         createdAt: daysAgo(2),
       },
       {
@@ -201,6 +231,8 @@ export const db: {
         images: [img("pepper")],
         status: "rejected",
         listed: false,
+        stock: 60,
+        lowStockThreshold: 10,
         rejectionReason: "Thiếu giấy chứng nhận ATTP",
         createdAt: daysAgo(8),
       },
@@ -217,6 +249,8 @@ export const db: {
         images: [img("cashew")],
         status: "approved",
         listed: true,
+        stock: 3,
+        lowStockThreshold: 10,
         createdAt: daysAgo(10),
       },
       {
@@ -232,6 +266,8 @@ export const db: {
         images: [img("mango")],
         status: "pending",
         listed: false,
+        stock: 200,
+        lowStockThreshold: 10,
         createdAt: daysAgo(1),
       },
       {
@@ -247,6 +283,8 @@ export const db: {
         images: [img("oolong")],
         status: "pending",
         listed: false,
+        stock: 0,
+        lowStockThreshold: 10,
         createdAt: daysAgo(1),
       },
       {
@@ -263,6 +301,8 @@ export const db: {
         images: [img("brownrice")],
         status: "pending",
         listed: false,
+        stock: 15,
+        lowStockThreshold: 10,
         createdAt: daysAgo(2),
       },
       {
@@ -278,6 +318,8 @@ export const db: {
         images: [img("macadamia")],
         status: "pending",
         listed: false,
+        stock: 30,
+        lowStockThreshold: 10,
         createdAt: daysAgo(3),
       },
       {
@@ -293,6 +335,8 @@ export const db: {
         images: [img("arabica")],
         status: "pending",
         listed: false,
+        stock: 5,
+        lowStockThreshold: 10,
         createdAt: daysAgo(4),
       },
       {
@@ -308,6 +352,8 @@ export const db: {
         images: [img("salt")],
         status: "pending",
         listed: false,
+        stock: 80,
+        lowStockThreshold: 10,
         createdAt: daysAgo(5),
       },
     ],
