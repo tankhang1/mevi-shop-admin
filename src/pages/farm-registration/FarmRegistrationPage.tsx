@@ -15,6 +15,8 @@ import {
   type TableFilterDef,
   DataTable,
   StatsCard,
+  cn,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
@@ -38,6 +40,7 @@ import { ApproveRegistrationDialog } from "./components/ApproveRegistrationDialo
 
 export default function FarmRegistrationPage() {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [, navigate] = useLocation();
   const { data: farms } = useFarms();
   const { data: stats } = useFarmRegistrationStats();
@@ -85,6 +88,12 @@ export default function FarmRegistrationPage() {
               {r.category}
               {r.packaging && ` · ${r.packaging}`}
             </div>
+            {/* Mobile card: the badge slot is too narrow for the reason */}
+            {r.rejectionReason && (
+              <div className="mt-0.5 line-clamp-2 text-xs text-destructive md:hidden">
+                {r.rejectionReason}
+              </div>
+            )}
           </div>
         </div>
       ),
@@ -130,7 +139,7 @@ export default function FarmRegistrationPage() {
           <StatusPill {...REGISTRATION_STATUS[r.status]} />
           {r.rejectionReason && (
             <div
-              className="mt-0.5 max-w-48 truncate text-xs text-destructive"
+              className="mt-0.5 hidden max-w-48 truncate text-xs text-destructive md:block"
               title={r.rejectionReason}
             >
               {r.rejectionReason}
@@ -166,35 +175,64 @@ export default function FarmRegistrationPage() {
     },
   ];
 
+  const bound = table.bind(page, isFetching);
+  const statusChips = [
+    { value: "pending", label: "Chờ duyệt", count: stats?.pending },
+    { value: "approved", label: "Đã duyệt", count: stats?.approved },
+    { value: "rejected", label: "Từ chối", count: stats?.rejected },
+    { value: "all", label: "Tất cả", count: stats?.total },
+  ];
+
+  const statItems = [
+    { title: "Tổng đăng ký", value: stats?.total ?? "—", icon: Sprout },
+    { title: "Chờ duyệt", value: stats?.pending ?? "—", icon: Clock },
+    { title: "Đã duyệt", value: stats?.approved ?? "—", icon: CheckCircle2 },
+    { title: "Từ chối", value: stats?.rejected ?? "—", icon: XCircle },
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          title="Tổng đăng ký"
-          value={stats?.total ?? "—"}
-          icon={Sprout}
-        />
-        <StatsCard
-          title="Chờ duyệt"
-          value={stats?.pending ?? "—"}
-          icon={Clock}
-        />
-        <StatsCard
-          title="Đã duyệt"
-          value={stats?.approved ?? "—"}
-          icon={CheckCircle2}
-        />
-        <StatsCard
-          title="Từ chối"
-          value={stats?.rejected ?? "—"}
-          icon={XCircle}
-        />
+    <div className="space-y-4 sm:space-y-5">
+      {/* Mobile: stats double as the status filter — one scrollable chip row */}
+      {isMobile && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {statusChips.map((c) => {
+            const active = table.state.filters.status === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => bound.onFilterChange("status", c.value)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  active ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
+                )}
+              >
+                {c.label}
+                <span
+                  className={cn(
+                    "min-w-5 rounded-full px-1.5 text-center text-xs font-semibold tabular-nums",
+                    active ? "bg-primary-foreground/20" : "bg-muted text-foreground",
+                  )}
+                >
+                  {c.count ?? "—"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+        {statItems.map((it) => (
+          <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+        ))}
       </div>
 
       <DataTable
-        {...table.bind(page, isFetching)}
+        {...bound}
         columns={columns}
-        filters={filters}
+        filters={isMobile ? filters.filter((f) => f.key !== "status") : filters}
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         searchPlaceholder="Tìm theo sản phẩm, nông hộ..."
         enableMobileCard
         rowActions={actions}

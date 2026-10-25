@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
   Textarea,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
@@ -62,6 +63,7 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { isRoot } = useAccess();
+  const isMobile = useIsMobile();
   const { data: order, isLoading, isError } = useOrder(id);
   const update = useUpdateOrderStatus();
   const saveNote = useUpdateOrderNote();
@@ -71,27 +73,25 @@ export default function OrderDetailPage() {
 
   const next = order && nextOrderStatus(order.status);
 
-  usePageActions(
-    () =>
-      order &&
-      !isFinalOrderStatus(order.status) && (
-        <>
-          <Button
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setCancelling(true)}
-          >
-            <XCircle className="mr-1.5 h-4 w-4" /> Huỷ đơn
-          </Button>
-          {next && (
-            <Button onClick={() => setConfirmNext(true)}>
-              {NEXT_STEP_LABEL[next]} <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          )}
-        </>
-      ),
-    [order?.id, order?.status],
+  const actions = order && !isFinalOrderStatus(order.status) && (
+    <>
+      <Button
+        variant="outline"
+        className="flex-1 text-destructive hover:text-destructive md:flex-none"
+        onClick={() => setCancelling(true)}
+      >
+        <XCircle className="mr-1.5 h-4 w-4" /> Huỷ đơn
+      </Button>
+      {next && (
+        <Button className="flex-[2] md:flex-none" onClick={() => setConfirmNext(true)}>
+          {NEXT_STEP_LABEL[next]} <ArrowRight className="ml-1.5 h-4 w-4" />
+        </Button>
+      )}
+    </>
   );
+
+  // Mobile: actions go to a sticky bar above the bottom nav so the title keeps its room
+  usePageActions(() => !isMobile && actions, [order?.id, order?.status, isMobile]);
 
   if (isLoading) return <LoadingBlock />;
   if (isError || !order)
@@ -135,8 +135,8 @@ export default function OrderDetailPage() {
   const noteValue = note ?? order.internalNote ?? "";
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <BackLink to={ROUTES.orders} label="Đơn đặt hàng" />
         <span className="font-mono text-sm font-semibold">{order.code}</span>
         <StatusPill {...ORDER_STATUS[order.status]} />
@@ -146,7 +146,7 @@ export default function OrderDetailPage() {
       </div>
 
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           <OrderTimeline order={order} />
           {order.status === "cancelled" && order.cancelReason && (
             <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -156,9 +156,9 @@ export default function OrderDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card className="h-fit">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
             <CardTitle className="text-base">
               Sản phẩm{" "}
               <span className="font-normal text-muted-foreground">
@@ -166,10 +166,10 @@ export default function OrderDetailPage() {
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
             <ul className="divide-y">
               {order.items.map((it) => (
-                <li key={it.productId} className="flex items-center gap-3 py-3">
+                <li key={it.productId} className="flex items-start gap-3 py-3">
                   <img
                     src={it.image || placeholder}
                     alt=""
@@ -178,13 +178,15 @@ export default function OrderDetailPage() {
                   <div className="min-w-0 flex-1">
                     <Link
                       href={ROUTES.productDetail(it.productId)}
-                      className="truncate text-sm font-medium hover:underline"
+                      className="line-clamp-2 text-sm font-medium hover:underline"
                     >
                       {it.name}
                     </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {it.sku && <span className="font-mono">{it.sku} · </span>}
-                      {formatVnd(it.price)} × {it.quantity}
+                    <div className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
+                      {it.sku && <span className="font-mono">{it.sku}</span>}
+                      <span className="whitespace-nowrap">
+                        {formatVnd(it.price)} × {it.quantity}
+                      </span>
                     </div>
                   </div>
                   <div className="whitespace-nowrap text-sm font-semibold">
@@ -214,12 +216,12 @@ export default function OrderDetailPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
               <CardTitle className="text-base">Người nhận</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2.5">
+            <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
               <Row icon={User}>
                 {order.customerId ? (
                   <Link
@@ -246,7 +248,7 @@ export default function OrderDetailPage() {
 
           {(isRoot || order.agencyName) && (
             <Card>
-              <CardContent className="space-y-2.5 p-5">
+              <CardContent className="space-y-2.5 p-4 sm:p-5">
                 {isRoot && <Row icon={Store}>{order.shopName ?? "—"}</Row>}
                 {order.agencyName && (
                   <Row icon={Handshake}>
@@ -273,12 +275,12 @@ export default function OrderDetailPage() {
           />
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
               <CardTitle className="flex items-center gap-1.5 text-base">
                 <StickyNote className="h-4 w-4" /> Ghi chú nội bộ
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 p-4 pt-0 sm:p-6 sm:pt-0">
               <Textarea
                 rows={3}
                 value={noteValue}
@@ -307,6 +309,12 @@ export default function OrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      {isMobile && actions && (
+        <div className="sticky bottom-18 z-10 -mx-4 flex gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur">
+          {actions}
+        </div>
+      )}
 
       {next && (
         <ConfirmDialog

@@ -25,12 +25,14 @@ export default function ProductDetailPage() {
     () =>
       product && (
         <>
-          <Button variant="outline" onClick={() => setConfirmOpen(true)}>
-            <Trash2 className="mr-1.5 h-4 w-4 text-destructive" /> Xoá
+          <Button variant="outline" className="px-2.5 sm:px-4" onClick={() => setConfirmOpen(true)} aria-label="Xoá">
+            <Trash2 className="h-4 w-4 text-destructive sm:mr-1.5" />
+            <span className="hidden sm:inline">Xoá</span>
           </Button>
           <Button asChild>
             <Link href={ROUTES.productEdit(product.id)}>
-              <Pencil className="mr-1.5 h-4 w-4" /> Chỉnh sửa
+              <Pencil className="mr-1.5 h-4 w-4" /> <span className="sm:hidden">Sửa</span>
+              <span className="hidden sm:inline">Chỉnh sửa</span>
             </Link>
           </Button>
         </>
@@ -62,7 +64,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <BackLink to={ROUTES.products} label="Danh sách sản phẩm" />
         <StatusPill {...PRODUCT_STATUS[product.status]} />
         <span className="text-xs text-muted-foreground">Tạo lúc {formatDate(product.createdAt)}</span>

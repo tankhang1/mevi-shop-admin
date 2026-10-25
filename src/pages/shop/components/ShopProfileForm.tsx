@@ -78,7 +78,7 @@ export function ShopProfileForm({ shop, saving, onSubmit, extraTabs = [] }: Prop
       <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <TabsList>
+            <TabsList className="w-max">
               {FORM_TABS.map((t) => (
                 <TabsTrigger key={t.value} value={t.value} className="gap-1.5">
                   {t.label}
@@ -185,15 +185,16 @@ export function ShopProfileForm({ shop, saving, onSubmit, extraTabs = [] }: Prop
         {/* Shared by all profile tabs; hidden on non-form tabs which save instantly */}
         <div
           className={cn(
-            "sticky bottom-0 z-10 mt-5 flex items-center justify-end gap-2 border-t bg-background/95 py-3 backdrop-blur",
+            // Mobile: sit above the fixed 72px bottom nav
+            "sticky bottom-18 z-10 mt-5 flex items-center justify-end gap-2 border-t bg-background/95 py-3 backdrop-blur md:bottom-0",
             !onFormTab && "hidden",
           )}
         >
-          {isDirty && <span className="mr-auto text-sm text-muted-foreground">Bạn có thay đổi chưa lưu</span>}
-          <Button type="button" variant="outline" disabled={!isDirty || saving} onClick={() => form.reset()}>
+          {isDirty && <span className="mr-auto hidden text-sm text-muted-foreground sm:inline">Bạn có thay đổi chưa lưu</span>}
+          <Button type="button" variant="outline" className="flex-1 sm:flex-none" disabled={!isDirty || saving} onClick={() => form.reset()}>
             <RotateCcw className="mr-1.5 h-4 w-4" /> Hoàn tác
           </Button>
-          <Button type="submit" disabled={!isDirty || saving}>
+          <Button type="submit" className="flex-1 sm:flex-none" disabled={!isDirty || saving}>
             {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
             Lưu thay đổi
           </Button>

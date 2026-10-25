@@ -7,8 +7,8 @@ import { formatVnd } from "@/lib/format";
 
 type Props = { product: Partial<ProductInput> & Pick<ProductInput, "price"> & { shopName?: string } };
 
-const Field = ({ label, value }: { label: string; value?: string | null }) => (
-  <div>
+const Field = ({ label, value, className }: { label: string; value?: string | null; className?: string }) => (
+  <div className={className}>
     <dt className="text-xs text-muted-foreground">{label}</dt>
     <dd className="mt-0.5 text-sm font-medium">{value || "—"}</dd>
   </div>
@@ -23,7 +23,7 @@ export function ProductInfo({ product: p }: Props) {
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <div className="space-y-3">
-        <div className="aspect-square overflow-hidden rounded-xl border bg-muted">
+        <div className="aspect-[4/3] overflow-hidden sm:aspect-square rounded-xl border bg-muted">
           <img src={images[active] || images[0] || placeholder} alt="" className="h-full w-full object-cover" />
         </div>
         {images.length > 1 && (
@@ -51,7 +51,7 @@ export function ProductInfo({ product: p }: Props) {
             {p.shopName && <span className="font-medium text-foreground">{p.shopName} · </span>}
             {p.category || "Chưa chọn danh mục"} · <span className="font-mono">{p.sku || "—"}</span>
           </p>
-          <h2 className="mt-1 text-2xl font-bold">{p.name || "Chưa đặt tên"}</h2>
+          <h2 className="mt-1 text-xl font-bold sm:text-2xl">{p.name || "Chưa đặt tên"}</h2>
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
             <span className={cn("text-2xl font-bold tabular-nums", discount ? "text-red-600" : "text-foreground")}>
               {formatVnd(p.salePrice || p.price)}
@@ -75,24 +75,24 @@ export function ProductInfo({ product: p }: Props) {
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
             <CardTitle className="text-sm">Quy cách & bảo quản</CardTitle>
           </CardHeader>
-          <CardContent>
-            <dl className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <dl className="grid grid-cols-2 gap-4">
               <Field label="Nguồn gốc / vùng trồng" value={p.origin} />
               <Field label="Quy cách đóng gói" value={p.packaging} />
               <Field label="Hạn sử dụng" value={p.shelfLife} />
-              <Field label="Hướng dẫn bảo quản" value={p.storage} />
+              <Field label="Hướng dẫn bảo quản" value={p.storage} className="col-span-2 sm:col-span-1" />
             </dl>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
             <CardTitle className="text-sm">Mô tả</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
             <p className="whitespace-pre-line text-sm text-muted-foreground">{p.description || "Chưa có mô tả."}</p>
           </CardContent>
         </Card>
