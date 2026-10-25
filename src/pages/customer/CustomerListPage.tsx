@@ -7,6 +7,7 @@ import {
   DataTable,
   StatsCard,
   type TableFilterDef,
+  useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { StatusPill } from "@/components/common/ui-bits";
@@ -22,6 +23,7 @@ import {
 } from "@/features/customer";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatDate, formatVnd } from "@/lib/format";
+import { CustomerMobileCard } from "./components/CustomerMobileCard";
 import { CustomerFormDialog } from "./components/CustomerFormDialog";
 
 const filters: TableFilterDef[] = [
@@ -61,6 +63,7 @@ export const Initials = ({
 
 export default function CustomerListPage() {
   const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
   const table = useTableParams<
     Required<Pick<CustomerListParams, "segment">> & { tag: string }
   >({ segment: "all", tag: "all" });
@@ -76,9 +79,9 @@ export default function CustomerListPage() {
         setOpen(true);
       }}
     >
-      <Plus className="mr-1 h-4 w-4" /> Thêm khách hàng
+      <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Thêm" : "Thêm khách hàng"}
     </Button>
-  ));
+  ), [isMobile]);
 
   const columns: Column<CustomerWithStats>[] = [
     {
@@ -148,25 +151,29 @@ export default function CustomerListPage() {
     },
   ];
 
+  const statItems = [
+    { title: "Tổng khách hàng", short: "Tổng", value: stats?.total ?? "—", icon: Users, tone: "text-primary" },
+    { title: "Mới 30 ngày", short: "Mới 30 ngày", value: stats?.newThisMonth ?? "—", icon: UserPlus, tone: "text-sky-600" },
+    { title: "Khách quen", short: "Khách quen", value: stats?.returning ?? "—", icon: Repeat, tone: "text-emerald-600" },
+    { title: "VIP", short: "VIP", value: stats?.vip ?? "—", icon: Crown, tone: "text-amber-500" },
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          title="Tổng khách hàng"
-          value={stats?.total ?? "—"}
-          icon={Users}
-        />
-        <StatsCard
-          title="Mới 30 ngày"
-          value={stats?.newThisMonth ?? "—"}
-          icon={UserPlus}
-        />
-        <StatsCard
-          title="Khách quen"
-          value={stats?.returning ?? "—"}
-          icon={Repeat}
-        />
-        <StatsCard title="VIP" value={stats?.vip ?? "—"} icon={Crown} />
+    <div className="space-y-4 sm:space-y-5">
+      {/* Mobile: one compact row instead of four stacked cards */}
+      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden">
+        {statItems.map((it) => (
+          <div key={it.title} className="flex flex-col items-center gap-1 px-1 py-3">
+            <it.icon className={`h-4 w-4 ${it.tone}`} />
+            <span className="text-lg font-bold leading-none tabular-nums">{it.value}</span>
+            <span className="text-center text-[11px] leading-tight text-muted-foreground">{it.short}</span>
+          </div>
+        ))}
+      </div>
+      <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+        {statItems.map((it) => (
+          <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+        ))}
       </div>
 
       <DataTable
@@ -175,6 +182,9 @@ export default function CustomerListPage() {
         filters={filters}
         searchPlaceholder="Tìm theo tên, SĐT, email, nhãn..."
         enableMobileCard
+        renderMobileCard={(c, helpers) => <CustomerMobileCard customer={c} helpers={helpers} />}
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         onView={(c) => navigate(ROUTES.customerDetail(c.id))}
         onEdit={(c) => {
           setEditing(c);

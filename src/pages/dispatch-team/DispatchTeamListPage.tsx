@@ -7,6 +7,7 @@ import {
   Button,
   DataTable,
   DeleteDialog,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
@@ -24,12 +25,14 @@ import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
 import { Initials } from "@/pages/customer/CustomerListPage";
+import { DispatchTeamMobileCard } from "./components/DispatchTeamMobileCard";
 import { DispatchTeamFormDialog } from "./components/DispatchTeamFormDialog";
 
 export default function DispatchTeamListPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
+  const isMobile = useIsMobile();
   const table = useTableParams<{ shopId: string }>({
     shopId: shopFilter.initialShopId,
   });
@@ -44,8 +47,14 @@ export default function DispatchTeamListPage() {
 
   usePageActions(() => (
     <>
-      <Button variant="outline" onClick={() => setConfirmAuto(true)}>
-        <Wand2 className="mr-1.5 h-4 w-4" /> Tự động phân đơn
+      <Button
+        variant="outline"
+        className="px-2.5 md:px-4"
+        onClick={() => setConfirmAuto(true)}
+        aria-label="Tự động phân đơn"
+      >
+        <Wand2 className="h-4 w-4 md:mr-1.5" />
+        <span className="hidden md:inline">Tự động phân đơn</span>
       </Button>
       <Button
         onClick={() => {
@@ -53,10 +62,10 @@ export default function DispatchTeamListPage() {
           setOpen(true);
         }}
       >
-        <Plus className="mr-1 h-4 w-4" /> Tạo nhóm
+        <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Tạo" : "Tạo nhóm"}
       </Button>
     </>
-  ));
+  ), [isMobile]);
 
   const fail = (e: unknown) =>
     toast({
@@ -222,6 +231,17 @@ export default function DispatchTeamListPage() {
         filters={shopFilter.filter ? [shopFilter.filter] : undefined}
         searchPlaceholder="Tìm theo tên nhóm..."
         enableMobileCard
+        renderMobileCard={(t, helpers) => (
+          <DispatchTeamMobileCard
+            team={t}
+            showShop={shopFilter.isRoot}
+            onOrders={() => navigate(`${ROUTES.orders}?teamId=${t.id}`)}
+            onToggle={() => void toggle(t)}
+            helpers={helpers}
+          />
+        )}
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         onEdit={(t) => {
           setEditing(t);
           setOpen(true);

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { FolderTree, Plus } from "lucide-react";
-import { type Column, Button, DataTable } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { type Column, Button, DataTable, useIsMobile } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
 import { type ProductGroup, useProductGroups } from "@/features/product-group";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
+import { ProductGroupMobileCard } from "./components/ProductGroupMobileCard";
 import { DeleteProductGroupDialog } from "./components/DeleteProductGroupDialog";
 import { ProductGroupFormDialog } from "./components/ProductGroupFormDialog";
 
@@ -23,6 +24,7 @@ export function GroupThumb({ group, size = "h-10 w-10" }: { group: Pick<ProductG
 export default function ProductGroupListPage() {
   const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
+  const isMobile = useIsMobile();
   const table = useTableParams<{ shopId: string }>({ shopId: shopFilter.initialShopId });
   const { data: page, isFetching } = useProductGroups(table.params);
   const [open, setOpen] = useState(false);
@@ -36,9 +38,9 @@ export default function ProductGroupListPage() {
         setOpen(true);
       }}
     >
-      <Plus className="mr-1 h-4 w-4" /> Thêm nhóm
+      <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Thêm" : "Thêm nhóm"}
     </Button>
-  ));
+  ), [isMobile]);
 
   const columns: Column<ProductGroup>[] = [
     {
@@ -73,6 +75,11 @@ export default function ProductGroupListPage() {
         filters={shopFilter.filter ? [shopFilter.filter] : undefined}
         searchPlaceholder="Tìm theo tên nhóm..."
         enableMobileCard
+        renderMobileCard={(g, helpers) => (
+          <ProductGroupMobileCard group={g} showShop={shopFilter.isRoot} helpers={helpers} />
+        )}
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         onView={(g) => navigate(ROUTES.productGroupDetail(g.id))}
         onEdit={(g) => {
           setEditing(g);

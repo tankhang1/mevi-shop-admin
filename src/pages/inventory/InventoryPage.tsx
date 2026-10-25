@@ -18,6 +18,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
@@ -33,6 +34,7 @@ import {
 } from "@/features/inventory";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
+import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
 import { PendingMovementsTable } from "./components/PendingMovementsTable";
 import { StockMovementTable } from "./components/StockMovementTable";
@@ -51,6 +53,7 @@ const stockFilter: TableFilterDef = {
 function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
   const [, navigate] = useLocation();
   const shopFilter = useShopFilter();
+  const isMobile = useIsMobile();
   const table = useTableParams<
     Pick<InventoryListParams, "stockStatus"> & { shopId: string }
   >({
@@ -141,6 +144,17 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       }
       searchPlaceholder="Tìm theo tên, SKU..."
       enableMobileCard
+      renderMobileCard={(p, helpers) => (
+        <InventoryMobileCard
+          item={p}
+          showShop={shopFilter.isRoot}
+          onAdjust={() => onAdjust(p)}
+          onProduct={() => navigate(ROUTES.productDetail(p.id))}
+          helpers={helpers}
+        />
+      )}
+      columnToggleable={!isMobile}
+      downloadable={!isMobile}
       // "Xem chi tiết" = the product's stock history
       onView={(p) => navigate(ROUTES.inventoryHistory(p.id))}
       rowActions={actions}
@@ -152,29 +166,33 @@ export default function InventoryPage() {
   const { data: stats } = useInventoryStats();
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
 
+  const statItems = [
+    { title: "Chờ duyệt nhập/xuất", short: "Chờ duyệt", value: stats?.pending ?? "—", icon: ClipboardCheck, tone: "text-sky-600" },
+    { title: "Tổng tồn kho", short: "Tổng tồn", value: stats ? nf.format(stats.units) : "—", icon: Boxes, tone: "text-primary" },
+    { title: "Sắp hết hàng", short: "Sắp hết", value: stats?.low ?? "—", icon: AlertTriangle, tone: "text-amber-600" },
+    { title: "Hết hàng", short: "Hết hàng", value: stats?.out ?? "—", icon: PackageX, tone: "text-destructive" },
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          title="Chờ duyệt nhập/xuất"
-          value={stats?.pending ?? "—"}
-          icon={ClipboardCheck}
-        />
-        <StatsCard
-          title="Tổng tồn kho"
-          value={stats ? nf.format(stats.units) : "—"}
-          icon={Boxes}
-        />
-        <StatsCard
-          title="Sắp hết hàng"
-          value={stats?.low ?? "—"}
-          icon={AlertTriangle}
-        />
-        <StatsCard title="Hết hàng" value={stats?.out ?? "—"} icon={PackageX} />
+    <div className="space-y-4 sm:space-y-5">
+      {/* Mobile: one compact row instead of four stacked cards */}
+      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden">
+        {statItems.map((it) => (
+          <div key={it.title} className="flex flex-col items-center gap-1 px-1 py-3">
+            <it.icon className={`h-4 w-4 ${it.tone}`} />
+            <span className="text-lg font-bold leading-none tabular-nums">{it.value}</span>
+            <span className="text-center text-[11px] leading-tight text-muted-foreground">{it.short}</span>
+          </div>
+        ))}
+      </div>
+      <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+        {statItems.map((it) => (
+          <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+        ))}
       </div>
 
       <Tabs defaultValue="stock" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3 md:inline-flex md:w-auto">
           <TabsTrigger value="stock">Tồn kho</TabsTrigger>
           <TabsTrigger value="pending" className="gap-1.5">
             Chờ duyệt
@@ -184,7 +202,9 @@ export default function InventoryPage() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="history">Lịch sử nhập xuất</TabsTrigger>
+          <TabsTrigger value="history">
+            Lịch sử<span className="hidden md:inline">&nbsp;nhập xuất</span>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
           <StockTable onAdjust={setAdjusting} />

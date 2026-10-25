@@ -3,6 +3,7 @@ import {
   DataTable,
   type TableFilterDef,
   cn,
+  useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
 import {
@@ -33,6 +34,7 @@ const typeFilter: TableFilterDef = {
 
 /** Nhập / xuất / kiểm kê history, newest first. With `productId` it shows one product's movements. */
 export function StockMovementTable({ productId }: { productId?: string }) {
+  const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const table = useTableParams<
     Pick<MovementListParams, "type"> & { shopId: string }
@@ -161,6 +163,8 @@ export function StockMovementTable({ productId }: { productId?: string }) {
         productId ? "Tìm theo ghi chú..." : "Tìm theo sản phẩm, SKU, ghi chú..."
       }
       enableMobileCard
+      columnToggleable={!isMobile}
+      downloadable={!isMobile}
     />
   );
 }

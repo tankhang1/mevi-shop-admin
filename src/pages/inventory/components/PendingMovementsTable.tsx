@@ -5,6 +5,7 @@ import {
   type RowAction,
   DataTable,
   cn,
+  useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -29,6 +30,7 @@ const dt = new Intl.DateTimeFormat("vi-VN", {
 
 /** Farm stock changes waiting for the shop admin; approval adds the delta to the stock as it is then */
 export function PendingMovementsTable() {
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isShopAdmin, isRoot } = useAccess();
   const table = useTableParams();
@@ -130,6 +132,8 @@ export function PendingMovementsTable() {
         searchPlaceholder="Tìm theo sản phẩm, ghi chú..."
         filterable={false}
         enableMobileCard
+        columnToggleable={!isMobile}
+        downloadable={!isMobile}
         rowActions={actions}
       />
       <ConfirmDialog
