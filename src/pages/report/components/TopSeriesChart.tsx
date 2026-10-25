@@ -59,7 +59,7 @@ export function TopSeriesChart({
           ))}
         </ul>
       </CardHeader>
-      <CardContent className="h-64 pl-0 pr-4">
+      <CardContent className="h-52 pl-0 pr-4 md:h-64">
         {topSeries.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">
             Chưa đủ dữ liệu để so sánh.

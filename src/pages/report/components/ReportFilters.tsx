@@ -46,8 +46,9 @@ export function ReportFilters({
     f.shopId === initialShopId;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
       <Tabs
+        className="col-span-2"
         value={f.preset}
         onValueChange={(v) => {
           const preset = v as RangePreset;
@@ -58,9 +59,9 @@ export function ReportFilters({
           );
         }}
       >
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-5 md:inline-flex md:w-auto">
           {PRESETS.map((p) => (
-            <TabsTrigger key={p.value} value={p.value}>
+            <TabsTrigger key={p.value} value={p.value} className="px-1 text-xs md:px-3 md:text-sm">
               {p.label}
             </TabsTrigger>
           ))}
@@ -68,10 +69,10 @@ export function ReportFilters({
       </Tabs>
 
       {f.preset === "custom" && (
-        <div className="flex items-center gap-1.5">
+        <div className="col-span-2 flex items-center gap-1.5">
           <Input
             type="date"
-            className="h-9 w-[150px]"
+            className="h-9 min-w-0 flex-1 md:w-[150px] md:flex-none"
             value={f.from}
             max={f.to}
             onChange={(e) => e.target.value && set({ from: e.target.value })}
@@ -80,7 +81,7 @@ export function ReportFilters({
           <span className="text-muted-foreground">→</span>
           <Input
             type="date"
-            className="h-9 w-[150px]"
+            className="h-9 min-w-0 flex-1 md:w-[150px] md:flex-none"
             value={f.to}
             min={f.from}
             max={isoDay(new Date())}
@@ -94,7 +95,7 @@ export function ReportFilters({
         value={f.source}
         onValueChange={(v) => set({ source: v as OrderSource })}
       >
-        <SelectTrigger className="h-9 w-44" aria-label="Nguồn đơn">
+        <SelectTrigger className="h-9 w-full md:w-44" aria-label="Nguồn đơn">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -105,7 +106,7 @@ export function ReportFilters({
       </Select>
 
       <Select value={f.category} onValueChange={(v) => set({ category: v })}>
-        <SelectTrigger className="h-9 w-40" aria-label="Danh mục">
+        <SelectTrigger className="h-9 w-full md:w-40" aria-label="Danh mục">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -120,7 +121,7 @@ export function ReportFilters({
 
       {shopOptions && (
         <Select value={f.shopId} onValueChange={(v) => set({ shopId: v })}>
-          <SelectTrigger className="h-9 w-48" aria-label="Gian hàng">
+          <SelectTrigger className="h-9 w-full md:w-48" aria-label="Gian hàng">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

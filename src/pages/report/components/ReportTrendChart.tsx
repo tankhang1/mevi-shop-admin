@@ -107,7 +107,7 @@ export function ReportTrendChart({ report }: { report: RevenueReport }) {
           </TabsList>
         </Tabs>
       </CardHeader>
-      <CardContent className="h-64 pl-0 pr-4">
+      <CardContent className="h-52 pl-0 pr-4 md:h-64">
         <ResponsiveContainer width="100%" height="100%">
           {measure === "revenue" ? (
             <AreaChart

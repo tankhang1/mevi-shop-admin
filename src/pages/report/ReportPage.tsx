@@ -9,6 +9,7 @@ import {
   CardTitle,
   DataTable,
   StatsCard,
+  useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import {
@@ -25,6 +26,7 @@ import {
   defaultFilters,
 } from "./components/report-filters";
 import { ReportTrendChart } from "./components/ReportTrendChart";
+import { RevenueMobileCard } from "./components/RevenueMobileCard";
 import { RevenueBars } from "./components/RevenueBars";
 import { TopSeriesChart } from "./components/TopSeriesChart";
 
@@ -49,6 +51,7 @@ const nf = new Intl.NumberFormat("vi-VN");
 
 export default function ReportPage() {
   const shopFilter = useShopFilter();
+  const isMobile = useIsMobile();
   const { kind } = useParams<{ kind: string }>();
   const view = VIEWS.find((v) => v.value === kind);
   const groupBy: RevenueGroupBy = view?.value ?? "agency";
@@ -141,8 +144,23 @@ export default function ReportPage() {
       : []),
   ];
 
+  const statItems = data
+    ? [
+        { title: "Doanh thu", value: formatVnd(data.totals.revenue), icon: Banknote },
+        { title: "Đơn hoàn tất", value: nf.format(data.totals.orders), icon: ShoppingBag },
+        { title: "Sản phẩm đã bán", value: nf.format(data.totals.units), icon: Package },
+        isAgency
+          ? { title: "Hoa hồng phát sinh", value: formatVnd(data.totals.commission ?? 0), icon: HandCoins }
+          : {
+              title: `Số ${view.entity.toLowerCase()} có doanh thu`,
+              value: data.rows.filter((r) => r.id !== "none").length,
+              icon: Package,
+            },
+      ]
+    : [];
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <ReportFilters
         value={filters}
         onChange={setFilters}
@@ -154,35 +172,22 @@ export default function ReportPage() {
         <LoadingBlock />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatsCard
-              title="Doanh thu"
-              value={formatVnd(data.totals.revenue)}
-              icon={Banknote}
-            />
-            <StatsCard
-              title="Đơn hoàn tất"
-              value={nf.format(data.totals.orders)}
-              icon={ShoppingBag}
-            />
-            <StatsCard
-              title="Sản phẩm đã bán"
-              value={nf.format(data.totals.units)}
-              icon={Package}
-            />
-            {isAgency ? (
-              <StatsCard
-                title="Hoa hồng phát sinh"
-                value={formatVnd(data.totals.commission ?? 0)}
-                icon={HandCoins}
-              />
-            ) : (
-              <StatsCard
-                title={`Số ${view.entity.toLowerCase()} có doanh thu`}
-                value={data.rows.filter((r) => r.id !== "none").length}
-                icon={Package}
-              />
-            )}
+          {/* Mobile: 2×2 compact tiles — money values are too wide for one row */}
+          <div className="grid grid-cols-2 gap-2 md:hidden">
+            {statItems.map((it) => (
+              <div key={it.title} className="rounded-xl border bg-card p-3">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <it.icon className="h-3.5 w-3.5 text-primary" />
+                  <span className="truncate">{it.title}</span>
+                </div>
+                <div className="mt-1 truncate text-base font-bold tabular-nums">{it.value}</div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+            {statItems.map((it) => (
+              <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+            ))}
           </div>
 
           {data.rows.length === 0 ? (
@@ -194,7 +199,7 @@ export default function ReportPage() {
           ) : (
             <>
               <ReportTrendChart report={data} />
-              <div className="grid gap-5 xl:grid-cols-2">
+              <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
                 <TopSeriesChart report={data} entity={view.entity} />
                 <Card>
                   <CardHeader className="pb-3">
@@ -222,6 +227,9 @@ export default function ReportPage() {
                   searchPlaceholder={`Tìm ${view.entity.toLowerCase()}...`}
                   filterable={false}
                   enableMobileCard
+                  renderMobileCard={(r) => <RevenueMobileCard row={r} showCommission={isAgency} />}
+                  columnToggleable={!isMobile}
+                  downloadable={!isMobile}
                 />
               </div>
             </>
