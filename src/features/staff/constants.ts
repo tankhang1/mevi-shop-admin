@@ -24,7 +24,7 @@ export const STAFF_PERMISSION: Record<StaffPermission, { label: string; descript
   orders: { label: "Đơn hàng", description: "Xem và cập nhật trạng thái đơn" },
   customers: { label: "Khách hàng", description: "Xem, sửa thông tin và ghi chú khách" },
   reviews: { label: "Đánh giá", description: "Trả lời và ẩn đánh giá" },
-  shop: { label: "Thông tin gian hàng", description: "Sửa hồ sơ, sản phẩm trên kệ" },
+  shop: { label: "Thông tin gian hàng", description: "Sửa hồ sơ, sản phẩm kinh doanh" },
 };
 
 export const STAFF_STATUS: Record<StaffStatus, { label: string; className: string }> = {

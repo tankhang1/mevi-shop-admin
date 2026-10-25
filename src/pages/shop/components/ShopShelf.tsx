@@ -15,12 +15,12 @@ export function ShopShelf() {
     <Card className="p-4 sm:p-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="font-semibold">Sản phẩm trên kệ</h2>
-          <p className="text-sm text-muted-foreground">Chọn sản phẩm đã duyệt sẽ hiển thị và cho phép thêm vào giỏ hàng.</p>
+          <h2 className="font-semibold">Sản phẩm kinh doanh</h2>
+          <p className="text-sm text-muted-foreground">Bật "Tạm dừng" để ẩn sản phẩm khỏi cửa hàng và không cho thêm vào giỏ hàng.</p>
         </div>
         {!isLoading && (
           <span className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{listed}</span>/{products.length} đang lên kệ
+            <span className="font-medium text-foreground">{listed}</span>/{products.length} đang kinh doanh
           </span>
         )}
       </div>

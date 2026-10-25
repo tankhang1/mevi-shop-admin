@@ -53,7 +53,7 @@ function MyShop() {
       shop={shop}
       saving={update.isPending}
       onSubmit={(v) => void onSubmit(v)}
-      extraTabs={[{ value: "shelf", label: "Sản phẩm trên kệ", content: <ShopShelf /> }]}
+      extraTabs={[{ value: "shelf", label: "Sản phẩm kinh doanh", content: <ShopShelf /> }]}
     />
   );
 }

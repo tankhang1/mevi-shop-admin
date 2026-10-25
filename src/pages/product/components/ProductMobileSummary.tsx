@@ -1,4 +1,3 @@
-import { Store } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import type { ProductStats, ProductStatus } from "@/features/product";
 
@@ -19,8 +18,6 @@ interface Props {
 
 /** Mobile header: status chips that filter the list, plus a one-line shelf summary */
 export function ProductMobileSummary({ stats, status, onStatusChange }: Props) {
-  const listed = stats?.listed ?? 0;
-  const approved = stats?.approved ?? 0;
 
   return (
     <div className="space-y-2.5">
@@ -49,19 +46,6 @@ export function ProductMobileSummary({ stats, status, onStatusChange }: Props) {
             </button>
           );
         })}
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Store className="h-3.5 w-3.5 text-primary" />
-        <span>
-          <span className="font-semibold text-foreground">
-            {listed}/{approved}
-          </span>{" "}
-          sản phẩm đã duyệt đang lên kệ
-        </span>
-        <span className="ml-auto h-1 w-16 overflow-hidden rounded-full bg-muted">
-          <span className="block h-full rounded-full bg-primary" style={{ width: `${approved ? (listed / approved) * 100 : 0}%` }} />
-        </span>
       </div>
     </div>
   );
