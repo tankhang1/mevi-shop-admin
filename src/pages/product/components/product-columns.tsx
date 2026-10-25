@@ -44,7 +44,7 @@ export const productColumns: Column<Product>[] = [
     mobilePriority: "badge",
     render: (v) => <StatusPill {...PRODUCT_STATUS[v as ProductStatus]} />,
   },
-  { key: "listed", label: "Lên kệ", width: "88px", render: (_, p) => <ShelfToggle product={p} /> },
+  { key: "listed", label: "Tạm dừng kinh doanh", width: "120px", render: (_, p) => <ShelfToggle product={p} /> },
 ];
 
 export const productFilters: TableFilterDef[] = [
