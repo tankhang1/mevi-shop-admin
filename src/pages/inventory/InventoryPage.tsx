@@ -84,7 +84,7 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       ),
     },
     ...shopFilter.column<InventoryItem>(),
-    { key: "category", label: "Danh mục" },
+    { key: "category", label: "Nhóm sản phẩm" },
     {
       key: "source",
       label: "Nguồn",
@@ -142,7 +142,7 @@ function StockTable({ onAdjust }: { onAdjust: (item: InventoryItem) => void }) {
       filters={
         shopFilter.filter ? [shopFilter.filter, stockFilter] : [stockFilter]
       }
-      searchPlaceholder="Tìm theo tên, SKU..."
+      searchPlaceholder="Tìm theo tên, mã sản phẩm..."
       enableMobileCard
       renderMobileCard={(p, helpers) => (
         <InventoryMobileCard
@@ -203,7 +203,7 @@ export default function InventoryPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="history">
-            Lịch sử<span className="hidden md:inline">&nbsp;nhập xuất</span>
+            Lịch sử<span className="max-md:hidden">&nbsp;nhập xuất</span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">

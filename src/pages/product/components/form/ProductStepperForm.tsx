@@ -1,19 +1,16 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SchemaStepperForm, type SchemaStep } from "@/components/form";
-import { LoadingBlock } from "@/components/common/ui-bits";
-import { useAccess } from "@/features/auth";
-import { type ProductFormValues, productSchema, rootProductSchema } from "@/features/product";
-import { useShops } from "@/features/shop";
+import { type ProductFormValues, productSchema } from "@/features/product";
 import { BasicInfoSection, ImagesSection, PricingSection, ReviewSection } from "./sections";
 
-const getSteps = (shopOptions?: { label: string; value: string }[]): SchemaStep<ProductFormValues>[] => [
+const STEPS: SchemaStep<ProductFormValues>[] = [
   {
     id: "info",
     title: "Thông tin cơ bản",
-    description: "Tên, SKU, danh mục",
-    fields: ["shopId", "name", "sku", "category", "description"],
-    content: <BasicInfoSection shopOptions={shopOptions} />,
+    description: "Tên, mã, nhóm sản phẩm",
+    fields: ["name", "sku", "category", "description"],
+    content: <BasicInfoSection />,
   },
   {
     id: "pricing",
@@ -46,21 +43,11 @@ interface Props {
   onCancel: () => void;
 }
 
-function StepperFormInner({ defaultValues, isRoot, shopOptions, ...props }: Props & { isRoot: boolean; shopOptions?: { label: string; value: string }[] }) {
-  // Root must pick the owning shop; shop admins never see the field
-  const schema = isRoot ? rootProductSchema : productSchema;
+export function ProductStepperForm({ defaultValues, ...props }: Props) {
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(productSchema),
     defaultValues,
     mode: "onTouched",
   });
-  return <SchemaStepperForm form={form} schema={schema} steps={getSteps(isRoot ? (shopOptions ?? []) : undefined)} {...props} />;
-}
-
-export function ProductStepperForm(props: Props) {
-  const { isRoot, isLoading } = useAccess();
-  const { data: shops, isLoading: shopsLoading } = useShops({ size: 100 }, isRoot);
-  // The schema and steps depend on the role, and useForm only reads them once
-  if (isLoading || (isRoot && shopsLoading)) return <LoadingBlock />;
-  return <StepperFormInner {...props} isRoot={isRoot} shopOptions={shops?.items.map((s) => ({ label: s.name, value: s.id }))} />;
+  return <SchemaStepperForm form={form} schema={productSchema} steps={STEPS} {...props} />;
 }

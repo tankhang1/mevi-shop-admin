@@ -27,12 +27,12 @@ export default function ProductDetailPage() {
         <>
           <Button variant="outline" className="px-2.5 sm:px-4" onClick={() => setConfirmOpen(true)} aria-label="Xoá">
             <Trash2 className="h-4 w-4 text-destructive sm:mr-1.5" />
-            <span className="hidden sm:inline">Xoá</span>
+            <span className="max-sm:hidden">Xoá</span>
           </Button>
           <Button asChild>
             <Link href={ROUTES.productEdit(product.id)}>
               <Pencil className="mr-1.5 h-4 w-4" /> <span className="sm:hidden">Sửa</span>
-              <span className="hidden sm:inline">Chỉnh sửa</span>
+              <span className="max-sm:hidden">Chỉnh sửa</span>
             </Link>
           </Button>
         </>

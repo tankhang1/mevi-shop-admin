@@ -9,15 +9,13 @@ const optionalPrice = z
 const baseSchema = z
   .object({
     // Bước 1 — Thông tin cơ bản
-    /** Root picks the owning shop; for shop admins the backend fills it from the token */
-    shopId: z.string(),
     name: z.string().trim().min(1, "Vui lòng nhập tên sản phẩm"),
     sku: z
       .string()
       .trim()
-      .min(1, "Vui lòng nhập SKU")
+      .min(1, "Vui lòng nhập mã sản phẩm")
       .regex(/^[A-Za-z0-9-]+$/, "Chỉ gồm chữ, số và dấu gạch ngang"),
-    category: z.string().min(1, "Vui lòng chọn danh mục"),
+    category: z.string().min(1, "Vui lòng chọn nhóm sản phẩm"),
     description: z.string().optional(),
     // Bước 2 — Giá & quy cách
     price: z.coerce.number({ message: "Vui lòng nhập giá" }).int().positive("Giá phải lớn hơn 0"),
@@ -38,16 +36,9 @@ const baseSchema = z
 
 export const productSchema = baseSchema;
 
-/** Root must choose which shop the product belongs to */
-export const rootProductSchema = baseSchema.refine((v) => !!v.shopId, {
-  path: ["shopId"],
-  message: "Vui lòng chọn gian hàng",
-});
-
 export type ProductFormValues = z.input<typeof productSchema>;
 
 export const EMPTY_PRODUCT: ProductFormValues = {
-  shopId: "",
   name: "",
   sku: "",
   category: "",
@@ -63,7 +54,7 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   images: [],
 };
 
-export const productToFormValues = (p: Product): ProductFormValues => ({
+export const productToFormValues = ({ shopId: _shopId, ...p }: Product): ProductFormValues => ({
   ...EMPTY_PRODUCT,
   ...p,
   certifications: p.certifications ?? [],

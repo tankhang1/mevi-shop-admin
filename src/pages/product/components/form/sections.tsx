@@ -11,24 +11,12 @@ import { ProductInfo } from "../ProductInfo";
 const CATEGORY_OPTIONS = PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c }));
 
 /** Bước 1 */
-/** Bước 1 — `shopOptions` only for root (shop admins always create in their own shop) */
-export function BasicInfoSection({ shopOptions }: { shopOptions?: { label: string; value: string }[] }) {
+export function BasicInfoSection() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {shopOptions && (
-        <SelectField<ProductFormValues>
-          name="shopId"
-          label="Gian hàng"
-          required
-          className="sm:col-span-2"
-          options={shopOptions}
-          placeholder="Chọn gian hàng sở hữu sản phẩm"
-          description="Sản phẩm sẽ hiển thị trên trang của gian hàng này."
-        />
-      )}
       <TextField<ProductFormValues> name="name" label="Tên sản phẩm" required className="sm:col-span-2" placeholder="VD: Gạo ST25 hữu cơ" />
-      <TextField<ProductFormValues> name="sku" label="SKU" required placeholder="VD: GAO-ST25-5KG" description="Mã duy nhất, dùng để quản lý kho" />
-      <SelectField<ProductFormValues> name="category" label="Danh mục" required options={CATEGORY_OPTIONS} placeholder="Chọn danh mục" />
+      <TextField<ProductFormValues> name="sku" label="Mã sản phẩm" required placeholder="VD: GAO-ST25-5KG" description="Mã duy nhất, dùng để quản lý kho" />
+      <SelectField<ProductFormValues> name="category" label="Nhóm sản phẩm" required options={CATEGORY_OPTIONS} placeholder="Chọn nhóm sản phẩm" />
       <TextareaField<ProductFormValues> name="description" label="Mô tả" className="sm:col-span-2" rows={5} placeholder="Đặc điểm, câu chuyện sản phẩm..." />
     </div>
   );

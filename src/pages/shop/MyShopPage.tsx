@@ -28,7 +28,7 @@ function MyShop() {
           <Button variant="outline" asChild className="px-2.5 sm:px-4">
             <a href={`${SHOP_URL}/shops/${shop.slug}`} target="_blank" rel="noreferrer" aria-label="Xem trang gian hàng">
               <ExternalLink className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Xem trang gian hàng</span>
+              <span className="max-sm:hidden">Xem trang gian hàng</span>
             </a>
           </Button>
         </>

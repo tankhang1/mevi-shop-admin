@@ -114,7 +114,7 @@ export default function ProductApprovalPage() {
           {...table.bind(page, isFetching)}
           columns={tableColumns}
           filters={filters}
-          searchPlaceholder="Tìm theo tên, SKU..."
+          searchPlaceholder="Tìm theo tên, mã sản phẩm..."
           enableMobileCard
           onView={(p) => navigate(ROUTES.productDetail(p.id))}
         />

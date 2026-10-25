@@ -63,7 +63,7 @@ function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
   const p = Number(price);
   const sp = salePrice ? Number(salePrice) : null;
   const error = !sku.trim()
-    ? "Vui lòng nhập SKU"
+    ? "Vui lòng nhập mã sản phẩm"
     : !(p > 0)
       ? "Giá bán không hợp lệ"
       : sp !== null && !(sp > 0 && sp < p)
@@ -131,7 +131,7 @@ function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5 sm:col-span-3">
           <Label htmlFor="ap-sku">
-            SKU<span className="text-destructive"> *</span>
+            Mã sản phẩm<span className="text-destructive"> *</span>
           </Label>
           <Input
             id="ap-sku"

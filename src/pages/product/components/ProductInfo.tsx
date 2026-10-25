@@ -49,7 +49,7 @@ export function ProductInfo({ product: p }: Props) {
         <div>
           <p className="text-sm text-muted-foreground">
             {p.shopName && <span className="font-medium text-foreground">{p.shopName} · </span>}
-            {p.category || "Chưa chọn danh mục"} · <span className="font-mono">{p.sku || "—"}</span>
+            {p.category || "Chưa chọn nhóm sản phẩm"} · <span className="font-mono">{p.sku || "—"}</span>
           </p>
           <h2 className="mt-1 text-xl font-bold sm:text-2xl">{p.name || "Chưa đặt tên"}</h2>
           <div className="mt-3 flex flex-wrap items-baseline gap-3">

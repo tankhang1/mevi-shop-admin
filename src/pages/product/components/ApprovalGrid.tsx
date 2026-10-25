@@ -50,7 +50,7 @@ export function ApprovalGrid({ page, loading, keyword, category, onSearch, onCat
       <div className="flex gap-2 max-sm:flex-col">
         <div className="relative max-sm:w-full sm:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo tên, SKU..." className="pl-9!" />
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo tên, mã sản phẩm..." className="pl-9!" />
         </div>
         <div className="max-sm:w-full sm:w-52">
           <Select value={category} onValueChange={onCategory}>
@@ -58,7 +58,7 @@ export function ApprovalGrid({ page, loading, keyword, category, onSearch, onCat
               <SelectValue />
             </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả danh mục</SelectItem>
+            <SelectItem value="all">Tất cả nhóm sản phẩm</SelectItem>
             {PRODUCT_CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
                 {c}

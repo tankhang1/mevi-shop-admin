@@ -160,7 +160,7 @@ export function StockMovementTable({ productId }: { productId?: string }) {
           : [typeFilter]
       }
       searchPlaceholder={
-        productId ? "Tìm theo ghi chú..." : "Tìm theo sản phẩm, SKU, ghi chú..."
+        productId ? "Tìm theo ghi chú..." : "Tìm theo sản phẩm, mã, ghi chú..."
       }
       enableMobileCard
       columnToggleable={!isMobile}

@@ -28,13 +28,13 @@ function assertSkuFree(shopId: string, sku: string, exceptId?: string) {
   }
 }
 
-/** Shop admins always write into their own shop; root must name an existing shop */
+/** Shop admins always write into their own shop; root falls back to the first shop */
 function resolveShopId(requested: string | undefined) {
   const a = actor();
   if (a.shopId) return a.shopId;
-  if (!requested || !db.shops.some((s) => s.id === requested))
-    throw new HttpError(400, "Vui lòng chọn gian hàng");
-  return requested;
+  if (requested && db.shops.some((s) => s.id === requested)) return requested;
+  if (!db.shops[0]) throw new HttpError(400, "Chưa có gian hàng nào");
+  return db.shops[0].id;
 }
 
 export const productHandlers: MockHandler[] = [

@@ -18,11 +18,11 @@ export const productColumns: Column<Product>[] = [
   { key: "name", label: "Tên sản phẩm", sortable: true, mobilePriority: "primary" },
   {
     key: "sku",
-    label: "SKU",
+    label: "Mã sản phẩm",
     mobilePriority: "secondary",
     render: (v) => <span className="font-mono text-xs">{String(v)}</span>,
   },
-  { key: "category", label: "Danh mục" },
+  { key: "category", label: "Nhóm sản phẩm" },
   { key: "source", label: "Nguồn", render: (_, p) => <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} /> },
   {
     key: "price",
@@ -53,5 +53,5 @@ export const productFilters: TableFilterDef[] = [
     label: "Trạng thái",
     options: (Object.keys(PRODUCT_STATUS) as ProductStatus[]).map((s) => ({ label: PRODUCT_STATUS[s].label, value: s })),
   },
-  { key: "category", label: "Danh mục", options: PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c })) },
+  { key: "category", label: "Nhóm sản phẩm", options: PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c })) },
 ];

@@ -33,11 +33,12 @@ export default function ProductListPage() {
   const [target, setTarget] = useState<Product | null>(null);
 
   usePageActions(() => (
-    <Button asChild className="h-8! min-h-8! rounded-full px-3! text-sm md:h-10! md:min-h-10! md:rounded-md md:px-4!">
+    <Button asChild className="h-8! min-h-8! px-3! text-sm max-md:rounded-full md:h-10! md:min-h-10! md:px-4!">
       <Link href={ROUTES.productCreate}>
-        {/* The mobile title row already says "Quản lý sản phẩm" — keep the button short there */}
+        {/* The mobile title row already says "Quản lý sản phẩm" — keep the button short there.
+            max-md:* instead of hidden/md:inline: shared-ui's prebuilt `.hidden`/`.rounded-full` load later and win */}
         <Plus className="mr-1 h-4 w-4" /> <span className="md:hidden">Thêm</span>
-        <span className="hidden md:inline">Thêm sản phẩm</span>
+        <span className="max-md:hidden">Thêm sản phẩm</span>
       </Link>
     </Button>
   ));
@@ -78,7 +79,7 @@ export default function ProductListPage() {
           ...(shopFilter.filter ? [shopFilter.filter] : []),
           ...productFilters.filter((f) => !isMobile || f.key !== "status"),
         ]}
-        searchPlaceholder="Tìm theo tên, SKU..."
+        searchPlaceholder="Tìm theo tên, mã sản phẩm..."
         enableMobileCard
         renderMobileCard={(p, helpers) => <ProductMobileCard product={p} helpers={helpers} />}
         // Status lives in the chips on mobile; column toggle / export aren't useful on a phone

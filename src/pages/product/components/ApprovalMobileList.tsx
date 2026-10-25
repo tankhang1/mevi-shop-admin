@@ -45,7 +45,7 @@ export function ApprovalMobileList({ page, loading, keyword, category, onSearch,
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo tên, SKU..." className="pl-9!" />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo tên, mã sản phẩm..." className="pl-9!" />
       </div>
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">

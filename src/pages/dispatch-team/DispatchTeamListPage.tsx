@@ -54,7 +54,7 @@ export default function DispatchTeamListPage() {
         aria-label="Tự động phân đơn"
       >
         <Wand2 className="h-4 w-4 md:mr-1.5" />
-        <span className="hidden md:inline">Tự động phân đơn</span>
+        <span className="max-md:hidden">Tự động phân đơn</span>
       </Button>
       <Button
         onClick={() => {

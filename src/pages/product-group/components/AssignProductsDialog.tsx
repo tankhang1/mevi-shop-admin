@@ -102,7 +102,7 @@ function AssignBody({
         <Input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Tìm theo tên, SKU..."
+          placeholder="Tìm theo tên, mã sản phẩm..."
           className="pl-9!"
         />
       </div>
