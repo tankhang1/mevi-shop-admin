@@ -14,6 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   Textarea,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 
@@ -155,7 +156,16 @@ export function ComboboxField<T extends FieldValues>({
   placeholder = "Chọn...",
   searchPlaceholder = "Tìm kiếm...",
   emptyText = "Không tìm thấy",
-}: BaseProps<T> & { options: { label: string; value: string }[]; placeholder?: string; searchPlaceholder?: string; emptyText?: string }) {
+  disabled,
+  onChange,
+}: BaseProps<T> & {
+  options: { label: string; value: string }[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  disabled?: boolean;
+  onChange?: (value: string) => void;
+}) {
   const { control } = useFormContext<T>();
   return (
     <FormField
@@ -168,10 +178,14 @@ export function ComboboxField<T extends FieldValues>({
             <Combobox
               options={options}
               value={field.value ?? ""}
-              onChange={field.onChange}
+              onChange={(val: string) => {
+                field.onChange(val);
+                onChange?.(val);
+              }}
               placeholder={placeholder}
               searchPlaceholder={searchPlaceholder}
               emptyText={emptyText}
+              disabled={disabled}
               className="w-full"
             />
           </FormControl>
@@ -182,3 +196,33 @@ export function ComboboxField<T extends FieldValues>({
     />
   );
 }
+
+export function SwitchField<T extends FieldValues>({
+  name,
+  label,
+  description,
+  className,
+}: Omit<BaseProps<T>, "required">) {
+  const { control } = useFormContext<T>();
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <div className="flex items-center justify-between rounded-xl border p-3.5 shadow-xs">
+            <div className="space-y-0.5 pr-4">
+              <FormLabel className="text-base font-semibold">{label}</FormLabel>
+              {description && <FormDescription className="text-xs">{description}</FormDescription>}
+            </div>
+            <FormControl>
+              <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </div>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+

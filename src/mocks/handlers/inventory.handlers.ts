@@ -53,26 +53,32 @@ function itemStatus(p: Product, variantStock: Record<string, number>) {
 const toItem = (p: Product): InventoryItem => {
   const variantStock = { ...variantStockOf(p) };
   return {
-  id: p.id,
-  productId: p.id,
-  name: p.name,
-  sku: p.sku,
-  category: p.category,
-  images: p.images,
-  shopId: p.shopId,
-  shopName: shopName(p.shopId),
-  status: p.status,
-  stock: p.stock,
-  lowStockThreshold: p.lowStockThreshold,
-  source: p.source,
-  farmId: p.farmId,
-  packaging: p.packaging,
-  variants: p.variants,
-  suppliers: p.suppliers,
-  variantThresholds: p.variantThresholds,
-  variantStock,
-  stockStatus: itemStatus(p, variantStock),
-  pendingCount: db.stockMovements.filter((m) => m.productId === p.id && m.status === "pending").length,
+    id: p.id,
+    productId: p.id,
+    name: p.name,
+    sku: p.sku,
+    category: p.category,
+    images: p.images,
+    shopId: p.shopId,
+    shopName: shopName(p.shopId),
+    status: p.status,
+    stock: p.stock,
+    lowStockThreshold: p.lowStockThreshold,
+    source: p.source,
+    farmId: p.farmId,
+    packaging: p.packaging,
+    variants: p.variants,
+    suppliers: p.suppliers,
+    variantThresholds: p.variantThresholds,
+    variantStock,
+    isAgricultural: p.isAgricultural,
+    baseUnit: p.baseUnit,
+    cropId: p.cropId,
+    cropName: p.cropName,
+    sources: p.sources,
+    gardenStock: p.gardenStock,
+    stockStatus: itemStatus(p, variantStock),
+    pendingCount: db.stockMovements.filter((m) => m.productId === p.id && m.status === "pending").length,
   };
 };
 
@@ -174,6 +180,33 @@ export const inventoryHandlers: MockHandler[] = [
   },
   {
     method: "GET",
+    path: EP.supplyRequests,
+    handle: ({ query }) => {
+      const all = scoped(db.stockMovements, query.shopId).filter((m) => m.source === "farm");
+      const summary = {
+        all: all.length,
+        pending: all.filter((m) => m.status === "pending").length,
+        approved: all.filter((m) => m.status === "approved").length,
+        rejected: all.filter((m) => m.status === "rejected").length,
+      };
+      const rows = all
+        .filter((m) => is(m.productId, query.productId) && is(m.farmId ?? "", query.farmId) && is(m.status, query.status))
+        .map((m) => ({ ...m, shopName: shopName(m.shopId) }))
+        .sort((a, b) => {
+          if (a.status === "pending" && b.status !== "pending") return -1;
+          if (a.status !== "pending" && b.status === "pending") return 1;
+          return b.createdAt.localeCompare(a.createdAt);
+        });
+      return {
+        data: {
+          ...paginate(rows, query, (m) => `${m.code ?? ""} ${m.productName} ${m.sku} ${m.farmName ?? ""} ${m.regionName ?? ""} ${m.note ?? ""}`),
+          summary,
+        },
+      };
+    },
+  },
+  {
+    method: "GET",
     path: EP.movements,
     handle: ({ query }) => {
       const all = scoped(db.stockMovements, query.shopId).filter((m) => is(m.productId, query.productId));
@@ -200,11 +233,73 @@ export const inventoryHandlers: MockHandler[] = [
       if (!Number.isInteger(qty) || qty < 0 || (body.type !== "adjust" && qty === 0)) {
         throw new HttpError(400, "Số lượng không hợp lệ");
       }
-      // Nhập từ nông hộ waits for approval; nhập từ Mevi applies at once
+
+      // Xử lý sản phẩm nông sản
+      if (p.isAgricultural) {
+        if (body.type === "adjust") {
+          throw new HttpError(400, "Sản phẩm nông sản chỉ được nhập / xuất cộng dồn theo vườn, không kiểm kê ghi đè");
+        }
+        if (!body.regionId) {
+          throw new HttpError(400, "Vui lòng chọn vườn cung ứng");
+        }
+        const source = p.sources?.find((s) => s.regionId === Number(body.regionId));
+        if (!source) {
+          throw new HttpError(400, "Vườn này chưa được liên kết với sản phẩm");
+        }
+        const farm = db.farms.find((f) => f.id === source.farmId);
+        const garden = db.farmGardens.find((g) => g.id === source.regionId);
+
+        p.gardenStock ??= {};
+        const currentGardenStock = p.gardenStock[source.regionId] ?? 0;
+        const before = p.stock;
+
+        if (body.type === "out" && currentGardenStock < qty) {
+          throw new HttpError(400, `Không đủ hàng trong vườn "${garden?.name}" để xuất (tồn vườn: ${currentGardenStock})`);
+        }
+
+        const delta = body.type === "in" ? qty : -qty;
+        const after = before + delta;
+
+        // Mevi tự nhập hàng -> approved ngay
+        const status = "approved";
+        p.gardenStock[source.regionId] = currentGardenStock + delta;
+        p.stock = after;
+        moveVariantStock(p, delta, body.variant);
+
+        const movement: StockMovement = {
+          id: uid("m"),
+          productId: p.id,
+          productName: p.name,
+          sku: p.sku,
+          shopId: p.shopId,
+          type: body.type,
+          source: body.source ?? "mevi",
+          variant: body.variant || undefined,
+          farmId: farm?.id,
+          farmName: farm?.name,
+          regionId: source.regionId,
+          regionName: garden?.name,
+          unit: p.baseUnit ?? "kg",
+          cropId: p.cropId ?? undefined,
+          cropName: p.cropName ?? undefined,
+          importPrice: body.type === "in" ? Number(body.importPrice) || source.importPrice : undefined,
+          status,
+          delta,
+          before,
+          after,
+          note: body.note?.trim() || undefined,
+          createdBy: actor().user.name ?? "—",
+          createdAt: new Date().toISOString(),
+        };
+
+        db.stockMovements.unshift(movement);
+        return { data: movement };
+      }
+
+      // Xử lý sản phẩm thường
       const fromFarm = body.type === "in" ? body.source === "farm" : p.source === "farm";
       const farm = fromFarm && body.type === "in" ? db.farms.find((f) => f.id === body.farmId) : undefined;
       if (fromFarm && body.type === "in" && !farm) throw new HttpError(400, "Vui lòng chọn nông hộ");
-      // Farm stock only ever moves by adding/subtracting — never overwritten with a counted total
       if (fromFarm && body.type === "adjust")
         throw new HttpError(400, "Sản phẩm từ nông hộ chỉ được nhập / xuất cộng dồn, không kiểm kê ghi đè");
       const before = p.stock;
@@ -223,7 +318,6 @@ export const inventoryHandlers: MockHandler[] = [
         farmId: farm?.id,
         farmName: farm?.name,
         importPrice: body.type === "in" ? Number(body.importPrice) || undefined : undefined,
-        // Farm products: the change waits for admin approval and leaves stock untouched until then
         status: fromFarm ? "pending" : "approved",
         delta: after - before,
         before,
@@ -247,9 +341,15 @@ export const inventoryHandlers: MockHandler[] = [
       const a = requireShopAdmin();
       const m = findPendingMovement(params.id);
       const p = findOwned(m.productId);
-      // Applied on top of the stock as it is *now* — additive, not the snapshot from request time
       const after = p.stock + m.delta;
       if (after < 0) throw new HttpError(400, `Không đủ hàng để xuất (tồn kho hiện tại: ${p.stock})`);
+
+      // Cập nhật tồn theo vườn cho nông sản
+      if (p.isAgricultural && m.regionId) {
+        p.gardenStock ??= {};
+        p.gardenStock[m.regionId] = (p.gardenStock[m.regionId] ?? 0) + m.delta;
+      }
+
       Object.assign(m, { status: "approved", before: p.stock, after, reviewedBy: a.user.name, reviewedAt: new Date().toISOString() });
       moveVariantStock(p, m.delta, m.variant);
       p.stock = after;

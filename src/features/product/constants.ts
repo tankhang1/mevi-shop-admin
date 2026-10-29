@@ -1,4 +1,7 @@
-import type { ProductStatus } from "./types";
+import type { BaseUnit, ProductStatus } from "./types";
+
+export const BASE_UNIT: Record<BaseUnit, string> = { kg: "kg", lit: "lít" };
+export const BASE_UNIT_OPTIONS = (Object.keys(BASE_UNIT) as BaseUnit[]).map((u) => ({ label: u === "kg" ? "Ki-lô-gam (kg)" : "Lít (lit)", value: u }));
 
 export const PRODUCT_STATUS: Record<ProductStatus, { label: string; className: string }> = {
   pending: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },

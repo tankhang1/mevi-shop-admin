@@ -1,13 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { productKeys } from "@/features/product/hooks/use-products";
 import { inventoryApi } from "../api/inventory.api";
-import type { AdjustStockInput, InventoryListParams, MovementListParams } from "../types";
+import type { AdjustStockInput, InventoryListParams, MovementListParams, SupplyRequestListParams } from "../types";
 
 export const inventoryKeys = {
   all: ["inventory"] as const,
   list: (params: InventoryListParams) => [...inventoryKeys.all, "list", params] as const,
   stats: () => [...inventoryKeys.all, "stats"] as const,
   movements: (params: MovementListParams) => [...inventoryKeys.all, "movements", params] as const,
+  supplyRequests: (params: SupplyRequestListParams) => [...inventoryKeys.all, "supply-requests", params] as const,
 };
 
 export function useInventory(params: InventoryListParams = {}) {
@@ -26,6 +27,14 @@ export function useStockMovements(params: MovementListParams = {}) {
   return useQuery({
     queryKey: inventoryKeys.movements(params),
     queryFn: () => inventoryApi.movements(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useSupplyRequests(params: SupplyRequestListParams = {}) {
+  return useQuery({
+    queryKey: inventoryKeys.supplyRequests(params),
+    queryFn: () => inventoryApi.supplyRequests(params),
     placeholderData: keepPreviousData,
   });
 }

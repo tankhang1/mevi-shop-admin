@@ -1,6 +1,6 @@
 import type { Agency } from "@/features/agency/types";
 import type { Customer } from "@/features/customer/types";
-import type { Farm } from "@/features/farm/types";
+import type { Crop, Farm, Garden } from "@/features/farm/types";
 import type { DispatchTeam } from "@/features/dispatch-team/types";
 import type { FarmRegistration } from "@/features/farm-registration/types";
 import type { StockMovement } from "@/features/inventory/types";
@@ -22,6 +22,8 @@ export const db: {
   customers: Customer[];
   staff: Staff[];
   farms: Farm[];
+  crops: Crop[];
+  farmGardens: Garden[];
   farmRegistrations: FarmRegistration[];
   dispatchTeams: DispatchTeam[];
   orders: Order[];
@@ -122,6 +124,23 @@ export const db: {
       { id: "f5", name: "Nông hộ Giàng A Páo", ownerName: "Giàng A Páo", location: "Hoàng Su Phì, Hà Giang", type: "farm_household" },
       { id: "f6", name: "Nông hộ Phạm Văn Lành", ownerName: "Phạm Văn Lành", location: "Dương Đông, Phú Quốc", type: "farm_household" },
     ],
+    crops: [
+      { id: 1, name: "Sầu riêng Ri6" },
+      { id: 2, name: "Sầu riêng Monthong" },
+      { id: 3, name: "Bưởi da xanh" },
+      { id: 4, name: "Xoài Cát Chu" },
+      { id: 5, name: "Cà phê Robusta" },
+      { id: 6, name: "Trà Ô Long" },
+      { id: 7, name: "Lúa ST25" },
+    ],
+    farmGardens: [
+      { id: 101, farmId: "f1", name: "Vườn Sầu Riêng Ri6", cropIds: [1, 2] },
+      { id: 102, farmId: "f1", name: "Vườn Lúa ST25 Hữu Cơ", cropIds: [7] },
+      { id: 103, farmId: "f2", name: "Vườn Xoài Cát Chu", cropIds: [4] },
+      { id: 104, farmId: "f3", name: "Vườn Cà Phê Đắk Lắk", cropIds: [5] },
+      { id: 105, farmId: "f4", name: "Vườn Trà Bảo Lộc", cropIds: [6] },
+      { id: 106, farmId: "f1", name: "Vườn Bưởi Da Xanh", cropIds: [3] },
+    ],
     staff: [
       { id: "st1", shopId: "s1", name: "Phạm Thu Hà", phone: "0911000001", email: "ha.pham@mientay.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(90), lastActiveAt: daysAgo(0), createdAt: daysAgo(90) },
       { id: "st2", shopId: "s1", name: "Trần Minh Quân", phone: "0911000002", email: "quan.tran@mientay.vn", role: "sales", permissions: ["orders", "customers", "reviews"], status: "active", invitedAt: daysAgo(45), lastActiveAt: daysAgo(1), createdAt: daysAgo(45) },
@@ -130,9 +149,10 @@ export const db: {
       { id: "st5", shopId: "s2", name: "H'Nhi Êban", phone: "0911000005", email: "nhi@caphetaynguyen.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(70), lastActiveAt: daysAgo(3), createdAt: daysAgo(70) },
     ],
     stockMovements: [
-      { id: "mp1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "pending", delta: 80, before: 120, after: 200, note: "Nông hộ Lâm Văn Sáu giao thêm lô thu hoạch tháng 10", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(0) },
-      { id: "mp2", productId: "p9", productName: "Gạo lứt đỏ hữu cơ", sku: "GAO-LUT-2KG", shopId: "s1", type: "in", source: "farm", status: "pending", delta: 40, before: 15, after: 55, note: "Bổ sung hàng", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(1) },
-      { id: "mh0", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(40) },
+      { id: "mp1", code: "DX-2026-001", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "pending", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 80, before: 120, after: 200, note: "Nông hộ Lâm Văn Sáu giao thêm lô thu hoạch tháng 10", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(0) },
+      { id: "mp2", code: "DX-2026-002", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", source: "farm", status: "pending", cropId: 5, cropName: "Cà phê Robusta", farmId: "f3", farmName: "Nông hộ Y Ngông", regionId: 104, regionName: "Vườn Cà Phê Đắk Lắk", unit: "kg", delta: 40, before: 45, after: 85, note: "Đề xuất cung ứng thêm hàng vụ thu hoạch sớm", createdBy: "Y Ngông Niê (nông hộ)", createdAt: daysAgo(1) },
+      { id: "mh0", code: "DX-2026-000", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(39), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(40) },
+      { id: "mr1", code: "DX-2026-003", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "rejected", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 60, before: 120, after: 180, note: "Giao bổ sung cuối vụ", rejectionReason: "Hàng chưa đạt độ ẩm tiêu chuẩn (<14%), đề nghị sấy/phơi lại", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(5), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(6) },
       { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
       { id: "mh2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -8, before: 64, after: 56, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(36) },
       { id: "mh3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", delta: 50, before: 56, after: 106, note: "Nhập hàng vụ Hè Thu", createdBy: "Lê Chủ Shop", createdAt: daysAgo(34) },
@@ -149,7 +169,6 @@ export const db: {
       { id: "m1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -29, before: 169, after: 140, note: "Xuất cho HTX đối tác", createdBy: "Lê Chủ Shop", createdAt: daysAgo(9) },
       { id: "m2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -18, before: 140, after: 122, note: "Xuất cho đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(4) },
       { id: "m3", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "adjust", status: "approved", delta: -2, before: 122, after: 120, note: "Kiểm kê cuối tháng — 2 bao rách", createdBy: "Lê Chủ Shop", createdAt: daysAgo(1) },
-      { id: "mr1", productId: "p9", productName: "Gạo lứt đỏ hữu cơ", sku: "GAO-LUT-2KG", shopId: "s1", type: "in", source: "farm", status: "rejected", delta: 60, before: 15, after: 75, note: "Giao bổ sung cuối vụ", rejectionReason: "Hàng chưa đạt độ ẩm, đề nghị phơi lại", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(5), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(6) },
       { id: "m4", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", source: "farm", status: "approved", delta: 45, before: 0, after: 45, createdBy: "Nguyễn Quản Trị", createdAt: daysAgo(6) },
     ],
     productGroups: [
@@ -186,6 +205,20 @@ export const db: {
         id: "p1",
         source: "farm",
         farmId: "f1",
+        isAgricultural: true,
+        cropId: 7,
+        cropName: "Lúa ST25",
+        baseUnit: "kg",
+        sources: [
+          {
+            farmId: "f1",
+            farmName: "Nông hộ Lâm Văn Sáu",
+            regionId: 102,
+            regionName: "Vườn Lúa ST25 Hữu Cơ",
+            importPrice: 28000,
+          },
+        ],
+        gardenStock: { 102: 120 },
         shopId: "s1",
         certifications: ["VietGAP", "Hữu cơ"],
         name: "Gạo ST25 hữu cơ",
@@ -209,6 +242,20 @@ export const db: {
         id: "p2",
         source: "farm",
         farmId: "f3",
+        isAgricultural: true,
+        cropId: 5,
+        cropName: "Cà phê Robusta",
+        baseUnit: "kg",
+        sources: [
+          {
+            farmId: "f3",
+            farmName: "Nông hộ Y Ngông",
+            regionId: 104,
+            regionName: "Vườn Cà Phê Đắk Lắk",
+            importPrice: 95000,
+          },
+        ],
+        gardenStock: { 104: 45 },
         shopId: "s2",
         certifications: ["OCOP 4 sao"],
         name: "Cà phê Robusta rang mộc",

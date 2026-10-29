@@ -3,11 +3,23 @@ import type { ReactNode } from "react";
 import { Clock, FileText, Package, ShieldCheck, Sprout, Thermometer } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
-import type { ProductInput } from "@/features/product";
+import type { BaseUnit, ProductInput, ProductSource } from "@/features/product";
 import { FARM_TYPE, useFarms } from "@/features/farm";
 import { formatVnd } from "@/lib/format";
 
-type Props = { product: Partial<ProductInput> & Pick<ProductInput, "price"> & { shopName?: string } };
+type Props = {
+  product: Omit<Partial<ProductInput>, "sources"> &
+    Pick<ProductInput, "price"> & {
+      shopName?: string;
+      farmName?: string | null;
+      regionName?: string | null;
+      cropName?: string | null;
+      sources?: ProductSource[];
+      gardenStock?: Record<number, number>;
+      isAgricultural?: boolean;
+      baseUnit?: BaseUnit | null;
+    };
+};
 
 const discountOf = (price: number, original?: number | null) =>
   original && original > price && price ? Math.min(99, Math.round((1 - price / original) * 100)) : 0;
@@ -75,6 +87,33 @@ export function ProductInfo({ product: p }: Props) {
               {p.category || "Chưa chọn nhóm"}
             </span>
             <span className="rounded-md border border-foreground/20 bg-card px-2 py-1 font-mono font-medium text-foreground">{p.sku || "—"}</span>
+            {p.isAgricultural && (
+              <>
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-100 px-2.5 py-0.5 font-semibold text-emerald-900">
+                  <Sprout className="h-3 w-3" /> Nông sản
+                </span>
+                {p.cropName && (
+                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+                    Cây: {p.cropName}
+                  </span>
+                )}
+                {p.regionName && (
+                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+                    Vườn: {p.regionName}
+                  </span>
+                )}
+                {p.farmName && (
+                  <span className="rounded-full border border-muted-foreground/20 bg-muted px-2.5 py-0.5 font-medium text-foreground">
+                    Nông hộ: {p.farmName}
+                  </span>
+                )}
+                {p.baseUnit && (
+                  <span className="rounded-full border bg-muted px-2 py-0.5 text-muted-foreground">
+                    Đơn vị: {p.baseUnit}
+                  </span>
+                )}
+              </>
+            )}
           </div>
           <h2 className="text-2xl font-bold leading-tight text-[#1f5a44] sm:text-3xl">{p.name || "Chưa đặt tên"}</h2>
           {!!p.certifications?.length && (
@@ -102,6 +141,7 @@ export function ProductInfo({ product: p }: Props) {
               {variants.map((x, i) => {
                 const d = discountOf(x.price, x.originalPrice);
                 const on = i === variantIndex;
+                const hasBaseQty = p.isAgricultural && x.baseQuantity;
                 return (
                   <button
                     key={i}
@@ -116,6 +156,11 @@ export function ProductInfo({ product: p }: Props) {
                       <span className="truncate text-sm font-semibold">{x.name || `Quy cách ${i + 1}`}</span>
                       {d > 0 && <span className={cn("shrink-0 rounded px-1 text-[11px] font-bold", on ? "bg-white/20 text-white" : "bg-[#c8643c]/10 text-[#c8643c]")}>-{d}%</span>}
                     </span>
+                    {hasBaseQty && (
+                      <span className={cn("block text-[11px]", on ? "text-white/80" : "text-muted-foreground")}>
+                        {x.baseQuantity} {p.baseUnit}
+                      </span>
+                    )}
                     <span className={cn("mt-0.5 block text-sm font-medium tabular-nums", on ? "text-white/90" : "text-foreground/70")}>{formatVnd(x.price)}</span>
                   </button>
                 );
@@ -144,38 +189,100 @@ export function ProductInfo({ product: p }: Props) {
           </dl>
         </Section>
 
-        {/* Nông hộ */}
-        <Section icon={<Sprout className="h-4 w-4" />} title="Nông hộ cung cấp">
-          {suppliers.length ? (
-            <ul className="space-y-2">
-              {suppliers.map((s, i) => {
-                const f = farms?.find((x) => x.id === s.farmId);
-                const initials = (f?.ownerName ?? f?.name ?? "?").split(" ").slice(-1)[0]?.[0] ?? "?";
-                return (
-                  <li key={i} className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-muted/40 p-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1f5a44] text-sm font-semibold text-white">
-                      {initials}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">{f?.name ?? "Chưa chọn nông hộ"}</span>
-                      {f && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {FARM_TYPE[f.type]} · {f.location}
-                        </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span className="block text-[11px] font-semibold uppercase tracking-wide text-foreground/60">Giá nhập</span>
-                      <span className="text-base font-bold tabular-nums text-[#1f5a44]">{s.importPrice ? formatVnd(s.importPrice) : "—"}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Không có nông hộ — sản phẩm tự sản xuất.</p>
-          )}
-        </Section>
+        {/* Vườn nông hộ liên kết / Nguồn cung */}
+        {p.isAgricultural ? (
+          <Section
+            icon={<Sprout className="h-4 w-4" />}
+            title={`Vườn nông hộ liên kết ${p.sources?.length ? `(${p.sources.length})` : ""}`}
+          >
+            {p.sources?.length ? (
+              <ul className="space-y-3">
+                {p.sources.map((s, i) => {
+                  const f = farms?.find((x) => x.id === s.farmId);
+                  const gardenName = s.regionName ?? `Vườn #${s.regionId}`;
+                  const stockInGarden = (p as { gardenStock?: Record<number, number> }).gardenStock?.[s.regionId];
+                  return (
+                    <li
+                      key={i}
+                      className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-muted/40 p-3.5 sm:p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-foreground text-sm sm:text-base">
+                            {gardenName}
+                          </span>
+                        </div>
+                        {stockInGarden !== undefined && (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                            Tồn: {stockInGarden} {s.baseUnit ?? p.baseUnit ?? "kg"}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid gap-2 text-xs sm:grid-cols-3 pt-1 border-t border-foreground/5">
+                        <div>
+                          <span className="text-muted-foreground">Nông hộ / HTX: </span>
+                          <span className="font-medium text-foreground">
+                            {s.farmName ?? f?.name ?? "—"}
+                          </span>
+                          {f && (
+                            <span className="text-muted-foreground text-[11px] block">
+                              {FARM_TYPE[f.type]} · {f.location}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Cây trồng liên kết: </span>
+                          <span className="font-medium text-foreground">
+                            {s.cropName ?? p.cropName ?? "—"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Đơn vị cơ bản: </span>
+                          <span className="font-semibold text-primary">
+                            {s.baseUnit ?? p.baseUnit ?? "kg"}
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-destructive">
+                Chưa liên kết vườn nông hộ nào.
+              </p>
+            )}
+          </Section>
+        ) : (
+          <Section icon={<Sprout className="h-4 w-4" />} title="Nông hộ cung cấp">
+            {suppliers.length ? (
+              <ul className="space-y-2">
+                {suppliers.map((s, i) => {
+                  const f = farms?.find((x) => x.id === s.farmId);
+                  const initials = (f?.ownerName ?? f?.name ?? "?").split(" ").slice(-1)[0]?.[0] ?? "?";
+                  return (
+                    <li key={i} className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-muted/40 p-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1f5a44] text-sm font-semibold text-white">
+                        {initials}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{f?.name ?? "Chưa chọn nông hộ"}</span>
+                        {f && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {FARM_TYPE[f.type]} · {f.location}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Sản phẩm tự sản xuất — không qua nông hộ.</p>
+            )}
+          </Section>
+        )}
 
         {/* Mô tả */}
         <Section icon={<FileText className="h-4 w-4" />} title="Mô tả">

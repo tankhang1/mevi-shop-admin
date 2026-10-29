@@ -9,6 +9,7 @@ import {
   ExternalLink,
   History,
   PackageX,
+  Sprout,
 } from "lucide-react";
 import {
   type Column,
@@ -20,6 +21,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  cn,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
@@ -36,11 +38,13 @@ import {
 } from "@/features/inventory";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
+import { useAccess } from "@/features/auth";
 import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
 import { StockAlertDialog } from "./components/StockAlertDialog";
 import { PendingMovementsTable } from "./components/PendingMovementsTable";
 import { StockMovementTable } from "./components/StockMovementTable";
+import { SupplyRequestsTable } from "./components/SupplyRequestsTable";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -109,7 +113,13 @@ function StockTable({
       label: "Nguồn",
       render: (_, p) => (
         <div className="flex flex-col items-start gap-1">
-          <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} />
+          {p.isAgricultural ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+              <Sprout className="h-3 w-3" /> Nông sản
+            </span>
+          ) : (
+            <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} />
+          )}
           {!!p.pendingCount && (
             <span className="text-xs text-amber-700">
               {p.pendingCount} chờ duyệt
@@ -192,12 +202,14 @@ function StockTable({
 
 export default function InventoryPage() {
   const { data: stats } = useInventoryStats();
+  const { isShopAdmin, isRoot } = useAccess();
+  const canReviewSupply = isShopAdmin || isRoot;
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
   const [alerting, setAlerting] = useState<InventoryItem | null>(null);
 
   const statItems = [
     {
-      title: "Chờ duyệt nhập hàng",
+      title: "Chờ duyệt cung ứng",
       short: "Chờ duyệt",
       value: stats?.pending ?? "—",
       icon: ClipboardCheck,
@@ -257,23 +269,35 @@ export default function InventoryPage() {
       </div>
 
       <Tabs defaultValue="history" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 md:inline-flex md:w-auto">
+        <TabsList
+          className={cn(
+            "grid w-full md:inline-flex md:w-auto",
+            canReviewSupply ? "grid-cols-3" : "grid-cols-2",
+          )}
+        >
           <TabsTrigger value="history">
             Lịch sử<span className="max-md:hidden">&nbsp;hàng</span>
           </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-1.5">
-            Chờ duyệt<span className="max-md:hidden">nhập hàng</span>
-            {!!stats?.pending && (
-              <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
-                {stats.pending}
-              </span>
-            )}
-          </TabsTrigger>
+          {canReviewSupply && (
+            <TabsTrigger value="supply-requests" className="gap-1.5">
+              Yêu cầu cung ứng
+              {!!stats?.pending && (
+                <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
+                  {stats.pending}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="stock">Hàng tồn</TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
           <StockTable onAdjust={setAdjusting} onAlert={setAlerting} />
         </TabsContent>
+        {canReviewSupply && (
+          <TabsContent value="supply-requests" className="mt-0">
+            <SupplyRequestsTable />
+          </TabsContent>
+        )}
         <TabsContent value="pending" className="mt-0">
           <PendingMovementsTable />
         </TabsContent>

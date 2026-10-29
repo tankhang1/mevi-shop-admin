@@ -1,11 +1,33 @@
-import type { Product } from "@/features/product/types";
+import type { BaseUnit, Product } from "@/features/product/types";
 import type { ListParams, Paginated } from "@/types/api";
 
 export type StockStatus = "in_stock" | "low" | "out";
 
 export type InventoryItem = Pick<
   Product,
-  "id" | "name" | "sku" | "category" | "images" | "shopId" | "shopName" | "status" | "stock" | "lowStockThreshold" | "source" | "farmId" | "packaging" | "variants" | "suppliers" | "variantThresholds" | "variantStock"
+  | "id"
+  | "name"
+  | "sku"
+  | "category"
+  | "images"
+  | "shopId"
+  | "shopName"
+  | "status"
+  | "stock"
+  | "lowStockThreshold"
+  | "source"
+  | "farmId"
+  | "packaging"
+  | "variants"
+  | "suppliers"
+  | "variantThresholds"
+  | "variantStock"
+  | "isAgricultural"
+  | "baseUnit"
+  | "cropId"
+  | "cropName"
+  | "sources"
+  | "gardenStock"
 > & {
   /** The product this row belongs to — `id` is per row (product + quy cách) in the stock list */
   productId: string;
@@ -27,6 +49,7 @@ export type MovementStatus = "pending" | "approved" | "rejected";
 
 export interface StockMovement {
   id: string;
+  code?: string;
   productId: string;
   productName: string;
   sku: string;
@@ -42,6 +65,13 @@ export interface StockMovement {
   delta: number;
   /** Quy cách the goods came in */
   variant?: string;
+  /** Nông sản: đơn vị cơ bản và cây trồng */
+  unit?: BaseUnit;
+  cropId?: number;
+  cropName?: string;
+  /** Vườn cung ứng */
+  regionId?: number;
+  regionName?: string;
   /** Inbound: which farm (if any) and the price paid per unit */
   farmId?: string;
   farmName?: string;
@@ -62,8 +92,10 @@ export interface AdjustStockInput {
   /** Inbound only — mevi applies at once, farm waits for approval */
   source?: MovementSource;
   variant?: string;
-  /** source = farm */
+  /** source = farm or nông sản */
   farmId?: string;
+  regionId?: number;
+  unit?: BaseUnit;
   /** Per unit of `variant`, for both Mevi and farm imports */
   importPrice?: number;
   /** Units moved for in/out; the counted total for adjust */
@@ -103,3 +135,20 @@ export interface InventoryStats {
   /** Farm stock changes waiting for approval */
   pending: number;
 }
+
+export interface SupplyRequestListParams extends ListParams {
+  status?: "all" | MovementStatus;
+  farmId?: string;
+  productId?: string;
+  shopId?: string;
+}
+
+export interface SupplyRequestSummary {
+  all: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export type SupplyRequestPage = Paginated<StockMovement> & { summary: SupplyRequestSummary };
+

@@ -9,6 +9,8 @@ import type {
   MovementListParams,
   MovementPage,
   StockMovement,
+  SupplyRequestListParams,
+  SupplyRequestPage,
 } from "../types";
 
 const EP = API_ENDPOINTS.admin.inventory;
@@ -30,6 +32,9 @@ export const inventoryApi = {
 
   reject: async (movementId: string, reason: string) =>
     (await apiClient.post<ApiResponse<StockMovement>>(EP.reject(movementId), { reason })).data.data,
+
+  supplyRequests: async (params: SupplyRequestListParams) =>
+    (await apiClient.get<ApiResponse<SupplyRequestPage>>(EP.supplyRequests, { params })).data.data,
 
   setThreshold: async (productId: string, lowStockThreshold: number) =>
     (await apiClient.patch<ApiResponse<InventoryItem>>(EP.threshold(productId), { lowStockThreshold })).data.data,

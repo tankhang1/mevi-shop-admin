@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
       base: "/api/admin/shop/inventory",
       stats: "/api/admin/shop/inventory/stats",
       movements: "/api/admin/shop/inventory/movements",
+      /** GET ?status=pending|approved|rejected|all&farmId=&productId= — nông hộ's supply requests (source=farm), `counts` per status */
+      supplyRequests: "/api/admin/shop/inventory/supply-requests",
       /** POST { type, quantity, note } */
       adjust: (productId: string) => `/api/admin/shop/inventory/${productId}/adjust`,
       /** POST — admin approves a pending farm stock change (adds the delta to current stock) */
@@ -52,6 +54,10 @@ export const API_ENDPOINTS = {
     },
     /** Farmer households / cooperatives supplying products (synced from eco-farm workspaces) */
     farms: "/api/admin/shop/farms",
+    /** Gardens (vườn) of the farms, each with the crops grown there — GET ?farmId=&cropId= */
+    farmGardens: "/api/admin/shop/farm-gardens",
+    /** Crop catalogue (cây trồng) used to mark a product as nông sản */
+    crops: "/api/admin/shop/crops",
     reports: {
       /** ?groupBy=agency|product|group|farm&from=YYYY-MM-DD&to=YYYY-MM-DD&category=&source=all|agency|direct */
       revenue: "/api/admin/shop/reports/revenue",

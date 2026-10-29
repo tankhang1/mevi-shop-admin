@@ -55,7 +55,10 @@ export function StockMovementTable({ productId }: { productId?: string }) {
   const { data: page, isFetching } = useStockMovements({
     ...table.params,
     // Pending imports live in "Chờ duyệt nhập hàng"
-    status: !table.params.status || table.params.status === "all" ? "closed" : table.params.status,
+    status:
+      !table.params.status || table.params.status === "all"
+        ? "closed"
+        : table.params.status,
     productId,
   });
 
@@ -104,12 +107,15 @@ export function StockMovementTable({ productId }: { productId?: string }) {
           </span>
         ) : (
           <div className="text-sm">
-            <div className="whitespace-nowrap">
-              {m.farmName ?? (m.source ? MOVEMENT_SOURCE[m.source] : "—")}
+            <div className="whitespace-nowrap font-medium">
+              {m.regionName
+                ? `${m.regionName}${m.farmName ? ` · ${m.farmName}` : ""}`
+                : (m.farmName ?? (m.source ? MOVEMENT_SOURCE[m.source] : "—"))}
             </div>
             {!!m.importPrice && (
               <div className="whitespace-nowrap text-xs text-muted-foreground">
-                Giá nhập {formatVnd(m.importPrice)}
+                Giá nhập {formatVnd(m.importPrice)}{" "}
+                {m.unit ? `/ ${m.unit}` : ""}
               </div>
             )}
           </div>
@@ -122,10 +128,17 @@ export function StockMovementTable({ productId }: { productId?: string }) {
         <div>
           <StatusPill
             label={m.status === "rejected" ? "Từ chối" : "Đã duyệt"}
-            className={m.status === "rejected" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"}
+            className={
+              m.status === "rejected"
+                ? "bg-red-100 text-red-700"
+                : "bg-emerald-100 text-emerald-800"
+            }
           />
           {m.rejectionReason && (
-            <div className="mt-0.5 max-w-40 truncate text-xs text-destructive" title={m.rejectionReason}>
+            <div
+              className="mt-0.5 max-w-40 truncate text-xs text-destructive"
+              title={m.rejectionReason}
+            >
               {m.rejectionReason}
             </div>
           )}
@@ -143,7 +156,7 @@ export function StockMovementTable({ productId }: { productId?: string }) {
               m.delta > 0 ? "text-emerald-700" : "text-red-600",
             )}
           >
-            {m.delta > 0 ? `+${m.delta}` : m.delta}
+            {m.delta > 0 ? `+${m.delta}` : m.delta} {m.unit ?? ""}
           </span>
         </div>
       ),

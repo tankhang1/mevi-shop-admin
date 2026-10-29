@@ -10,10 +10,24 @@ import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const BASE = API_ENDPOINTS.admin.products.base;
 
-const withShop = (p: Product): Product => ({
-  ...p,
-  shopName: db.shops.find((s) => s.id === p.shopId)?.name,
-});
+const withShop = (p: Product): Product => {
+  const farmName = p.farmId ? db.farms.find((f) => f.id === p.farmId)?.name : p.farmName;
+  const regionName = p.regionId ? db.farmGardens.find((g) => g.id === p.regionId)?.name : p.regionName;
+  const cropName = p.cropId ? db.crops.find((c) => c.id === p.cropId)?.name : p.cropName;
+  const sources = p.sources?.map((s) => ({
+    ...s,
+    farmName: s.farmName ?? db.farms.find((f) => f.id === s.farmId)?.name,
+    regionName: s.regionName ?? db.farmGardens.find((g) => g.id === s.regionId)?.name,
+  }));
+  return {
+    ...p,
+    farmName,
+    regionName,
+    cropName,
+    sources,
+    shopName: db.shops.find((s) => s.id === p.shopId)?.name,
+  };
+};
 const findOwned = (id: string) =>
   assertOwns(db.products.find((x) => x.id === id), "Không tìm thấy sản phẩm");
 
@@ -84,6 +98,13 @@ export const productHandlers: MockHandler[] = [
     handle: ({ body }: { body: ProductInput }) => {
       const shopId = resolveShopId(body.shopId);
       assertSkuFree(shopId, body.sku);
+      const gardenStock: Record<number, number> = {};
+      if (body.isAgricultural) {
+        if (body.regionId) gardenStock[body.regionId] = 0;
+        body.sources?.forEach((s) => {
+          gardenStock[s.regionId] = 0;
+        });
+      }
       const product: Product = {
         ...body,
         shopId,
@@ -93,6 +114,7 @@ export const productHandlers: MockHandler[] = [
         source: "self",
         stock: 0,
         lowStockThreshold: 10,
+        gardenStock,
         createdAt: new Date().toISOString(),
       };
       db.products.unshift(product);
