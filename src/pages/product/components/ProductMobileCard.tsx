@@ -4,9 +4,10 @@ import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
 import { stockStatusOf } from "@/features/inventory/constants";
 import {
+  BUSINESS_STATUS,
   PRODUCT_SOURCE,
-  PRODUCT_STATUS,
   type Product,
+  businessStatusOf,
 } from "@/features/product";
 import { formatVnd } from "@/lib/format";
 import { ShelfToggle } from "./ShelfToggle";
@@ -53,7 +54,7 @@ export function ProductMobileCard({
             <h3 className="line-clamp-2 text-sm font-semibold leading-snug">
               {p.name}
             </h3>
-            <StatusPill {...PRODUCT_STATUS[p.status]} />
+            <StatusPill {...BUSINESS_STATUS[businessStatusOf(p)]} />
           </div>
           <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
             {p.sku} · {p.category}
@@ -95,7 +96,7 @@ export function ProductMobileCard({
       <div className="flex items-center gap-2 border-t bg-muted/30 px-3 py-2">
         <label className="flex flex-1 items-center gap-2 text-xs font-medium text-muted-foreground">
           <ShelfToggle product={p} />{" "}
-          {p.status !== "approved" ? "Chưa duyệt" : p.listed ? "Đang kinh doanh" : "Tạm dừng kinh doanh"}
+          Tạm ngưng kinh doanh
         </label>
         {helpers.onEdit && (
           <button

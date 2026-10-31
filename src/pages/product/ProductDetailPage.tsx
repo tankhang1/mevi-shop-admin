@@ -1,16 +1,25 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { AlertCircle, History, Pencil, Trash2 } from "lucide-react";
-import { Button, Card, DeleteDialog, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { Pencil, Trash2 } from "lucide-react";
+import {
+  Button,
+  DeleteDialog,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  useToast,
+} from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
 import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { STOCK_STATUS, stockStatusOf } from "@/features/inventory";
-import { PRODUCT_STATUS, useDeleteProduct, useProduct } from "@/features/product";
+import { BUSINESS_STATUS, businessStatusOf, useDeleteProduct, useProduct } from "@/features/product";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
+import { StockMovementTable } from "@/pages/inventory/components/StockMovementTable";
 import { ProductInfo } from "./components/ProductInfo";
+import { ProductStockCard } from "./components/ProductStockCard";
 import { ProductReviews } from "./components/ProductReviews";
 
 export default function ProductDetailPage() {
@@ -66,35 +75,33 @@ export default function ProductDetailPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <BackLink to={ROUTES.products} label="Danh mục sản phẩm" />
-        <StatusPill {...PRODUCT_STATUS[product.status]} />
+        <StatusPill {...BUSINESS_STATUS[businessStatusOf(product)]} />
         <span className="text-xs text-muted-foreground">Tạo lúc {formatDate(product.createdAt)}</span>
       </div>
 
-      {product.status === "rejected" && product.rejectionReason && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <p className="font-medium">Bị từ chối</p>
-            <p>{product.rejectionReason}</p>
-          </div>
+      <Tabs defaultValue="info" className="space-y-3">
+        <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
+          <TabsList>
+            <TabsTrigger value="info">Thông tin</TabsTrigger>
+            <TabsTrigger value="sales">Lịch sử bán hàng</TabsTrigger>
+            <TabsTrigger value="imports">Lịch sử nhập hàng</TabsTrigger>
+            <TabsTrigger value="stock">Tồn kho hiện tại</TabsTrigger>
+          </TabsList>
         </div>
-      )}
-
-      <ProductInfo product={product} />
-
-      <Card className="flex flex-wrap items-center gap-3 p-4">
-        <div className="text-sm text-muted-foreground">
-          Hàng tồn: <span className="text-base font-semibold text-foreground">{product.stock}</span>
-        </div>
-        <StatusPill {...STOCK_STATUS[stockStatusOf(product)]} />
-        <Button variant="outline" size="sm" className="ml-auto" asChild>
-          <Link href={ROUTES.inventoryHistory(product.id)}>
-            <History className="mr-1.5 h-4 w-4" /> Lịch sử nhập hàng
-          </Link>
-        </Button>
-      </Card>
-
-      {product.status === "approved" && <ProductReviews productId={product.id} />}
+        <TabsContent value="info" className="mt-0 space-y-5">
+          <ProductInfo product={product} />
+          <ProductReviews productId={product.id} />
+        </TabsContent>
+        <TabsContent value="sales" className="mt-0">
+          <StockMovementTable productId={product.id} type="out" />
+        </TabsContent>
+        <TabsContent value="imports" className="mt-0">
+          <StockMovementTable productId={product.id} type="in" />
+        </TabsContent>
+        <TabsContent value="stock" className="mt-0">
+          <ProductStockCard product={product} />
+        </TabsContent>
+      </Tabs>
 
       <DeleteDialog
         open={confirmOpen}

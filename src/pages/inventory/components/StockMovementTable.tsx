@@ -41,8 +41,11 @@ const statusFilter: TableFilterDef = {
   ],
 };
 
-/** Reviewed nhập hàng / bán history (đã duyệt + từ chối), newest first. With `productId` it shows one product's movements. */
-export function StockMovementTable({ productId }: { productId?: string }) {
+/**
+ * Reviewed nhập hàng / bán history (đã duyệt + từ chối), newest first. With `productId` it shows one product's movements;
+ * `type` locks it to one kind (e.g. only "out" for lịch sử bán hàng) and hides the type filter.
+ */
+export function StockMovementTable({ productId, type }: { productId?: string; type?: MovementType }) {
   const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const table = useTableParams<
@@ -60,6 +63,7 @@ export function StockMovementTable({ productId }: { productId?: string }) {
         ? "closed"
         : table.params.status,
     productId,
+    ...(type && { type }),
   });
 
   const columns: Column<StockMovement>[] = [
@@ -190,11 +194,11 @@ export function StockMovementTable({ productId }: { productId?: string }) {
     <DataTable
       {...table.bind(page, isFetching)}
       columns={columns}
-      filters={
-        shopFilter.filter && !productId
-          ? [shopFilter.filter, typeFilter, statusFilter]
-          : [typeFilter, statusFilter]
-      }
+      filters={[
+        ...(shopFilter.filter && !productId ? [shopFilter.filter] : []),
+        ...(type ? [] : [typeFilter]),
+        statusFilter,
+      ]}
       searchPlaceholder={
         productId ? "Tìm theo ghi chú..." : "Tìm theo sản phẩm, mã, ghi chú..."
       }

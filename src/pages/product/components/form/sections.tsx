@@ -30,6 +30,11 @@ import {
 import { FARM_TYPE, useCrops, useFarms, useGardens } from "@/features/farm";
 import { ProductInfo } from "../ProductInfo";
 
+const BASE_UNIT_OPTIONS = [
+  { label: "Kilogram (kg)", value: "kg" },
+  { label: "Lít (lit)", value: "lit" },
+];
+
 const CATEGORY_OPTIONS = PRODUCT_CATEGORIES.map((c) => ({
   label: c,
   value: c,
@@ -49,7 +54,9 @@ function slugifySku(text: string): string {
 /** Bước 1: Thông tin cơ bản */
 export function BasicInfoSection() {
   const { control, setValue } = useFormContext<ProductFormValues>();
-  const name = useWatch({ control, name: "name" });
+  const [name, isAgricultural] = useWatch({ control, name: ["name", "isAgricultural"] });
+  const { data: crops } = useCrops();
+  const cropOptions = (crops ?? []).map((c) => ({ label: c.name, value: String(c.id) }));
 
   const generateSku = () => {
     if (!name) return;
@@ -103,9 +110,33 @@ export function BasicInfoSection() {
         <SwitchField<ProductFormValues>
           name="isAgricultural"
           label="Sản phẩm Nông sản"
-          description="Bật nếu sản phẩm là nông sản để bổ sung bước liên kết nguồn gốc nông hộ, vườn canh tác và cây trồng"
+          description="Bật nếu sản phẩm là nông sản để chọn cây trồng và bổ sung bước liên kết cung ứng"
         />
       </div>
+
+      {/* Nông sản: cây trồng / giống cụ thể — nông hộ trồng cây này mới đề xuất cung ứng được */}
+      {isAgricultural && (
+        <>
+          <ComboboxField<ProductFormValues>
+            name="cropId"
+            label="Cây trồng / Giống cây trồng"
+            required
+            options={cropOptions}
+            placeholder="Chọn cây trồng / giống"
+            searchPlaceholder="Tìm tên cây trồng..."
+            emptyText="Không có cây trồng phù hợp"
+            description="Dùng để nông hộ đề xuất cung ứng hàng"
+          />
+          <SelectField<ProductFormValues>
+            name="baseUnit"
+            label="Đơn vị tính cơ bản"
+            required
+            options={BASE_UNIT_OPTIONS}
+            placeholder="Chọn đơn vị tính"
+            description="Đơn vị chuẩn (kg hoặc lít) khi lập đề xuất nhập hàng & quản lý kho"
+          />
+        </>
+      )}
 
       <TextareaField<ProductFormValues>
         name="description"
@@ -131,7 +162,7 @@ export function BasicInfoSection() {
   );
 }
 
-/** Bước 2 — a row of thumbnails, first one is the cover */
+/** Bước 2 — full-width drop zone, uploaded thumbnails below; first one is the cover */
 export function ImagesSection() {
   const { control } = useFormContext<ProductFormValues>();
   const { toast } = useToast();
@@ -195,26 +226,27 @@ export function ImagesSection() {
                 dragging && "bg-primary/5 ring-2 ring-primary ring-offset-4",
               )}
             >
-              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 sm:gap-3">
-                {/* Phần tử đầu tiên luôn là nút cộng ảnh */}
-                {images.length < 8 && (
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className="group flex aspect-square w-full flex-col items-center justify-center gap-1 sm:gap-1.5 rounded-xl sm:rounded-2xl border-2 border-dashed border-primary/40 bg-primary/[0.03] text-primary transition-all hover:border-primary hover:bg-primary/10 cursor-pointer"
-                  >
-                    <span className="flex size-8 sm:size-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                      <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </span>
-                    <span className="text-[11px] sm:text-xs font-semibold">
-                      Thêm ảnh
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {images.length}/8
-                    </span>
-                  </button>
-                )}
+              {/* Vùng tải ảnh full width; ảnh đã tải hiện thành lưới bên dưới */}
+              {images.length < 8 && (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="group flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/[0.03] px-4 py-8 sm:py-10 text-primary transition-all hover:border-primary hover:bg-primary/10 cursor-pointer"
+                >
+                  <span className="flex size-10 sm:size-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                    <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </span>
+                  <span className="text-sm font-semibold">
+                    Bấm để chọn ảnh hoặc kéo thả vào đây
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    JPEG, PNG, WebP · tối đa 8 MB/ảnh · {images.length}/8 ảnh
+                  </span>
+                </button>
+              )}
 
+              {images.length > 0 && (
+              <div className={cn("grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 sm:gap-3", images.length < 8 && "mt-4")}>
                 {/* Danh sách ảnh đã tải lên xếp sau nút cộng */}
                 {images.map((src, i) => (
                   <div
@@ -256,11 +288,10 @@ export function ImagesSection() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {images.length ? `${images.length}/8 ảnh · ` : "Tối đa 8 ảnh · "}
-              Ảnh bìa là ảnh đầu tiên ngay sau nút cộng, hiển thị đại diện trên
-              cửa hàng.
+              Ảnh đầu tiên là ảnh bìa, hiển thị đại diện trên cửa hàng.
             </p>
             <input
               ref={fileRef}
@@ -463,17 +494,12 @@ function VariantPreview() {
   );
 }
 
-const BASE_UNIT_OPTIONS = [
-  { label: "Kilogram (kg)", value: "kg" },
-  { label: "Lít (lit)", value: "lit" },
-];
-
-/** Bước Nguồn cung nông sản — chỉ hiển thị khi bật toggle Nông sản */
+/** Bước Liên kết cung ứng — chỉ hiển thị khi bật toggle Nông sản */
 export function SuppliersSection() {
   const { control } = useFormContext<ProductFormValues>();
-  const [farmId, regionId] = useWatch({
+  const [farmId, cropId] = useWatch({
     control,
-    name: ["farmId", "regionId"],
+    name: ["farmId", "cropId"],
   });
 
   const {
@@ -486,33 +512,20 @@ export function SuppliersSection() {
   const { data: farms } = useFarms();
   const { data: allGardens } = useGardens();
   const { data: allCrops } = useCrops();
+  const cropName = allCrops?.find((c) => String(c.id) === cropId)?.name;
 
   const farmOptions = (farms ?? []).map((f) => ({
     label: `${f.name} · ${FARM_TYPE[f.type]} · ${f.location}`,
     value: f.id,
   }));
 
-  // Lọc vườn theo nông hộ được chọn
-  const primaryGardenList = (allGardens ?? []).filter(
-    (g) => g.farmId === farmId,
-  );
-  const primaryGardenOptions = primaryGardenList.map((g) => ({
-    label: g.name,
-    value: String(g.id),
-  }));
-
-  // Lọc cây trồng theo vườn được chọn (nếu vườn có danh sách cropIds)
-  const selectedGarden = primaryGardenList.find(
-    (g) => String(g.id) === regionId,
-  );
-  const cropList =
-    selectedGarden && selectedGarden.cropIds?.length
-      ? (allCrops ?? []).filter((c) => selectedGarden.cropIds.includes(c.id))
-      : (allCrops ?? []);
-  const cropOptions = cropList.map((c) => ({
-    label: c.name,
-    value: String(c.id),
-  }));
+  // Vườn của nông hộ có trồng cây đã chọn (vườn chưa khai báo cropIds vẫn hiện)
+  const gardensOf = (fid: string | undefined) =>
+    (allGardens ?? [])
+      .filter((g) => g.farmId === fid)
+      .filter((g) => !cropId || !g.cropIds?.length || g.cropIds.includes(Number(cropId)))
+      .map((g) => ({ label: g.name, value: String(g.id) }));
+  const primaryGardenOptions = gardensOf(farmId);
 
   return (
     <div className="space-y-6">
@@ -523,12 +536,12 @@ export function SuppliersSection() {
         </div>
         <div className="space-y-1">
           <h4 className="text-sm font-semibold text-primary">
-            Nguồn cung & Truy xuất nguồn gốc Nông sản
+            Liên kết cung ứng{cropName ? ` · ${cropName}` : ""}
           </h4>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Sản phẩm nông sản cần xác định rõ nông hộ, vườn canh tác và cây
-            trồng. Đây là cơ sở để nông hộ lập phiếu đề xuất nhập hàng và quản
-            lý tồn kho độc lập theo từng vùng trồng.
+            Chọn nông hộ và vườn canh tác cung ứng sản phẩm. Đây là cơ sở để
+            nông hộ lập phiếu đề xuất cung ứng và quản lý tồn kho theo từng
+            vùng trồng.
           </p>
         </div>
       </div>
@@ -539,7 +552,7 @@ export function SuppliersSection() {
           <div>
             <h3 className="text-base font-semibold">Nguồn gốc canh tác</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Xác định nông hộ, vườn canh tác và cây trồng liên kết của sản phẩm
+              Nông hộ và vườn canh tác liên kết của sản phẩm
             </p>
           </div>
           <Button
@@ -584,58 +597,12 @@ export function SuppliersSection() {
               emptyText="Không có vườn phù hợp"
             />
           </div>
-
-          {/* Cây trồng & Đơn vị cơ bản */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Cây trồng */}
-            <ComboboxField<ProductFormValues>
-              name="cropId"
-              label="Cây trồng liên kết"
-              required
-              options={cropOptions}
-              placeholder={
-                regionId ? "Chọn loại cây trồng" : "Vui lòng chọn vườn trước"
-              }
-              searchPlaceholder="Tìm tên cây trồng..."
-              emptyText="Không có cây trồng phù hợp"
-            />
-
-            {/* Đơn vị cơ bản */}
-            <SelectField<ProductFormValues>
-              name="baseUnit"
-              label="Đơn vị tính cơ bản"
-              required
-              options={BASE_UNIT_OPTIONS}
-              placeholder="Chọn đơn vị tính"
-              description="Đơn vị chuẩn (kg hoặc lít) khi lập đề xuất nhập hàng & quản lý kho"
-            />
-          </div>
         </div>
 
-        {/* Các vườn liên kết bổ sung — đồng bộ đầy đủ cả 4 trường y hệt vườn 1 */}
+        {/* Các vườn liên kết bổ sung */}
         {sourceFields.map((f, i) => {
           const currentFarmId = sources?.[i]?.farmId;
-          const currentRegionId = sources?.[i]?.regionId;
-          const gardenList = (allGardens ?? []).filter(
-            (g) => g.farmId === currentFarmId,
-          );
-          const gardenOptions = gardenList.map((g) => ({
-            label: g.name,
-            value: String(g.id),
-          }));
-          const selectedSourceGarden = gardenList.find(
-            (g) => String(g.id) === currentRegionId,
-          );
-          const sourceCropList =
-            selectedSourceGarden && selectedSourceGarden.cropIds?.length
-              ? (allCrops ?? []).filter((c) =>
-                  selectedSourceGarden.cropIds.includes(c.id),
-                )
-              : (allCrops ?? []);
-          const sourceCropOptions = sourceCropList.map((c) => ({
-            label: c.name,
-            value: String(c.id),
-          }));
+          const gardenOptions = gardensOf(currentFarmId);
 
           return (
             <div key={f.id} className="pt-5 border-t space-y-4">
@@ -678,29 +645,6 @@ export function SuppliersSection() {
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ComboboxField<ProductFormValues>
-                  name={`sources.${i}.cropId`}
-                  label="Cây trồng liên kết"
-                  required
-                  options={sourceCropOptions}
-                  placeholder={
-                    currentRegionId
-                      ? "Chọn loại cây trồng"
-                      : "Vui lòng chọn vườn trước"
-                  }
-                  searchPlaceholder="Tìm tên cây trồng..."
-                  emptyText="Không có cây trồng phù hợp"
-                />
-                <SelectField<ProductFormValues>
-                  name={`sources.${i}.baseUnit`}
-                  label="Đơn vị tính cơ bản"
-                  required
-                  options={BASE_UNIT_OPTIONS}
-                  placeholder="Chọn đơn vị tính"
-                  description="Đơn vị chuẩn (kg hoặc lít) khi lập đề xuất nhập hàng & quản lý kho"
-                />
-              </div>
             </div>
           );
         })}
@@ -753,9 +697,9 @@ export function ReviewSection() {
         farmName: farms?.find((f) => f.id === s.farmId)?.name,
         regionId: Number(s.regionId),
         regionName: gardens?.find((g) => g.id === Number(s.regionId))?.name,
-        cropId: s.cropId ? Number(s.cropId) : undefined,
-        cropName: crops?.find((c) => String(c.id) === s.cropId)?.name,
-        baseUnit: s.baseUnit,
+        cropId: values.cropId ? Number(values.cropId) : undefined,
+        cropName: crop?.name,
+        baseUnit: values.baseUnit,
         importPrice: 0,
       }))
     : [];

@@ -35,7 +35,6 @@ export const shopMenu: AdminMenuSection[] = [
     title: "Sản phẩm",
     items: [
       { id: "products", label: "Danh mục sản phẩm", icon: Package, href: ROUTES.products, roles: [...ALL] },
-      { id: "farm-registrations", label: "Đăng ký từ nông hộ", icon: Sprout, href: ROUTES.farmRegistrations, roles: [...ALL] },
       { id: "product-groups", label: "Nhóm sản phẩm", icon: FolderTree, href: ROUTES.productGroups, roles: [...ALL] },
       { id: "inventory", label: "Kho sản phẩm", icon: Warehouse, href: ROUTES.inventory, roles: [...ALL] },
       { id: "reviews", label: "Đánh giá khách hàng", icon: MessageSquareText, href: ROUTES.reviews, roles: [...ALL] },

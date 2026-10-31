@@ -44,12 +44,12 @@ const supplierSchema = z.object({
   importPrice: optionalPrice,
 });
 
-/** A vườn linked to a nông sản product */
+/** A vườn linked to a nông sản product; crop & base unit come from the product */
 const sourceSchema = z.object({
   farmId: z.string().min(1, "Vui lòng chọn nông hộ"),
   regionId: z.string().min(1, "Vui lòng chọn vườn"),
-  cropId: z.string().min(1, "Vui lòng chọn cây trồng"),
-  baseUnit: z.enum(["kg", "lit"]),
+  cropId: z.string().optional(),
+  baseUnit: z.enum(["kg", "lit"]).optional(),
   importPrice: optionalPrice,
 });
 
@@ -118,7 +118,7 @@ export const productSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["cropId"],
-        message: "Vui lòng chọn cây trồng",
+        message: "Vui lòng chọn cây trồng / giống",
       });
     }
     if (v.sources.length < 1 && !v.regionId) {
@@ -265,8 +265,8 @@ export const formValuesToInput = (values: ProductFormValues): ProductInput => {
   const extraSources = formSources.map((s) => ({
     farmId: s.farmId,
     regionId: Number(s.regionId),
-    cropId: s.cropId ? Number(s.cropId) : undefined,
-    baseUnit: s.baseUnit,
+    cropId: cropId ? Number(cropId) : undefined,
+    baseUnit: v.baseUnit,
     importPrice: s.importPrice ?? 0,
   }));
   const sources = v.isAgricultural ? [...primarySource, ...extraSources] : [];

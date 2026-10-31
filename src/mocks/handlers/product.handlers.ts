@@ -59,7 +59,10 @@ export const productHandlers: MockHandler[] = [
       const is = (actual: string, wanted: unknown) =>
         !wanted || wanted === "all" || wanted === actual;
       const rows = scoped(db.products, query.shopId).filter(
-        (p) => is(p.status, query.status) && is(p.category, query.category),
+        (p) =>
+          is(p.status, query.status) &&
+          is(String(p.listed), query.listed) &&
+          is(p.category, query.category),
       );
       return {
         data: paginate(
@@ -109,8 +112,9 @@ export const productHandlers: MockHandler[] = [
         ...body,
         shopId,
         id: uid("p"),
-        status: "pending",
-        listed: false,
+        // No moderation step: new products go straight on sale
+        status: "approved",
+        listed: true,
         source: "self",
         stock: 0,
         lowStockThreshold: 10,
@@ -136,13 +140,7 @@ export const productHandlers: MockHandler[] = [
       const shopId =
         actor().isRoot && body.shopId ? resolveShopId(body.shopId) : p.shopId;
       assertSkuFree(shopId, body.sku, p.id);
-      // Any edit sends the product back for moderation (and off the shelf until re-approved)
-      Object.assign(p, body, {
-        shopId,
-        status: "pending",
-        rejectionReason: null,
-        listed: false,
-      });
+      Object.assign(p, body, { shopId });
       return { data: withShop(p) };
     },
   },
@@ -192,9 +190,6 @@ export const productHandlers: MockHandler[] = [
       body: { listed: boolean };
     }) => {
       const p = findOwned(params.id);
-      if (body.listed && p.status !== "approved") {
-        throw new HttpError(400, "Chỉ sản phẩm đã duyệt mới được lên kệ");
-      }
       p.listed = !!body.listed;
       return { data: withShop(p) };
     },

@@ -1,4 +1,4 @@
-import type { BaseUnit, ProductStatus } from "./types";
+import type { BaseUnit, Product, ProductStatus } from "./types";
 
 export const BASE_UNIT: Record<BaseUnit, string> = { kg: "kg", lit: "lít" };
 export const BASE_UNIT_OPTIONS = (Object.keys(BASE_UNIT) as BaseUnit[]).map((u) => ({ label: u === "kg" ? "Ki-lô-gam (kg)" : "Lít (lit)", value: u }));
@@ -8,6 +8,14 @@ export const PRODUCT_STATUS: Record<ProductStatus, { label: string; className: s
   approved: { label: "Đã duyệt", className: "bg-emerald-100 text-emerald-800" },
   rejected: { label: "Từ chối", className: "bg-red-100 text-red-700" },
 };
+
+/** What the admin sees as a product's status — driven by `listed` (no more duyệt / từ chối) */
+export type BusinessStatus = "active" | "paused";
+export const BUSINESS_STATUS: Record<BusinessStatus, { label: string; className: string }> = {
+  active: { label: "Đang kinh doanh", className: "bg-emerald-100 text-emerald-800" },
+  paused: { label: "Tạm ngưng kinh doanh", className: "bg-slate-100 text-slate-700" },
+};
+export const businessStatusOf = (p: Pick<Product, "listed">): BusinessStatus => (p.listed ? "active" : "paused");
 
 export const PRODUCT_CATEGORIES = ["Gạo", "Cà phê", "Trà", "Mật ong", "Gia vị", "Hạt", "Trái cây sấy", "Khác"];
 

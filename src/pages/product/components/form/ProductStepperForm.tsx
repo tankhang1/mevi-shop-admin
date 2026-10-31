@@ -44,6 +44,8 @@ export function ProductStepperForm({ defaultValues, ...props }: Props) {
         "storage",
         "certifications",
         "isAgricultural",
+        "cropId",
+        "baseUnit",
       ],
       content: <BasicInfoSection />,
     },
@@ -58,13 +60,11 @@ export function ProductStepperForm({ defaultValues, ...props }: Props) {
       ? [
           {
             id: "suppliers",
-            title: "Nguồn cung nông sản",
-            description: "Nông hộ, vườn canh tác & cây trồng",
+            title: "Liên kết cung ứng",
+            description: "Nông hộ & vườn canh tác",
             fields: [
               "farmId",
               "regionId",
-              "cropId",
-              "baseUnit",
               "sources",
             ] as (keyof ProductFormValues & string)[],
             content: <SuppliersSection />,

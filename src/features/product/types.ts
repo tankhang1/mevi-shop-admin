@@ -101,6 +101,8 @@ export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "
 
 export interface ProductListParams extends ListParams {
   status?: "all" | ProductStatus;
+  /** "true" = Đang kinh doanh, "false" = Tạm ngưng kinh doanh */
+  listed?: "all" | "true" | "false";
   category?: string;
   /** Root only — shop admins are always scoped to their own shop */
   shopId?: string;

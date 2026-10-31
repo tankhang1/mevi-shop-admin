@@ -4,26 +4,25 @@ import { getErrorMessage } from "@/lib/api-error";
 
 interface Props {
   product: Product;
-  /** pause = "Tạm dừng kinh doanh" (on = not listed, product tables); shelf = "Lên kệ" (on = listed, shop page) */
+  /** pause = "Tạm ngưng kinh doanh" (on = not listed, product tables); shelf = "Lên kệ" (on = listed, shop page) */
   mode?: "pause" | "shelf";
   /** Show the switch's name next to it */
   showLabel?: boolean;
 }
 
-/** Listing switch. Only approved products can be sold */
+/** Listing switch: Đang kinh doanh ↔ Tạm ngưng kinh doanh */
 export function ShelfToggle({ product, mode = "pause", showLabel }: Props) {
   const { toast } = useToast();
   const setListing = useSetProductListing();
-  const canList = product.status === "approved";
-  const label = mode === "shelf" ? "Lên kệ" : "Tạm dừng kinh doanh";
-  const on = canList && (mode === "shelf" ? product.listed : !product.listed);
+  const label = mode === "shelf" ? "Lên kệ" : "Tạm ngưng kinh doanh";
+  const on = mode === "shelf" ? product.listed : !product.listed;
 
   const toggle = async (checked: boolean) => {
     const listed = mode === "shelf" ? checked : !checked;
     try {
       await setListing.mutateAsync({ id: product.id, listed });
       toast({
-        title: mode === "shelf" ? (listed ? "Đã lên kệ" : "Đã gỡ khỏi kệ") : listed ? "Đã mở bán lại" : "Đã tạm dừng kinh doanh",
+        title: mode === "shelf" ? (listed ? "Đã lên kệ" : "Đã gỡ khỏi kệ") : listed ? "Đã mở bán lại" : "Đã tạm ngưng kinh doanh",
         description: product.name,
       });
     } catch (e) {
@@ -35,15 +34,14 @@ export function ShelfToggle({ product, mode = "pause", showLabel }: Props) {
     // Stop clicks reaching the table row, which would otherwise open the detail page
     <label
       onClick={(e) => e.stopPropagation()}
-      title={canList ? undefined : "Sản phẩm cần được duyệt trước khi kinh doanh"}
-      className={cn("inline-flex items-center gap-2", canList && "cursor-pointer")}
+      className="inline-flex cursor-pointer items-center gap-2"
     >
       {showLabel && (
         <span className={cn("whitespace-nowrap text-sm", on ? "font-medium text-primary" : "text-muted-foreground")}>{label}</span>
       )}
       <Switch
         checked={on}
-        disabled={!canList || setListing.isPending}
+        disabled={setListing.isPending}
         onCheckedChange={(v) => void toggle(v)}
         aria-label={label}
       />

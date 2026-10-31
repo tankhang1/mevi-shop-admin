@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { CheckCircle2, Clock, Package, Plus, XCircle } from "lucide-react";
+import { CirclePause, CirclePlay, Package, Plus } from "lucide-react";
 import { Button, DataTable, DeleteDialog, StatsCard, useIsMobile, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
@@ -23,8 +23,8 @@ export default function ProductListPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
-  const table = useTableParams<Pick<ProductListParams, "status" | "category"> & { shopId: string }>({
-    status: "all",
+  const table = useTableParams<Pick<ProductListParams, "listed" | "category"> & { shopId: string }>({
+    listed: "all",
     shopId: shopFilter.initialShopId,
   });
   const { data: page, isFetching } = useProducts(table.params);
@@ -59,15 +59,14 @@ export default function ProductListPage() {
       {isMobile ? (
         <ProductMobileSummary
           stats={stats}
-          status={table.state.filters.status ?? "all"}
-          onStatusChange={(s) => table.bind(page, isFetching).onFilterChange("status", s)}
+          listed={table.state.filters.listed ?? "all"}
+          onListedChange={(s) => table.bind(page, isFetching).onFilterChange("listed", s)}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <StatsCard title="Tổng sản phẩm" value={stats?.total ?? "—"} icon={Package} />
-          <StatsCard title="Đã duyệt" value={stats?.approved ?? "—"} icon={CheckCircle2} />
-          <StatsCard title="Chờ duyệt" value={stats?.pending ?? "—"} icon={Clock} />
-          <StatsCard title="Bị từ chối" value={stats?.rejected ?? "—"} icon={XCircle} />
+          <StatsCard title="Đang kinh doanh" value={stats?.listed ?? "—"} icon={CirclePlay} />
+          <StatsCard title="Tạm ngưng kinh doanh" value={stats ? stats.total - stats.listed : "—"} icon={CirclePause} />
         </div>
       )}
 
@@ -76,7 +75,7 @@ export default function ProductListPage() {
         columns={[...productColumns.slice(0, 2), ...shopFilter.column<Product>(), ...productColumns.slice(2)]}
         filters={[
           ...(shopFilter.filter ? [shopFilter.filter] : []),
-          ...productFilters.filter((f) => !isMobile || f.key !== "status"),
+          ...productFilters.filter((f) => !isMobile || f.key !== "listed"),
         ]}
         searchPlaceholder="Tìm theo tên, mã sản phẩm..."
         enableMobileCard

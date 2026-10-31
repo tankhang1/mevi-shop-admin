@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { Clock, FileText, Package, ShieldCheck, Sprout, Thermometer } from "lucide-react";
+import { ShieldCheck, Sprout } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
-import type { BaseUnit, ProductInput, ProductSource } from "@/features/product";
+import { BASE_UNIT, type BaseUnit, type ProductInput, type ProductSource } from "@/features/product";
 import { FARM_TYPE, useFarms } from "@/features/farm";
 import { formatVnd } from "@/lib/format";
 
@@ -24,15 +24,24 @@ type Props = {
 const discountOf = (price: number, original?: number | null) =>
   original && original > price && price ? Math.min(99, Math.round((1 - price / original) * 100)) : 0;
 
-function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+function Section({ title, aside, children, className }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
-      <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">{icon}</span>
-        {title}
-      </h3>
+    <section className={cn("rounded-xl border bg-card p-4 sm:p-5", className)}>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {aside}
+      </div>
       {children}
     </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 break-words text-sm font-medium">{children || "—"}</dd>
+    </div>
   );
 }
 
@@ -44,30 +53,28 @@ export function ProductInfo({ product: p }: Props) {
   // Older products only carry the flat packaging / price fields
   const variants = p.variants?.length
     ? p.variants
-    : [{ name: p.packaging ?? "", price: p.salePrice || p.price, originalPrice: p.salePrice ? p.price : null }];
+    : [{ name: p.packaging ?? "", price: p.salePrice || p.price, originalPrice: p.salePrice ? p.price : null, baseQuantity: null }];
   const suppliers = p.suppliers?.length ? p.suppliers : p.farmId ? [{ farmId: p.farmId, importPrice: 0 }] : [];
-  const [variantIndex, setVariantIndex] = useState(0);
-  const v = variants[Math.min(variantIndex, variants.length - 1)];
-  const discount = discountOf(v.price, v.originalPrice);
+  const unit = p.baseUnit ? BASE_UNIT[p.baseUnit] : "";
+  const first = variants[0];
+  const discount = discountOf(first.price, first.originalPrice);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
-        <div className="relative aspect-square overflow-hidden rounded-2xl border bg-muted">
+    <div className="grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
+      {/* Ảnh */}
+      <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
+        <div className="aspect-square overflow-hidden rounded-xl border bg-muted">
           <img src={images[active] || images[0] || placeholder} alt="" className="h-full w-full object-cover" />
-          {discount > 0 && (
-            <span className="absolute left-3 top-3 rounded-full bg-[#c8643c] px-3 py-1 text-sm font-bold text-white">-{discount}%</span>
-          )}
         </div>
         {images.length > 1 && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {images.map((src, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setActive(i)}
                 className={cn(
-                  "aspect-square overflow-hidden rounded-xl border-2 transition",
+                  "aspect-square overflow-hidden rounded-lg border-2 transition",
                   i === active ? "border-primary" : "border-transparent opacity-60 hover:opacity-100",
                 )}
               >
@@ -78,214 +85,145 @@ export function ProductInfo({ product: p }: Props) {
         )}
       </div>
 
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {p.shopName && <span className="font-medium text-muted-foreground">{p.shopName}</span>}
-            <span className="rounded-full bg-[#c8643c] px-3 py-1 font-semibold text-white">
-              {p.category || "Chưa chọn nhóm"}
-            </span>
-            <span className="rounded-md border border-foreground/20 bg-card px-2 py-1 font-mono font-medium text-foreground">{p.sku || "—"}</span>
+      <div className="min-w-0 space-y-4">
+        {/* Tiêu đề & giá */}
+        <section className="rounded-xl border bg-card p-4 sm:p-5">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="rounded-md bg-muted px-2 py-0.5 font-medium">{p.category || "Chưa chọn nhóm"}</span>
+            <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-muted-foreground">{p.sku || "—"}</span>
             {p.isAgricultural && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
+                <Sprout className="h-3 w-3" /> Nông sản
+              </span>
+            )}
+            {p.shopName && <span className="text-muted-foreground">· {p.shopName}</span>}
+          </div>
+          <h2 className="mt-2 text-xl font-semibold leading-snug sm:text-2xl">{p.name || "Chưa đặt tên"}</h2>
+          <div className="mt-2 flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums text-primary">{formatVnd(first.price)}</span>
+            {discount > 0 && (
               <>
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-100 px-2.5 py-0.5 font-semibold text-emerald-900">
-                  <Sprout className="h-3 w-3" /> Nông sản
-                </span>
-                {p.cropName && (
-                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
-                    Cây: {p.cropName}
-                  </span>
-                )}
-                {p.regionName && (
-                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
-                    Vườn: {p.regionName}
-                  </span>
-                )}
-                {p.farmName && (
-                  <span className="rounded-full border border-muted-foreground/20 bg-muted px-2.5 py-0.5 font-medium text-foreground">
-                    Nông hộ: {p.farmName}
-                  </span>
-                )}
-                {p.baseUnit && (
-                  <span className="rounded-full border bg-muted px-2 py-0.5 text-muted-foreground">
-                    Đơn vị: {p.baseUnit}
-                  </span>
-                )}
+                <span className="text-sm text-muted-foreground line-through tabular-nums">{formatVnd(first.originalPrice!)}</span>
+                <span className="rounded bg-red-50 px-1.5 text-xs font-semibold text-red-600">-{discount}%</span>
               </>
             )}
           </div>
-          <h2 className="text-2xl font-bold leading-tight text-[#1f5a44] sm:text-3xl">{p.name || "Chưa đặt tên"}</h2>
           {!!p.certifications?.length && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {p.certifications.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-900">
-                  <ShieldCheck className="h-3.5 w-3.5" /> {c}
+                <span key={c} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {c}
                 </span>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Price + quy cách */}
-        <div className="rounded-2xl border border-[#1f5a44]/20 bg-[#1f5a44]/[0.06] p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-            <span className="text-3xl font-extrabold tabular-nums text-[#1f5a44]">{formatVnd(v.price)}</span>
-            {discount > 0 && (
-              <span className="pb-1 text-lg font-medium text-foreground/60 line-through tabular-nums">{formatVnd(v.originalPrice!)}</span>
-            )}
+        {/* Quy cách & giá */}
+        <Section title="Quy cách & giá" aside={<span className="text-xs text-muted-foreground">{variants.length} quy cách</span>}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Quy cách</th>
+                  {p.isAgricultural && <th className="py-2 pr-3 font-medium">Quy đổi</th>}
+                  <th className="py-2 pr-3 text-right font-medium">Giá bán</th>
+                  <th className="py-2 text-right font-medium">Giá gốc</th>
+                </tr>
+              </thead>
+              <tbody>
+                {variants.map((x, i) => {
+                  const d = discountOf(x.price, x.originalPrice);
+                  return (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-2.5 pr-3 font-medium">{x.name || `Quy cách ${i + 1}`}</td>
+                      {p.isAgricultural && (
+                        <td className="py-2.5 pr-3 text-muted-foreground">{x.baseQuantity ? `${x.baseQuantity} ${unit}` : "—"}</td>
+                      )}
+                      <td className="whitespace-nowrap py-2.5 pr-3 text-right font-semibold tabular-nums">
+                        {formatVnd(x.price)}
+                        {d > 0 && <span className="ml-1.5 text-xs font-medium text-red-600">-{d}%</span>}
+                      </td>
+                      <td className="whitespace-nowrap py-2.5 text-right tabular-nums text-muted-foreground">
+                        {d > 0 ? <span className="line-through">{formatVnd(x.originalPrice!)}</span> : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <div className="mt-4 space-y-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-foreground/70">Quy cách</p>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
-              {variants.map((x, i) => {
-                const d = discountOf(x.price, x.originalPrice);
-                const on = i === variantIndex;
-                const hasBaseQty = p.isAgricultural && x.baseQuantity;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setVariantIndex(i)}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-left transition",
-                      on ? "border-[#1f5a44] bg-[#1f5a44] text-white shadow" : "border-foreground/15 bg-card hover:border-[#1f5a44]/60",
-                    )}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold">{x.name || `Quy cách ${i + 1}`}</span>
-                      {d > 0 && <span className={cn("shrink-0 rounded px-1 text-[11px] font-bold", on ? "bg-white/20 text-white" : "bg-[#c8643c]/10 text-[#c8643c]")}>-{d}%</span>}
-                    </span>
-                    {hasBaseQty && (
-                      <span className={cn("block text-[11px]", on ? "text-white/80" : "text-muted-foreground")}>
-                        {x.baseQuantity} {p.baseUnit}
-                      </span>
-                    )}
-                    <span className={cn("mt-0.5 block text-sm font-medium tabular-nums", on ? "text-white/90" : "text-foreground/70")}>{formatVnd(x.price)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        </Section>
 
-        {/* Bảo quản */}
-        <Section icon={<Package className="h-4 w-4" />} title="Bảo quản">
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.06] p-3">
-              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <div>
-                <dt className="text-xs text-muted-foreground">Hạn sử dụng</dt>
-                <dd className="text-sm font-semibold">{p.shelfLife || "—"}</dd>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/[0.06] p-3">
-              <Thermometer className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <div>
-                <dt className="text-xs text-muted-foreground">Hướng dẫn bảo quản</dt>
-                <dd className="text-sm font-semibold">{p.storage || "—"}</dd>
-              </div>
-            </div>
+        {/* Thông tin chung */}
+        <Section title="Thông tin chung">
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            {p.isAgricultural && <Field label="Cây trồng / Giống">{p.cropName}</Field>}
+            {p.isAgricultural && <Field label="Đơn vị tính cơ bản">{unit}</Field>}
+            <Field label="Hạn sử dụng">{p.shelfLife}</Field>
+            <Field label="Hướng dẫn bảo quản">{p.storage}</Field>
           </dl>
         </Section>
 
-        {/* Vườn nông hộ liên kết / Nguồn cung */}
+        {/* Liên kết cung ứng / Nông hộ */}
         {p.isAgricultural ? (
           <Section
-            icon={<Sprout className="h-4 w-4" />}
-            title={`Vườn nông hộ liên kết ${p.sources?.length ? `(${p.sources.length})` : ""}`}
+            title="Liên kết cung ứng"
+            aside={p.sources?.length ? <span className="text-xs text-muted-foreground">{p.sources.length} vườn</span> : undefined}
           >
             {p.sources?.length ? (
-              <ul className="space-y-3">
+              <ul className="divide-y">
                 {p.sources.map((s, i) => {
                   const f = farms?.find((x) => x.id === s.farmId);
-                  const gardenName = s.regionName ?? `Vườn #${s.regionId}`;
-                  const stockInGarden = (p as { gardenStock?: Record<number, number> }).gardenStock?.[s.regionId];
+                  const stock = p.gardenStock?.[s.regionId];
                   return (
-                    <li
-                      key={i}
-                      className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-muted/40 p-3.5 sm:p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground text-sm sm:text-base">
-                            {gardenName}
-                          </span>
-                        </div>
-                        {stockInGarden !== undefined && (
-                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                            Tồn: {stockInGarden} {s.baseUnit ?? p.baseUnit ?? "kg"}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid gap-2 text-xs sm:grid-cols-3 pt-1 border-t border-foreground/5">
-                        <div>
-                          <span className="text-muted-foreground">Nông hộ / HTX: </span>
-                          <span className="font-medium text-foreground">
-                            {s.farmName ?? f?.name ?? "—"}
-                          </span>
-                          {f && (
-                            <span className="text-muted-foreground text-[11px] block">
-                              {FARM_TYPE[f.type]} · {f.location}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Cây trồng liên kết: </span>
-                          <span className="font-medium text-foreground">
-                            {s.cropName ?? p.cropName ?? "—"}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Đơn vị cơ bản: </span>
-                          <span className="font-semibold text-primary">
-                            {s.baseUnit ?? p.baseUnit ?? "kg"}
-                          </span>
+                    <li key={i} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{s.regionName ?? `Vườn #${s.regionId}`}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {s.farmName ?? f?.name ?? "—"}
+                          {f && ` · ${FARM_TYPE[f.type]} · ${f.location}`}
                         </div>
                       </div>
+                      {stock !== undefined && (
+                        <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                          Tồn <span className="font-semibold text-foreground">{stock}</span> {unit}
+                        </span>
+                      )}
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-destructive">
-                Chưa liên kết vườn nông hộ nào.
-              </p>
+              <p className="text-sm text-destructive">Chưa liên kết vườn nông hộ nào.</p>
             )}
           </Section>
         ) : (
-          <Section icon={<Sprout className="h-4 w-4" />} title="Nông hộ cung cấp">
+          <Section title="Nông hộ cung cấp">
             {suppliers.length ? (
-              <ul className="space-y-2">
+              <ul className="divide-y">
                 {suppliers.map((s, i) => {
                   const f = farms?.find((x) => x.id === s.farmId);
-                  const initials = (f?.ownerName ?? f?.name ?? "?").split(" ").slice(-1)[0]?.[0] ?? "?";
                   return (
-                    <li key={i} className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-muted/40 p-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1f5a44] text-sm font-semibold text-white">
-                        {initials}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{f?.name ?? "Chưa chọn nông hộ"}</span>
-                        {f && (
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {FARM_TYPE[f.type]} · {f.location}
-                          </span>
-                        )}
-                      </span>
+                    <li key={i} className="py-2.5 first:pt-0 last:pb-0">
+                      <div className="truncate text-sm font-medium">{f?.name ?? "Chưa chọn nông hộ"}</div>
+                      {f && (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {FARM_TYPE[f.type]} · {f.location}
+                        </div>
+                      )}
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Sản phẩm tự sản xuất — không qua nông hộ.</p>
+              <p className="text-sm text-muted-foreground">Sản phẩm tự sản xuất — không qua nông hộ.</p>
             )}
           </Section>
         )}
 
         {/* Mô tả */}
-        <Section icon={<FileText className="h-4 w-4" />} title="Mô tả">
+        <Section title="Mô tả">
           <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/80">{p.description || "Chưa có mô tả."}</p>
         </Section>
       </div>

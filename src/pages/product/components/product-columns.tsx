@@ -1,7 +1,7 @@
 import type { Column, TableFilterDef } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
-import { PRODUCT_CATEGORIES, PRODUCT_SOURCE, PRODUCT_STATUS, type Product, type ProductStatus } from "@/features/product";
+import { BUSINESS_STATUS, PRODUCT_CATEGORIES, PRODUCT_SOURCE, type BusinessStatus, type Product, businessStatusOf } from "@/features/product";
 import { formatVnd } from "@/lib/format";
 import { ShelfToggle } from "./ShelfToggle";
 
@@ -39,19 +39,22 @@ export const productColumns: Column<Product>[] = [
       ),
   },
   {
-    key: "status",
+    key: "listed",
     label: "Trạng thái",
     mobilePriority: "badge",
-    render: (v) => <StatusPill {...PRODUCT_STATUS[v as ProductStatus]} />,
+    render: (_, p) => <StatusPill {...BUSINESS_STATUS[businessStatusOf(p)]} />,
   },
-  { key: "listed", label: "Tạm dừng kinh doanh", width: "120px", render: (_, p) => <ShelfToggle product={p} /> },
+  { key: "pause", label: "Tạm ngưng kinh doanh", width: "120px", render: (_, p) => <ShelfToggle product={p} /> },
 ];
 
 export const productFilters: TableFilterDef[] = [
   {
-    key: "status",
+    key: "listed",
     label: "Trạng thái",
-    options: (Object.keys(PRODUCT_STATUS) as ProductStatus[]).map((s) => ({ label: PRODUCT_STATUS[s].label, value: s })),
+    options: (Object.keys(BUSINESS_STATUS) as BusinessStatus[]).map((s) => ({
+      label: BUSINESS_STATUS[s].label,
+      value: s === "active" ? "true" : "false",
+    })),
   },
   { key: "category", label: "Nhóm sản phẩm", options: PRODUCT_CATEGORIES.map((c) => ({ label: c, value: c })) },
 ];
