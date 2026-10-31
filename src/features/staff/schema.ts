@@ -12,6 +12,16 @@ export const staffSchema = z.object({
     .string()
     .refine((v) => !v || v.length >= 8, "Mật khẩu tối thiểu 8 ký tự")
     .optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["male", "female", "other", ""]).optional(),
+  idNumber: z
+    .string()
+    .trim()
+    .refine((v) => !v || /^\d{12}$/.test(v), "Số CCCD gồm 12 chữ số")
+    .optional(),
+  address: z.string().trim().optional(),
+  /** "" = chưa thuộc nhóm nào */
+  teamId: z.string().optional(),
 });
 
 export type StaffFormValues = z.infer<typeof staffSchema>;

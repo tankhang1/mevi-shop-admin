@@ -1,4 +1,6 @@
-import type { StaffPermission, StaffRole, StaffStatus } from "./types";
+import type { StaffGender, StaffPermission, StaffRole, StaffStatus } from "./types";
+
+export const STAFF_GENDER: Record<StaffGender, string> = { male: "Nam", female: "Nữ", other: "Khác" };
 
 export const STAFF_ROLE: Record<StaffRole, { label: string; description: string; permissions: StaffPermission[] }> = {
   manager: {

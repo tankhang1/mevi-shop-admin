@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { dispatchTeamKeys } from "@/features/dispatch-team/hooks/use-dispatch-teams";
 import { staffApi } from "../api/staff.api";
 import type { StaffInput, StaffListParams, StaffStatus } from "../types";
 
@@ -17,7 +18,12 @@ export function useStaffList(params: StaffListParams = {}) {
 
 function useInvalidateStaff() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: staffKeys.all });
+  // Team membership lives on the team too
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: staffKeys.all }),
+      qc.invalidateQueries({ queryKey: dispatchTeamKeys.all }),
+    ]);
 }
 
 export function useCreateStaff() {

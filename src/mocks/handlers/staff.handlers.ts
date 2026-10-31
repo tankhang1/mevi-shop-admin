@@ -6,7 +6,32 @@ import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const EP = API_ENDPOINTS.admin.staff;
 
-const withShop = (s: Staff): Staff => ({ ...s, shopName: db.shops.find((x) => x.id === s.shopId)?.name });
+const teamOf = (id: string) => db.dispatchTeams.find((t) => t.memberIds.includes(id));
+const withShop = (s: Staff): Staff => {
+  const team = teamOf(s.id);
+  return { ...s, shopName: db.shops.find((x) => x.id === s.shopId)?.name, teamId: team?.id ?? null, teamName: team?.name ?? null };
+};
+
+/** A staff member belongs to at most one team: drop them from every other team, then add to `teamId` */
+function setTeam(staff: Staff, teamId: string | null | undefined) {
+  if (teamId === undefined) return;
+  const target = teamId ? db.dispatchTeams.find((t) => t.id === teamId) : undefined;
+  if (teamId && target?.shopId !== staff.shopId) throw new HttpError(400, "Nhóm điều phối không thuộc gian hàng");
+  db.dispatchTeams.forEach((t) => {
+    if (t.id === target?.id || !t.memberIds.includes(staff.id)) return;
+    t.memberIds = t.memberIds.filter((id) => id !== staff.id);
+    if (t.leaderId === staff.id) t.leaderId = null;
+    t.nextMemberIndex = 0;
+  });
+  if (target && !target.memberIds.includes(staff.id)) target.memberIds.push(staff.id);
+}
+
+const profileOf = (b: Partial<StaffInput>) => ({
+  dateOfBirth: b.dateOfBirth || null,
+  gender: b.gender || null,
+  idNumber: b.idNumber?.trim() || null,
+  address: b.address?.trim() || null,
+});
 const findOwned = (id: string) => assertOwns(db.staff.find((x) => x.id === id), "Không tìm thấy nhân viên");
 
 /** Shop admins add to their own shop; root's dispatch staff go to the first shop */
@@ -51,6 +76,7 @@ export const staffHandlers: MockHandler[] = [
         name: body.name.trim(),
         phone: body.phone.trim(),
         email: body.email.trim(),
+        ...profileOf(body),
         // Nhân viên điều phối: handle orders and the customers on them
         role: "sales",
         permissions: ["orders", "customers"],
@@ -61,6 +87,7 @@ export const staffHandlers: MockHandler[] = [
         createdAt: now,
       };
       db.staff.unshift(s);
+      setTeam(s, body.teamId || null);
       return { data: withShop(s), message: `Đã gửi lời mời tới ${s.email}` };
     },
   },
@@ -78,6 +105,9 @@ export const staffHandlers: MockHandler[] = [
         s,
         Object.fromEntries(Object.entries({ name, phone, email, status }).filter(([, v]) => v !== undefined)),
       );
+      // Status-only updates (khoá / mở khoá) don't carry the profile
+      if (name !== undefined) Object.assign(s, profileOf(body));
+      setTeam(s, body.teamId === undefined ? undefined : body.teamId || null);
       return { data: withShop(s) };
     },
   },

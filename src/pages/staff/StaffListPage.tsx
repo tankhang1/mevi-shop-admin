@@ -89,6 +89,16 @@ export default function StaffListPage() {
       ),
     },
     {
+      key: "teamName",
+      label: "Nhóm điều phối",
+      render: (_, s) =>
+        s.teamName ? (
+          <span className="whitespace-nowrap text-sm">{s.teamName}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Chưa có nhóm</span>
+        ),
+    },
+    {
       key: "lastActiveAt",
       label: "Hoạt động gần nhất",
       render: (_, s) => (

@@ -49,6 +49,17 @@ function validate(shopId: string, body: Partial<DispatchTeamInput>, current?: Di
   }
 }
 
+/** Each staff member is in at most one team — joining `team` removes them from the others */
+function detachFromOtherTeams(team: DispatchTeam) {
+  db.dispatchTeams.forEach((t) => {
+    if (t.id === team.id) return;
+    const before = t.memberIds.length;
+    t.memberIds = t.memberIds.filter((id) => !team.memberIds.includes(id));
+    if (t.leaderId && team.memberIds.includes(t.leaderId)) t.leaderId = null;
+    if (t.memberIds.length !== before) t.nextMemberIndex = 0;
+  });
+}
+
 /** Active team owning the product group of the order's first grouped item */
 export function teamForOrder(o: Pick<Order, "shopId" | "items">) {
   for (const it of o.items ?? []) {
@@ -118,6 +129,7 @@ export const dispatchTeamHandlers: MockHandler[] = [
         createdAt: new Date().toISOString(),
       };
       db.dispatchTeams.unshift(t);
+      detachFromOtherTeams(t);
       return { data: t };
     },
   },
@@ -134,7 +146,10 @@ export const dispatchTeamHandlers: MockHandler[] = [
           Object.entries({ name, description, leaderId, memberIds, productGroupIds, active }).filter(([, v]) => v !== undefined),
         ),
       );
-      if (memberIds) t.nextMemberIndex = 0;
+      if (memberIds) {
+        t.nextMemberIndex = 0;
+        detachFromOtherTeams(t);
+      }
       // People who left the team stop owning its orders
       db.orders.forEach((o) => {
         if (o.teamId === t.id && o.assigneeId && !t.memberIds.includes(o.assigneeId)) o.assigneeId = null;
