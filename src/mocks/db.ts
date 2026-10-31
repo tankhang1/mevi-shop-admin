@@ -285,8 +285,8 @@ export const db: {
         origin: "Hưng Yên",
         packaging: "Chai 1L",
         images: [img("honey")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 0,
         lowStockThreshold: 10,
         createdAt: daysAgo(3),
@@ -304,8 +304,8 @@ export const db: {
         origin: "Hà Giang",
         packaging: "Hộp 200g",
         images: [img("tea")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 8,
         lowStockThreshold: 10,
         createdAt: daysAgo(2),
@@ -322,11 +322,10 @@ export const db: {
         origin: "Phú Quốc",
         packaging: "Hũ 250g",
         images: [img("pepper")],
-        status: "rejected",
+        status: "approved",
         listed: false,
         stock: 60,
         lowStockThreshold: 10,
-        rejectionReason: "Thiếu giấy chứng nhận ATTP",
         createdAt: daysAgo(8),
       },
       {
@@ -360,8 +359,8 @@ export const db: {
         origin: "Khánh Hoà",
         packaging: "Túi 250g",
         images: [img("mango")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 200,
         lowStockThreshold: 10,
         createdAt: daysAgo(1),
@@ -378,8 +377,8 @@ export const db: {
         origin: "Bảo Lộc",
         packaging: "Hộp 100g",
         images: [img("oolong")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 0,
         lowStockThreshold: 10,
         createdAt: daysAgo(1),
@@ -398,8 +397,8 @@ export const db: {
         origin: "Đồng Tháp",
         packaging: "Túi 2kg",
         images: [img("brownrice")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 15,
         lowStockThreshold: 10,
         createdAt: daysAgo(2),
@@ -417,8 +416,8 @@ export const db: {
         origin: "Đắk Nông",
         packaging: "Hũ 500g",
         images: [img("macadamia")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 30,
         lowStockThreshold: 10,
         createdAt: daysAgo(3),
@@ -435,7 +434,7 @@ export const db: {
         origin: "Đà Lạt",
         packaging: "Túi 250g",
         images: [img("arabica")],
-        status: "pending",
+        status: "approved",
         listed: false,
         stock: 5,
         lowStockThreshold: 10,
@@ -453,8 +452,8 @@ export const db: {
         origin: "Tây Ninh",
         packaging: "Hũ 200g",
         images: [img("salt")],
-        status: "pending",
-        listed: false,
+        status: "approved",
+        listed: true,
         stock: 80,
         lowStockThreshold: 10,
         createdAt: daysAgo(5),
@@ -604,7 +603,8 @@ const CITIES = [
   "Thủ Đức, TP.HCM",
   "TP. Buôn Ma Thuột",
 ];
-const sellable = db.products.filter((p) => p.status === "approved");
+// Đang kinh doanh only — paused products take no new orders
+const sellable = db.products.filter((p) => p.listed);
 
 /** Repeat buyers: a small pool so the same people show up across many orders */
 const SURNAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Võ", "Đặng", "Bùi", "Đỗ", "Ngô", "Dương", "Lý"];
@@ -767,7 +767,7 @@ const CRITICAL = [
 const SHOP_REPLY = "Cảm ơn anh/chị đã tin tưởng ủng hộ shop. Chúc anh/chị và gia đình nhiều sức khoẻ!";
 
 let rid = 0;
-for (const p of db.products.filter((x) => x.status === "approved")) {
+for (const p of db.products) {
   const count = 4 + Math.floor(rand() * 6);
   for (let i = 0; i < count; i++) {
     const critical = rand() < 0.22;

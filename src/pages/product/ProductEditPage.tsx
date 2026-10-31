@@ -1,5 +1,4 @@
 import { useLocation, useParams } from "wouter";
-import { Info } from "lucide-react";
 import { useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { BackLink } from "@/components/common/BackLink";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
@@ -37,12 +36,6 @@ export default function ProductEditPage() {
   return (
     <div className="space-y-4">
       <BackLink to={ROUTES.productDetail(id)} label={product.name} />
-      {product.status === "approved" && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          Sản phẩm đang hiển thị trên cửa hàng. Sau khi lưu, sản phẩm sẽ chuyển về "Chờ duyệt".
-        </div>
-      )}
       <ProductStepperForm
         defaultValues={productToFormValues(product)}
         submitLabel="Lưu thay đổi"

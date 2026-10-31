@@ -14,7 +14,7 @@ export default function ProductCreatePage() {
   const onSubmit = async (values: ProductFormValues) => {
     try {
       const created = await create.mutateAsync(formValuesToInput(values));
-      toast({ title: "Đã tạo sản phẩm", description: "Sản phẩm đang chờ duyệt trước khi hiển thị trên cửa hàng." });
+      toast({ title: "Đã tạo sản phẩm", description: "Sản phẩm đang kinh doanh trên cửa hàng." });
       navigate(ROUTES.productDetail(created.id));
     } catch (e) {
       toast({ variant: "destructive", title: "Không thể lưu", description: getErrorMessage(e) });
