@@ -2,6 +2,8 @@ import type { ListParams } from "@/types/api";
 
 export interface Customer {
   id: string;
+  /** Mã khách hàng, e.g. KH0001 */
+  code?: string;
   name: string;
   /** Unique — orders are matched to the customer by recipient phone */
   phone: string;

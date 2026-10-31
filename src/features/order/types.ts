@@ -21,9 +21,25 @@ export interface OrderStatusEvent {
 export interface Order {
   id: string;
   code: string;
+  /** Khách hàng — the account that placed the order */
+  customerCode?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string | null;
+  /** Giao hàng — who receives it and where; differs from the buyer for gifts */
   recipientName: string;
   recipientPhone: string;
+  /** Full one-line address (street, xã/phường, tỉnh/thành phố) */
   address: string;
+  street?: string;
+  /** Xã / phường */
+  ward?: string;
+  /** Tỉnh / thành phố */
+  province?: string;
+  /** Lời nhắn cho người giao hàng */
+  deliveryNote?: string | null;
+  /** Set when the order reaches "completed" */
+  deliveredAt?: string | null;
   total: number;
   items?: OrderItem[];
   status: OrderStatus;
@@ -65,6 +81,20 @@ export interface OrderDetail extends Order {
 
 export interface OrderListParams extends ListParams {
   status?: "all" | OrderStatus;
+  /** Exact / partial mã đơn */
+  code?: string;
+  assigneeId?: string;
+  productGroupId?: string;
+  productId?: string;
+  /** Which date `from` / `to` apply to */
+  dateField?: "createdAt" | "deliveredAt";
+  /** yyyy-mm-dd, inclusive */
+  from?: string;
+  to?: string;
+  province?: string;
+  ward?: string;
+  customerCode?: string;
+  customerPhone?: string;
   agencyId?: string;
   /** "none" = not assigned to any team yet */
   teamId?: string;

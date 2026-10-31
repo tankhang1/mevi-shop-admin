@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@Team-Trung-Vu-Khang/eco-shared-ui": "^0.0.28",
+    "@Team-Trung-Vu-Khang/eco-shared-ui": "^0.0.31",
     "@hookform/resolvers": "^5.9.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.103.2",

@@ -32,9 +32,14 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
 
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0 space-y-0.5">
-            <p className="truncate font-semibold">{o.recipientName}</p>
+            <p className="truncate font-semibold">
+              {o.customerName ?? o.recipientName}
+              {o.customerCode && <span className="ml-1 font-mono text-[11px] font-normal text-muted-foreground">{o.customerCode}</span>}
+            </p>
             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0" /> {o.address}
+              <MapPin className="h-3 w-3 shrink-0" />
+              {o.recipientName !== (o.customerName ?? o.recipientName) && `${o.recipientName} · `}
+              {o.ward && o.province ? `${o.ward}, ${o.province}` : o.address}
             </p>
             {o.trackingCode && (
               <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">

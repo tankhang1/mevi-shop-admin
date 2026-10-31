@@ -10,6 +10,7 @@ import type { ProductGroup } from "@/features/product-group/types";
 import type { Review } from "@/features/review/types";
 import type { Shop } from "@/features/shop/types";
 import type { Staff } from "@/features/staff/types";
+import { VN_LOCATIONS, VN_PROVINCES } from "@/features/order/constants";
 import { daysAgo } from "./utils";
 
 /** In-memory dummy data (resets on reload) — mutated by ./handlers */
@@ -702,17 +703,47 @@ for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.create
   team.nextMemberIndex = (i + 1) % team.memberIds.length;
 }
 
+// ── Buyer vs giao hàng: most people ship to themselves, ~1 in 5 orders is a gift to someone else ──
+const NOTES = ["Giao giờ hành chính", "Gọi trước khi giao", "Để ở bảo vệ toà nhà", null, null, null];
+for (const o of db.orders) {
+  const province = pick(VN_PROVINCES);
+  const ward = pick(VN_LOCATIONS[province]);
+  o.street = o.address.split(",")[0].trim();
+  o.ward = ward;
+  o.province = province;
+  o.address = `${o.street}, ${ward}, ${province}`;
+  o.customerName = o.recipientName;
+  o.customerPhone = o.recipientPhone;
+  if (rand() < 0.2) {
+    o.recipientName = `${pick(SURNAMES)} ${pick(GIVEN)}`;
+    o.recipientPhone = `09${String(10_000_000 + Math.floor(rand() * 89_999_999))}`;
+  }
+  o.deliveryNote = pick(NOTES);
+  o.deliveredAt = o.status === "completed" ? (o.statusHistory?.find((h) => h.status === "completed")?.at ?? null) : null;
+}
+
 // ── Customers: one per distinct buyer phone, first seen = first order ──
 for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
-  if (db.customers.some((c) => c.phone === o.recipientPhone)) continue;
-  db.customers.push({
-    id: `c${db.customers.length + 1}`,
-    name: o.recipientName,
-    phone: o.recipientPhone,
+  const existing = db.customers.find((c) => c.phone === o.customerPhone);
+  if (existing) {
+    o.customerCode = existing.code;
+    o.customerEmail = existing.email;
+    continue;
+  }
+  const n = db.customers.length + 1;
+  const c = {
+    id: `c${n}`,
+    code: `KH${String(n).padStart(4, "0")}`,
+    name: o.customerName ?? o.recipientName,
+    phone: o.customerPhone ?? o.recipientPhone,
+    email: rand() < 0.6 ? `khach${n}@gmail.com` : undefined,
     address: o.address,
     tags: [],
     createdAt: o.createdAt,
-  });
+  };
+  db.customers.push(c);
+  o.customerCode = c.code;
+  o.customerEmail = c.email;
 }
 db.customers[0].tags = ["Khách sỉ"];
 db.customers[0].note = "Mua số lượng lớn, ưu tiên giao buổi sáng.";

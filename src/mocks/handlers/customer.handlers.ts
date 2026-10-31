@@ -9,7 +9,7 @@ const EP = API_ENDPOINTS.admin.customers;
 
 /** Purchase stats over the orders the caller may see (own shop for shop admins) */
 function withStats(c: Customer): CustomerWithStats {
-  const orders = scoped(db.orders).filter((o) => o.recipientPhone === c.phone);
+  const orders = scoped(db.orders).filter((o) => (o.customerPhone ?? o.recipientPhone) === c.phone);
   const done = orders.filter((o) => o.status === "completed");
   const totalSpent = done.reduce((s, o) => s + o.total, 0);
   const segment: CustomerSegment = totalSpent >= VIP_SPEND ? "vip" : orders.length >= 2 ? "returning" : "new";
@@ -59,7 +59,7 @@ export const customerHandlers: MockHandler[] = [
         .filter((c) => !query.segment || query.segment === "all" || c.segment === query.segment)
         .filter((c) => !query.tag || query.tag === "all" || c.tags.includes(String(query.tag)))
         .sort((a, b) => (b.lastOrderAt ?? b.createdAt).localeCompare(a.lastOrderAt ?? a.createdAt));
-      return { data: paginate(rows, query, (c) => `${c.name} ${c.phone} ${c.email ?? ""} ${c.tags.join(" ")}`) };
+      return { data: paginate(rows, query, (c) => `${c.code ?? ""} ${c.name} ${c.phone} ${c.email ?? ""} ${c.tags.join(" ")}`) };
     },
   },
   {
@@ -91,7 +91,11 @@ export const customerHandlers: MockHandler[] = [
     handle: ({ body }: { body: CustomerInput }) => {
       const data = clean(body);
       assertPhoneFree(data.phone);
-      const c: Customer = { ...data, id: uid("c"), createdAt: new Date().toISOString(), createdByShopId: actor().shopId };
+      const c: Customer = {
+        ...data,
+        id: uid("c"),
+        code: `KH${String(db.customers.length + 1).padStart(4, "0")}`,
+        createdAt: new Date().toISOString(), createdByShopId: actor().shopId };
       db.customers.unshift(c);
       return { data: withStats(c) };
     },
@@ -107,7 +111,7 @@ export const customerHandlers: MockHandler[] = [
       // Past orders are matched by phone, so keep them linked when the number changes
       if (data.phone !== c.phone) {
         db.orders.forEach((o) => {
-          if (o.recipientPhone === c.phone) o.recipientPhone = data.phone;
+          if (o.customerPhone === c.phone) o.customerPhone = data.phone;
         });
       }
       Object.assign(c, data);

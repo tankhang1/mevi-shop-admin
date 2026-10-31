@@ -18,17 +18,33 @@ export const orderColumns: Column<Order>[] = [
     ),
   },
   {
-    key: "recipientName",
-    label: "Người nhận",
+    key: "customerName",
+    label: "Khách hàng",
     mobilePriority: "secondary",
     render: (_, o) => (
-      <div>
-        <div>{o.recipientName}</div>
-        <div className="text-xs text-muted-foreground">{o.recipientPhone}</div>
+      <div className="whitespace-nowrap">
+        <div>{o.customerName ?? o.recipientName}</div>
+        <div className="text-xs text-muted-foreground">
+          {o.customerCode && <span className="font-mono">{o.customerCode} · </span>}
+          {o.customerPhone ?? o.recipientPhone}
+        </div>
       </div>
     ),
   },
-  { key: "address", label: "Địa chỉ", render: (v) => <span className="block min-w-48 text-sm">{String(v)}</span> },
+  {
+    key: "address",
+    label: "Giao đến",
+    render: (_, o) => (
+      <div className="min-w-52 text-sm">
+        <div>
+          {o.recipientName} · <span className="text-muted-foreground">{o.recipientPhone}</span>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {o.ward && o.province ? `${o.ward}, ${o.province}` : o.address}
+        </div>
+      </div>
+    ),
+  },
   {
     key: "total",
     label: "Tổng tiền",

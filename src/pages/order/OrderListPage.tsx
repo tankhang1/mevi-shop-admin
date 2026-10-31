@@ -15,9 +15,11 @@ import {
   ORDER_STATUS,
   ORDER_STATUSES,
   type Order,
-  type OrderListParams,
   type OrderStatus,
   ORDER_FLOW,
+  EMPTY_ORDER_FILTERS,
+  type OrderFilters,
+  countActive,
   isFinalOrderStatus,
   useOrders,
   useUpdateOrderStatus,
@@ -25,17 +27,14 @@ import {
 import { BackLink } from "@/components/common/BackLink";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ROUTES } from "@/config/routes";
-import { useDispatchTeams } from "@/features/dispatch-team";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
+import { OrderFilterSheet } from "./components/OrderFilterSheet";
 import { OrderMobileCard } from "./components/OrderMobileCard";
 import { OrderStatusChips } from "./components/OrderStatusChips";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
-import {
-  orderColumns,
-  orderFilters,
-} from "@/features/order/components/order-columns";
+import { orderColumns } from "@/features/order/components/order-columns";
 
 export default function OrderListPage() {
   const { toast } = useToast();
@@ -43,24 +42,18 @@ export default function OrderListPage() {
   const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const search = useSearch();
-  const { data: teams } = useDispatchTeams({ size: 100 });
-  const table = useTableParams<
-    Pick<OrderListParams, "status"> & { shopId: string; teamId: string }
-  >({
-    status: "all",
+  const table = useTableParams<OrderFilters & { shopId: string }>({
+    ...EMPTY_ORDER_FILTERS,
     shopId: shopFilter.initialShopId,
     // ?teamId= comes from "Xem đơn của nhóm" on the dispatch team page
     teamId: new URLSearchParams(search).get("teamId") ?? "all",
   });
-  const teamFilter = {
-    key: "teamId",
-    label: "Nhóm điều phối",
-    options: [
-      { label: "Chưa phân nhóm", value: "none" },
-      ...(teams?.items ?? []).map((t) => ({ label: t.name, value: t.id })),
-    ],
-  };
   const { data: page, isFetching } = useOrders(table.params);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const applyFilters = (next: OrderFilters & { shopId?: string }) => {
+    const { onFilterChange } = table.bind(page, isFetching);
+    Object.entries(next).forEach(([k, v]) => onFilterChange(k, v ?? "all"));
+  };
   const update = useUpdateOrderStatus();
   // Status picks are staged here and only applied after the admin confirms
   const [pending, setPending] = useState<{
@@ -204,17 +197,15 @@ export default function OrderListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={
-          [
-            ...(shopFilter.filter ? [shopFilter.filter] : []),
-            // Status is in the chips on mobile
-            ...(isMobile ? [] : orderFilters),
-            teamFilter,
-          ]
+        // The toolbar's "Bộ lọc" opens our own sheet instead of the default dropdown
+        onFilterClick={() => setFilterOpen(true)}
+        filterCount={
+          countActive(table.state.filters) +
+          (shopFilter.filter && table.state.filters.shopId && table.state.filters.shopId !== "all" ? 1 : 0)
         }
         columnToggleable={!isMobile}
         downloadable={!isMobile}
-        searchPlaceholder="Tìm theo mã đơn, mã vận đơn, người nhận, SĐT..."
+        searchPlaceholder="Tìm theo mã đơn, mã vận đơn, khách hàng, người nhận, SĐT..."
         enableMobileCard
         renderMobileCard={(o, helpers) => (
           <OrderMobileCard
@@ -225,6 +216,13 @@ export default function OrderListPage() {
           />
         )}
         onView={(o) => navigate(ROUTES.orderDetail(o.id))}
+      />
+      <OrderFilterSheet
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        value={{ ...EMPTY_ORDER_FILTERS, ...table.state.filters }}
+        shopOptions={shopFilter.filter?.options}
+        onApply={applyFilters}
       />
       <ConfirmDialog
         open={!!pending}

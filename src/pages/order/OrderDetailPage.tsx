@@ -2,8 +2,11 @@ import { type ReactNode, useState } from "react";
 import { Link, useParams } from "wouter";
 import {
   ArrowRight,
+  CalendarCheck,
   Handshake,
+  Mail,
   MapPin,
+  MessageSquare,
   Phone,
   StickyNote,
   Store,
@@ -220,7 +223,7 @@ export default function OrderDetailPage() {
         <div className="space-y-4 sm:space-y-5">
           <Card>
             <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-              <CardTitle className="text-base">Người nhận</CardTitle>
+              <CardTitle className="text-base">Khách hàng</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
               <Row icon={User}>
@@ -229,21 +232,57 @@ export default function OrderDetailPage() {
                     href={ROUTES.customerDetail(order.customerId)}
                     className="font-medium text-primary hover:underline"
                   >
-                    {order.recipientName}
+                    {order.customerName ?? order.recipientName}
                   </Link>
                 ) : (
-                  <span className="font-medium">{order.recipientName}</span>
+                  <span className="font-medium">{order.customerName ?? order.recipientName}</span>
+                )}
+                {order.customerCode && (
+                  <span className="ml-1.5 font-mono text-xs text-muted-foreground">{order.customerCode}</span>
                 )}
               </Row>
               <Row icon={Phone}>
                 <a
-                  href={`tel:${order.recipientPhone}`}
+                  href={`tel:${order.customerPhone ?? order.recipientPhone}`}
                   className="text-primary hover:underline"
                 >
+                  {order.customerPhone ?? order.recipientPhone}
+                </a>
+              </Row>
+              {order.customerEmail && <Row icon={Mail}>{order.customerEmail}</Row>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
+              <CardTitle className="text-base">Thông tin giao hàng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
+              <Row icon={User}>
+                <span className="font-medium">{order.recipientName}</span>
+                {order.customerPhone && order.recipientPhone !== order.customerPhone && (
+                  <span className="ml-1.5 rounded bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700">
+                    Khác người đặt
+                  </span>
+                )}
+              </Row>
+              <Row icon={Phone}>
+                <a href={`tel:${order.recipientPhone}`} className="text-primary hover:underline">
                   {order.recipientPhone}
                 </a>
               </Row>
-              <Row icon={MapPin}>{order.address}</Row>
+              <Row icon={MapPin}>
+                <div>
+                  <div>{order.street ?? order.address}</div>
+                  {order.ward && order.province && (
+                    <div className="text-xs text-muted-foreground">
+                      {order.ward}, {order.province}
+                    </div>
+                  )}
+                </div>
+              </Row>
+              {order.deliveryNote && <Row icon={MessageSquare}>{order.deliveryNote}</Row>}
+              {order.deliveredAt && <Row icon={CalendarCheck}>Giao lúc {formatDate(order.deliveredAt)}</Row>}
             </CardContent>
           </Card>
 

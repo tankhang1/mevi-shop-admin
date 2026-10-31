@@ -23,4 +23,17 @@ export const nextOrderStatus = (s: OrderStatus): OrderStatus | undefined =>
 
 export const CANCEL_REASONS = ["Khách yêu cầu huỷ", "Hết hàng", "Không liên lạc được khách", "Sai địa chỉ giao hàng"];
 
+/** Tỉnh / thành phố → xã / phường (2-level administrative units since 07/2025) — sample list for filters */
+export const VN_LOCATIONS: Record<string, string[]> = {
+  "TP. Hồ Chí Minh": ["Phường Sài Gòn", "Phường Bến Thành", "Phường Thủ Đức", "Phường Bình Thạnh", "Phường Tân Định"],
+  "TP. Hà Nội": ["Phường Ba Đình", "Phường Cầu Giấy", "Phường Hoàn Kiếm", "Phường Đống Đa", "Xã Sóc Sơn"],
+  "TP. Đà Nẵng": ["Phường Hải Châu", "Phường Sơn Trà", "Phường Ngũ Hành Sơn", "Xã Hoà Vang"],
+  "TP. Cần Thơ": ["Phường Ninh Kiều", "Phường Cái Răng", "Phường Bình Thuỷ", "Phường Sóc Trăng"],
+  "TP. Huế": ["Phường Thuận Hoá", "Phường Phú Xuân", "Xã Phú Vang"],
+  "Lâm Đồng": ["Phường Xuân Hương - Đà Lạt", "Phường Lâm Viên - Đà Lạt", "Xã Đơn Dương"],
+  "Đắk Lắk": ["Phường Buôn Ma Thuột", "Phường Tân Lập", "Xã Cư M'gar"],
+  "Nghệ An": ["Phường Thành Vinh", "Phường Trường Vinh", "Xã Nghi Lộc"],
+};
+export const VN_PROVINCES = Object.keys(VN_LOCATIONS);
+
 export const SHIPPING_CARRIERS = ["Giao Hàng Nhanh", "Giao Hàng Tiết Kiệm", "Viettel Post", "J&T Express", "SPX Express", "VNPost", "Ahamove", "Khác"];

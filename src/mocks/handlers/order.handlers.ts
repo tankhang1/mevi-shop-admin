@@ -24,7 +24,7 @@ function toDetail(o: Order): OrderDetail {
     ...o,
     shopName: db.shops.find((s) => s.id === o.shopId)?.name,
     agencyName: o.agencyId ? db.agencies.find((a) => a.id === o.agencyId)?.name : undefined,
-    customerId: db.customers.find((c) => c.phone === o.recipientPhone)?.id,
+    customerId: db.customers.find((c) => c.phone === (o.customerPhone ?? o.recipientPhone))?.id,
     teamName: teamName(o.teamId),
     assigneeName: staffName(o.assigneeId),
     items: (o.items ?? []).map((it) => {
@@ -53,20 +53,46 @@ export const orderHandlers: MockHandler[] = [
         .filter((o) => !staffId || o.assigneeId === staffId).map(withShop).sort((a, b) =>
         b.createdAt.localeCompare(a.createdAt),
       );
-      const rows = sorted.filter(
-        (o) =>
-          (!query.status ||
-            query.status === "all" ||
-            o.status === query.status) &&
+      const has = (v: unknown) => !!v && v !== "all";
+      const like = (actual: string | undefined | null, wanted: unknown) =>
+        (actual ?? "").toLowerCase().includes(String(wanted).trim().toLowerCase());
+      const groupProducts = has(query.productGroupId)
+        ? (db.productGroups.find((g) => g.id === query.productGroupId)?.productIds ?? [])
+        : null;
+      // `to` is a day — include all of it
+      const from = has(query.from) ? `${query.from}T00:00:00` : null;
+      const to = has(query.to) ? `${query.to}T23:59:59.999` : null;
+      const dateOf = (o: Order) => (query.dateField === "deliveredAt" ? o.deliveredAt : o.createdAt);
+      const local = (iso: string) => {
+        const d = new Date(iso);
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 23);
+      };
+      const rows = sorted.filter((o) => {
+        const buyerPhone = o.customerPhone ?? o.recipientPhone;
+        const date = dateOf(o);
+        return (
+          (!has(query.status) || o.status === query.status) &&
           (!query.agencyId || o.agencyId === query.agencyId) &&
-          (!customerPhone || o.recipientPhone === customerPhone) &&
-          (!query.teamId || query.teamId === "all" || (query.teamId === "none" ? !o.teamId : o.teamId === query.teamId)),
-      );
+          (!customerPhone || buyerPhone === customerPhone) &&
+          (!has(query.teamId) || (query.teamId === "none" ? !o.teamId : o.teamId === query.teamId)) &&
+          (!has(query.assigneeId) || o.assigneeId === query.assigneeId) &&
+          (!has(query.productId) || !!o.items?.some((it) => it.productId === query.productId)) &&
+          (!groupProducts || !!o.items?.some((it) => groupProducts.includes(it.productId))) &&
+          (!from || (!!date && local(date) >= from)) &&
+          (!to || (!!date && local(date) <= to)) &&
+          (!has(query.code) || like(o.code, query.code)) &&
+          (!has(query.province) || o.province === query.province) &&
+          (!has(query.ward) || o.ward === query.ward) &&
+          (!has(query.customerCode) || like(o.customerCode, query.customerCode)) &&
+          (!has(query.customerPhone) || like(buyerPhone, query.customerPhone))
+        );
+      });
       return {
         data: paginate(
           rows,
           query,
-          (o) => `${o.code} ${o.trackingCode ?? ""} ${o.recipientName} ${o.recipientPhone} ${o.shopName ?? ""}`,
+          (o) =>
+            `${o.code} ${o.trackingCode ?? ""} ${o.customerCode ?? ""} ${o.customerName ?? ""} ${o.customerPhone ?? ""} ${o.recipientName} ${o.recipientPhone} ${o.shopName ?? ""}`,
         ),
       };
     },
@@ -135,6 +161,7 @@ export const orderHandlers: MockHandler[] = [
       // Delivery takes the goods out of the warehouse
       if (body.status === "completed") deductOrderStock(o, actor().user.name ?? "—");
       o.status = body.status;
+      if (body.status === "completed") o.deliveredAt = new Date().toISOString();
       if (body.status === "cancelled") o.cancelReason = body.note!.trim();
       o.statusHistory = [
         ...(o.statusHistory ?? []),
