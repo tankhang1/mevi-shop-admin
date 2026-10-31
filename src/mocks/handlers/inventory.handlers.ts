@@ -167,8 +167,12 @@ export const inventoryHandlers: MockHandler[] = [
     path: EP.stats,
     handle: () => {
       const rows = scoped(db.products);
+      const supply = scoped(db.stockMovements).filter((m) => m.source === "farm" && m.status === "approved");
+      const today = new Date().toDateString();
       return {
         data: {
+          approved: supply.length,
+          approvedToday: supply.filter((m) => m.reviewedAt && new Date(m.reviewedAt).toDateString() === today).length,
           products: rows.length,
           units: rows.reduce((s, p) => s + p.stock, 0),
           low: rows.filter((p) => toItem(p).stockStatus === "low").length,

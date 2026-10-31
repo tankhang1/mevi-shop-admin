@@ -4,8 +4,9 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   BellRing,
-  Boxes,
+  CalendarCheck,
   ClipboardCheck,
+  Clock,
   ExternalLink,
   History,
   PackageX,
@@ -14,6 +15,7 @@ import {
 import {
   type Column,
   type RowAction,
+  Button,
   DataTable,
   StatsCard,
   type TableFilterDef,
@@ -39,6 +41,8 @@ import {
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { useAccess } from "@/features/auth";
+import { usePageActions } from "@/app/layouts/page-header.store";
+import { ImportPickDialog } from "./components/ImportPickDialog";
 import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
 import { StockAlertDialog } from "./components/StockAlertDialog";
@@ -105,7 +109,11 @@ function StockTable({
     {
       key: "variant",
       label: "Quy cách",
-      render: (v) => <span className="whitespace-nowrap font-medium">{String(v ?? "—")}</span>,
+      render: (v) => (
+        <span className="whitespace-nowrap font-medium">
+          {String(v ?? "—")}
+        </span>
+      ),
     },
     { key: "category", label: "Nhóm sản phẩm" },
     {
@@ -135,7 +143,9 @@ function StockTable({
       render: (_, p) => (
         <div className="whitespace-nowrap">
           <span className="text-base font-semibold">{nf.format(p.stock)}</span>
-          <span className="ml-1.5 text-xs text-muted-foreground">/ cảnh báo ≤ {p.lowStockThreshold}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">
+            / cảnh báo ≤ {p.lowStockThreshold}
+          </span>
         </div>
       ),
     },
@@ -206,67 +216,102 @@ export default function InventoryPage() {
   const canReviewSupply = isShopAdmin || isRoot;
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
   const [alerting, setAlerting] = useState<InventoryItem | null>(null);
+  const [picking, setPicking] = useState(false);
 
-  const statItems = [
-    {
-      title: "Chờ duyệt cung ứng",
-      short: "Chờ duyệt",
-      value: stats?.pending ?? "—",
-      icon: ClipboardCheck,
-      tone: "text-sky-600",
-    },
-    {
-      title: "Tổng hàng tồn",
-      short: "Tổng tồn",
-      value: stats ? nf.format(stats.units) : "—",
-      icon: Boxes,
-      tone: "text-primary",
-    },
-    {
-      title: "Sắp hết hàng",
-      short: "Sắp hết",
-      value: stats?.low ?? "—",
-      icon: AlertTriangle,
-      tone: "text-amber-600",
-    },
-    {
-      title: "Hết hàng",
-      short: "Hết hàng",
-      value: stats?.out ?? "—",
-      icon: PackageX,
-      tone: "text-destructive",
-    },
+  usePageActions(() => (
+    <Button onClick={() => setPicking(true)}>
+      <ArrowDownToLine className="mr-1.5 h-4 w-4" />
+      {/* One flex child: Button's gap would otherwise add space between the parts */}
+      <span>Nhập hàng từ Mevi</span>
+    </Button>
+  ));
+
+  // Row 1: hàng tồn alerts; row 2: đề xuất cung ứng from nông hộ
+  const statRows = [
+    [
+      {
+        title: "Sản phẩm sắp hết hàng",
+        short: "Sắp hết",
+        value: stats?.low ?? "—",
+        icon: AlertTriangle,
+        tone: "text-amber-600",
+      },
+      {
+        title: "Sản phẩm đã hết hàng",
+        short: "Hết hàng",
+        value: stats?.out ?? "—",
+        icon: PackageX,
+        tone: "text-destructive",
+      },
+    ],
+    [
+      {
+        title: "Tổng đơn đã duyệt",
+        short: "Đã duyệt",
+        value: stats ? nf.format(stats.approved) : "—",
+        icon: ClipboardCheck,
+        tone: "text-primary",
+      },
+      {
+        title: "Đơn duyệt trong ngày",
+        short: "Hôm nay",
+        value: stats?.approvedToday ?? "—",
+        icon: CalendarCheck,
+        tone: "text-emerald-600",
+      },
+      {
+        title: "Đơn chờ duyệt",
+        short: "Chờ duyệt",
+        value: stats?.pending ?? "—",
+        icon: Clock,
+        tone: "text-sky-600",
+      },
+    ],
   ];
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Mobile: one compact row instead of four stacked cards */}
-      <div className="grid grid-cols-4 divide-x rounded-xl border bg-card md:hidden!">
-        {statItems.map((it) => (
+      {statRows.map((row, r) => (
+        <div key={r} className="space-y-4">
+          {/* Mobile: one compact strip per row instead of stacked cards */}
           <div
-            key={it.title}
-            className="flex flex-col items-center gap-1 px-1 py-3"
+            className={cn(
+              "grid divide-x rounded-xl border bg-card md:hidden!",
+              row.length === 2 ? "grid-cols-2" : "grid-cols-3",
+            )}
           >
-            <it.icon className={`h-4 w-4 ${it.tone}`} />
-            <span className="text-lg font-bold leading-none tabular-nums">
-              {it.value}
-            </span>
-            <span className="text-center text-[11px] leading-tight text-muted-foreground">
-              {it.short}
-            </span>
+            {row.map((it) => (
+              <div
+                key={it.title}
+                className="flex flex-col items-center gap-1 px-1 py-3"
+              >
+                <it.icon className={`h-4 w-4 ${it.tone}`} />
+                <span className="text-lg font-bold leading-none tabular-nums">
+                  {it.value}
+                </span>
+                <span className="text-center text-[11px] leading-tight text-muted-foreground">
+                  {it.short}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="hidden gap-4 md:grid! md:grid-cols-2 xl:grid-cols-4">
-        {statItems.map((it) => (
-          <StatsCard
-            key={it.title}
-            title={it.title}
-            value={it.value}
-            icon={it.icon}
-          />
-        ))}
-      </div>
+          <div
+            className={cn(
+              "hidden gap-4 md:grid!",
+              row.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3",
+            )}
+          >
+            {row.map((it) => (
+              <StatsCard
+                key={it.title}
+                title={it.title}
+                value={it.value}
+                icon={it.icon}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
 
       <Tabs defaultValue="history" className="space-y-4">
         <TabsList
@@ -309,6 +354,14 @@ export default function InventoryPage() {
       <StockAdjustDialog
         item={adjusting}
         onOpenChange={(o) => !o && setAdjusting(null)}
+      />
+      <ImportPickDialog
+        open={picking}
+        onOpenChange={setPicking}
+        onPick={(item) => {
+          setPicking(false);
+          setAdjusting(item);
+        }}
       />
       <StockAlertDialog
         item={alerting}

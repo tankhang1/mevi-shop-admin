@@ -134,6 +134,9 @@ export interface InventoryStats {
   out: number;
   /** Farm stock changes waiting for approval */
   pending: number;
+  /** Đề xuất cung ứng đã duyệt — all time / reviewed today */
+  approved: number;
+  approvedToday: number;
 }
 
 export interface SupplyRequestListParams extends ListParams {
