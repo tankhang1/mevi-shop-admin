@@ -42,12 +42,12 @@ export function OrderTrackingCard({ order }: { order: Order }) {
 
   return (
     <Card>
-      <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-        <CardTitle className="flex items-center gap-1.5 text-base">
+      <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
+        <CardTitle className="flex items-center gap-1.5 text-sm font-semibold [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-muted-foreground">
           <Truck className="h-4 w-4" /> Vận chuyển
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+      <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
         <div className="space-y-1.5">
           <Label>Đơn vị vận chuyển</Label>
           <Select value={carrier} onValueChange={setCarrier}>

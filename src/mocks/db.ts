@@ -110,7 +110,7 @@ export const db: {
     customers: [],
     dispatchTeams: [
       { id: "t1", name: "Nhóm gạo & ngũ cốc", description: "Xử lý đơn danh mục Gạo, Hạt", leaderId: "st1", memberIds: ["st1", "st2"], categories: ["Gạo", "Hạt"], active: true, createdAt: daysAgo(40) },
-      { id: "t2", name: "Nhóm đặc sản", description: "Cà phê, trà, mật ong & gia vị", leaderId: "st4", memberIds: ["st4"], categories: ["Cà phê", "Trà", "Mật ong", "Gia vị"], active: true, createdAt: daysAgo(30) },
+      { id: "t2", name: "Nhóm đặc sản", description: "Cà phê, trà, mật ong, gia vị & trái cây sấy", leaderId: "st5", memberIds: ["st5", "st4"], categories: ["Cà phê", "Trà", "Mật ong", "Gia vị", "Trái cây sấy"], active: true, createdAt: daysAgo(30) },
     ],
     farmRegistrations: [
       { id: "fr1", shopId: "s1", farmId: "f1", name: "Gạo ST24 thơm dẻo", category: "Gạo", description: "Vụ Đông Xuân, canh tác theo hướng hữu cơ.", packaging: "Túi 5kg", proposedPrice: 150000, quantity: 200, images: [img("rice-st24")], certifications: ["VietGAP"], status: "pending", createdAt: daysAgo(1) },
@@ -143,16 +143,18 @@ export const db: {
       { id: 106, farmId: "f1", name: "Vườn Bưởi Da Xanh", cropIds: [3] },
     ],
     staff: [
-      { id: "st1", shopId: "s1", name: "Phạm Thu Hà", phone: "0911000001", email: "ha.pham@mientay.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(90), lastActiveAt: daysAgo(0), createdAt: daysAgo(90) },
-      { id: "st2", shopId: "s1", name: "Trần Minh Quân", phone: "0911000002", email: "quan.tran@mientay.vn", role: "sales", permissions: ["orders", "customers", "reviews"], status: "active", invitedAt: daysAgo(45), lastActiveAt: daysAgo(1), createdAt: daysAgo(45) },
-      { id: "st3", shopId: "s1", name: "Lê Văn Tài", phone: "0911000003", email: "tai.le@mientay.vn", role: "warehouse", permissions: ["inventory", "orders"], status: "disabled", invitedAt: daysAgo(60), lastActiveAt: daysAgo(20), createdAt: daysAgo(60) },
-      { id: "st4", shopId: "s1", name: "Võ Ngọc Mai", phone: "0911000004", email: "mai.vo@mientay.vn", role: "sales", permissions: ["orders", "customers"], status: "invited", invitedAt: daysAgo(2), lastActiveAt: null, createdAt: daysAgo(2) },
-      { id: "st5", shopId: "s2", name: "H'Nhi Êban", phone: "0911000005", email: "nhi@caphetaynguyen.vn", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(70), lastActiveAt: daysAgo(3), createdAt: daysAgo(70) },
+      { id: "st1", name: "Phạm Thu Hà", phone: "0911000001", email: "ha.pham@mientay.vn", dateOfBirth: "1990-04-12", gender: "female", idNumber: "094190001234", address: "25 Trần Hưng Đạo, Phường Sóc Trăng, TP. Cần Thơ", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(90), lastActiveAt: daysAgo(0), createdAt: daysAgo(90) },
+      { id: "st2", name: "Trần Minh Quân", phone: "0911000002", email: "quan.tran@mientay.vn", dateOfBirth: "1995-09-03", gender: "male", idNumber: "094195004567", address: "8 Lê Lợi, Phường Ninh Kiều, TP. Cần Thơ", role: "sales", permissions: ["orders", "customers", "reviews"], status: "active", invitedAt: daysAgo(45), lastActiveAt: daysAgo(1), createdAt: daysAgo(45) },
+      { id: "st3", name: "Lê Văn Tài", phone: "0911000003", email: "tai.le@mientay.vn", dateOfBirth: "1988-01-20", gender: "male", idNumber: "094188007890", address: null, role: "warehouse", permissions: ["inventory", "orders"], status: "disabled", invitedAt: daysAgo(60), lastActiveAt: daysAgo(20), createdAt: daysAgo(60) },
+      { id: "st4", name: "Võ Ngọc Mai", phone: "0911000004", email: "mai.vo@mientay.vn", dateOfBirth: "1998-12-15", gender: "female", idNumber: null, address: "102 Nguyễn Văn Cừ, Phường Cái Răng, TP. Cần Thơ", role: "sales", permissions: ["orders", "customers"], status: "invited", invitedAt: daysAgo(2), lastActiveAt: null, createdAt: daysAgo(2) },
+      { id: "st5", name: "H'Nhi Êban", phone: "0911000005", email: "nhi@caphetaynguyen.vn", dateOfBirth: "1993-06-08", gender: "female", idNumber: "066193002468", address: "45 Lê Duẩn, Phường Buôn Ma Thuột, Đắk Lắk", role: "manager", permissions: ["products", "inventory", "orders", "customers", "reviews", "shop"], status: "active", invitedAt: daysAgo(70), lastActiveAt: daysAgo(3), createdAt: daysAgo(70) },
     ],
     stockMovements: [
       { id: "mp1", code: "DX-2026-001", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "pending", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 80, before: 120, after: 200, note: "Nông hộ Lâm Văn Sáu giao thêm lô thu hoạch tháng 10", createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(0) },
       { id: "mp2", code: "DX-2026-002", productId: "p2", productName: "Cà phê Robusta rang mộc", sku: "CF-ROB-500", shopId: "s2", type: "in", source: "farm", status: "pending", cropId: 5, cropName: "Cà phê Robusta", farmId: "f3", farmName: "Nông hộ Y Ngông", regionId: 104, regionName: "Vườn Cà Phê Đắk Lắk", unit: "kg", delta: 40, before: 45, after: 85, note: "Đề xuất cung ứng thêm hàng vụ thu hoạch sớm", createdBy: "Y Ngông Niê (nông hộ)", createdAt: daysAgo(1) },
       { id: "mh0", code: "DX-2026-000", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 35, before: 40, after: 75, note: "Nhập hàng vụ Hè Thu", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(39), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(40) },
+      // Reviewed today, so "Đơn duyệt trong ngày" has something to show
+      { id: "mt0", code: "DX-2026-004", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "approved", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 35, before: 40, after: 75, note: "Duyệt trong ngày — lô giao sáng nay", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(0), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(0) },
       { id: "mr1", code: "DX-2026-003", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "in", source: "farm", status: "rejected", cropId: 7, cropName: "Lúa ST25", farmId: "f1", farmName: "Nông hộ Lâm Văn Sáu", regionId: 102, regionName: "Vườn Lúa ST25 Hữu Cơ", unit: "kg", delta: 60, before: 120, after: 180, note: "Giao bổ sung cuối vụ", rejectionReason: "Hàng chưa đạt độ ẩm tiêu chuẩn (<14%), đề nghị sấy/phơi lại", reviewedBy: "Lê Chủ Shop", reviewedAt: daysAgo(5), createdBy: "Lâm Văn Sáu (nông hộ)", createdAt: daysAgo(6) },
       { id: "mh1", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -11, before: 75, after: 64, note: "Xuất đơn sỉ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(38) },
       { id: "mh2", productId: "p1", productName: "Gạo ST25 hữu cơ", sku: "GAO-ST25-5KG", shopId: "s1", type: "out", status: "approved", delta: -8, before: 64, after: 56, note: "Hàng hỏng, huỷ", createdBy: "Lê Chủ Shop", createdAt: daysAgo(36) },
@@ -698,23 +700,37 @@ for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.create
   const team = db.dispatchTeams.find((t) => t.categories.some((c) => categories.includes(c)));
   if (!team) continue;
   o.teamId = team.id;
-  const i = team.nextMemberIndex ?? 0;
-  o.assigneeId = team.memberIds[i % team.memberIds.length];
-  team.nextMemberIndex = (i + 1) % team.memberIds.length;
+  // Same rule as nextMember(): only active accounts get orders, in turn
+  const n = team.memberIds.length;
+  for (let k = 0; k < n; k++) {
+    const i = ((team.nextMemberIndex ?? 0) + k) % n;
+    if (db.staff.find((s) => s.id === team.memberIds[i])?.status !== "active") continue;
+    o.assigneeId = team.memberIds[i];
+    team.nextMemberIndex = (i + 1) % n;
+    break;
+  }
 }
 
 // ── Buyer vs giao hàng: most people ship to themselves, ~1 in 5 orders is a gift to someone else ──
 const NOTES = ["Giao giờ hành chính", "Gọi trước khi giao", "Để ở bảo vệ toà nhà", null, null, null];
-for (const o of db.orders) {
+const randomPlace = (street: string) => {
   const province = pick(VN_PROVINCES);
-  const ward = pick(VN_LOCATIONS[province]);
-  o.street = o.address.split(",")[0].trim();
-  o.ward = ward;
-  o.province = province;
-  o.address = `${o.street}, ${ward}, ${province}`;
+  return { street, province, ward: pick(VN_LOCATIONS[province]) };
+};
+/** Buyer phone → home address, so someone shipping to themselves always uses the same one */
+const homeOf = new Map<string, ReturnType<typeof randomPlace>>();
+for (const o of db.orders) {
   o.customerName = o.recipientName;
   o.customerPhone = o.recipientPhone;
-  if (rand() < 0.2) {
+  const home = homeOf.get(o.customerPhone) ?? randomPlace(o.address.split(",")[0].trim());
+  homeOf.set(o.customerPhone, home);
+  const gift = rand() < 0.2;
+  const place = gift ? randomPlace(`${1 + Math.floor(rand() * 200)} Đường số ${1 + Math.floor(rand() * 30)}`) : home;
+  o.street = place.street;
+  o.ward = place.ward;
+  o.province = place.province;
+  o.address = `${place.street}, ${place.ward}, ${place.province}`;
+  if (gift) {
     o.recipientName = `${pick(SURNAMES)} ${pick(GIVEN)}`;
     o.recipientPhone = `09${String(10_000_000 + Math.floor(rand() * 89_999_999))}`;
   }

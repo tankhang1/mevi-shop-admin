@@ -50,6 +50,9 @@ export function useUpdateOrderStatus() {
       Promise.all([
         qc.invalidateQueries({ queryKey: orderKeys.all }),
         qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+        // "Đã giao hàng" deducts stock → Kho sản phẩm blocks + product stock change
+        qc.invalidateQueries({ queryKey: ["inventory"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
       ]),
   });
 }

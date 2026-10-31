@@ -29,8 +29,7 @@ export const DEMO_USERS: (AuthMe & { title: string; shopId?: string; staffId?: s
     email: "quan.tran@mientay.vn",
     phoneNumber: "0911000002",
     roles: ["MEVI_SHOP_STAFF"],
-    title: "Nhân viên xử lý đơn · Đặc sản Miền Tây",
-    shopId: "s1",
+    title: "Nhân viên điều phối · Mevi",
     staffId: "st2",
   },
   {

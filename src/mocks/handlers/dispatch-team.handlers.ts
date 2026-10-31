@@ -74,13 +74,13 @@ export function autoAssignOrders() {
   return { assigned, unmatched };
 }
 
-/** Next active member in turn; skips locked accounts */
+/** Next active member in turn; skips locked and not-yet-activated accounts */
 export function nextMember(t: DispatchTeam) {
   const n = t.memberIds.length;
   for (let k = 0; k < n; k++) {
     const i = ((t.nextMemberIndex ?? 0) + k) % n;
     const s = db.staff.find((x) => x.id === t.memberIds[i]);
-    if (s && s.status !== "disabled") {
+    if (s?.status === "active") {
       t.nextMemberIndex = (i + 1) % n;
       return s.id;
     }

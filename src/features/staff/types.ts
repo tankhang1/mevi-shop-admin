@@ -7,11 +7,9 @@ export type StaffGender = "male" | "female" | "other";
 /** Areas of the shop admin a staff member can be given access to */
 export type StaffPermission = "products" | "inventory" | "orders" | "customers" | "reviews" | "shop";
 
+/** Nhân viên điều phối — a Mevi account (not tied to a shop), managed by Mevi admins */
 export interface Staff {
   id: string;
-  shopId: string;
-  /** Joined by the backend for root's list */
-  shopName?: string;
   name: string;
   phone: string;
   email: string;
@@ -34,7 +32,7 @@ export interface Staff {
   createdAt: string;
 }
 
-/** Dispatch staff: their profile + team — role (điều phối) / permissions / shop are set by the backend */
+/** Dispatch staff: their profile + team — role (điều phối) / permissions are set by the backend */
 export type StaffInput = Pick<Staff, "name" | "phone" | "email" | "dateOfBirth" | "gender" | "idNumber" | "address" | "teamId"> & {
   password?: string;
 };
@@ -42,5 +40,4 @@ export type StaffInput = Pick<Staff, "name" | "phone" | "email" | "dateOfBirth" 
 export interface StaffListParams extends ListParams {
   role?: "all" | StaffRole;
   status?: "all" | StaffStatus;
-  shopId?: string;
 }

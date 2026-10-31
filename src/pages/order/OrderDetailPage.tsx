@@ -1,24 +1,10 @@
 import { type ReactNode, useState } from "react";
 import { Link, useParams } from "wouter";
-import {
-  ArrowRight,
-  CalendarCheck,
-  Handshake,
-  Mail,
-  MapPin,
-  MessageSquare,
-  Phone,
-  StickyNote,
-  Store,
-  User,
-  XCircle,
-} from "lucide-react";
+import { ArrowRight, XCircle } from "lucide-react";
 import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Textarea,
   useIsMobile,
   useToast,
@@ -50,18 +36,27 @@ import { OrderDispatchCard } from "./components/OrderDispatchCard";
 import { OrderTrackingCard } from "./components/OrderTrackingCard";
 import { OrderTimeline } from "./components/OrderTimeline";
 
-const Row = ({
-  icon: Icon,
-  children,
-}: {
-  icon: typeof Phone;
-  children: ReactNode;
-}) => (
-  <div className="flex items-start gap-2.5 text-sm">
-    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-    <div className="min-w-0 break-words">{children}</div>
-  </div>
-);
+/** Card with a small title row — keeps every block on the page the same shape */
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-5 sm:pt-5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {aside && <span className="text-xs text-muted-foreground">{aside}</span>}
+      </div>
+      <CardContent className="p-4 pt-3 sm:p-5 sm:pt-3">{children}</CardContent>
+    </Card>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="text-sm">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-0.5 break-words">{children}</div>
+    </div>
+  );
+}
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +133,9 @@ export default function OrderDetailPage() {
   const units = order.items.reduce((s, it) => s + it.quantity, 0);
   const noteValue = note ?? order.internalNote ?? "";
 
+  const buyerPhone = order.customerPhone ?? order.recipientPhone;
+  const isGift = order.recipientPhone !== buyerPhone;
+
   return (
     <div className="space-y-4 sm:space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -149,40 +147,33 @@ export default function OrderDetailPage() {
         </span>
       </div>
 
-      <Card>
-        <CardContent className="p-4 sm:p-5">
-          <OrderTimeline order={order} />
-          {order.status === "cancelled" && order.cancelReason && (
-            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-              Lý do huỷ: {order.cancelReason}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Card className="h-fit">
-          <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-            <CardTitle className="text-base">
-              Sản phẩm{" "}
-              <span className="font-normal text-muted-foreground">
-                · {units} món
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
-            <ul className="divide-y">
+        {/* Main: progress, items, who & where */}
+        <div className="min-w-0 space-y-4 sm:space-y-5">
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <OrderTimeline order={order} />
+              {order.status === "cancelled" && order.cancelReason && (
+                <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  Lý do huỷ: {order.cancelReason}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Section title="Sản phẩm" aside={`${units} món`}>
+            <ul className="-my-3 divide-y">
               {order.items.map((it) => (
-                <li key={it.productId} className="flex items-start gap-3 py-3">
+                <li key={it.productId} className="flex items-center gap-3 py-3">
                   <img
                     src={it.image || placeholder}
                     alt=""
-                    className="h-12 w-12 shrink-0 rounded-md border object-cover"
+                    className="h-12 w-12 shrink-0 rounded-lg border object-cover"
                   />
                   <div className="min-w-0 flex-1">
                     <Link
                       href={ROUTES.productDetail(it.productId)}
-                      className="line-clamp-2 text-sm font-medium hover:underline"
+                      className="line-clamp-1 text-sm font-medium hover:underline"
                     >
                       {it.name}
                     </Link>
@@ -193,121 +184,142 @@ export default function OrderDetailPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="whitespace-nowrap text-sm font-semibold">
+                  <div className="whitespace-nowrap text-sm font-semibold tabular-nums">
                     {formatVnd(it.price * it.quantity)}
                   </div>
                 </li>
               ))}
             </ul>
-            <dl className="space-y-1.5 border-t pt-4 text-sm">
+          </Section>
+
+          <Card>
+            <CardContent className="grid p-0 sm:grid-cols-2 sm:divide-x max-sm:divide-y">
+              <div className="space-y-3 p-4 sm:p-5">
+                <h3 className="text-sm font-semibold">Khách hàng</h3>
+                <Field label="Họ tên">
+                  {order.customerId ? (
+                    <Link
+                      href={ROUTES.customerDetail(order.customerId)}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {order.customerName ?? order.recipientName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{order.customerName ?? order.recipientName}</span>
+                  )}
+                </Field>
+                {order.customerCode && (
+                  <Field label="Mã khách hàng">
+                    <span className="font-mono">{order.customerCode}</span>
+                  </Field>
+                )}
+                <Field label="Số điện thoại">
+                  <a href={`tel:${buyerPhone}`} className="text-primary hover:underline">
+                    {buyerPhone}
+                  </a>
+                </Field>
+                {order.customerEmail && <Field label="Email">{order.customerEmail}</Field>}
+              </div>
+
+              <div className="space-y-3 p-4 sm:p-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  Giao hàng
+                  {isGift && (
+                    <span className="rounded bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700">
+                      Khác người đặt
+                    </span>
+                  )}
+                </h3>
+                <Field label="Người nhận">
+                  <span className="font-medium">{order.recipientName}</span>
+                  {" · "}
+                  <a href={`tel:${order.recipientPhone}`} className="text-primary hover:underline">
+                    {order.recipientPhone}
+                  </a>
+                </Field>
+                <Field label="Địa chỉ">
+                  {order.street ?? order.address}
+                  {order.ward && order.province && (
+                    <span className="block text-muted-foreground">
+                      {order.ward}, {order.province}
+                    </span>
+                  )}
+                </Field>
+                {order.deliveryNote && <Field label="Lời nhắn">{order.deliveryNote}</Field>}
+                {order.deliveredAt && <Field label="Đã giao lúc">{formatDate(order.deliveredAt)}</Field>}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Section title="Ghi chú nội bộ" aside="Chỉ người bán thấy">
+            <div className="space-y-2">
+              <Textarea
+                rows={3}
+                value={noteValue}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="VD: khách hẹn giao sau 17h"
+              />
+              {note !== null && note !== (order.internalNote ?? "") && (
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setNote(null)}>
+                    Huỷ
+                  </Button>
+                  <Button size="sm" onClick={() => void onSaveNote()} disabled={saveNote.isPending}>
+                    Lưu ghi chú
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Section>
+        </div>
+
+        {/* Sidebar: money, where it came from, who handles it */}
+        <div className="space-y-4 sm:space-y-5 lg:sticky lg:top-4 lg:self-start">
+          <Section title="Thanh toán">
+            <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Tạm tính</dt>
-                <dd>{formatVnd(subtotal)}</dd>
+                <dd className="tabular-nums">{formatVnd(subtotal)}</dd>
               </div>
               {order.total !== subtotal && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">
-                    Phí vận chuyển / giảm giá
-                  </dt>
-                  <dd>{formatVnd(order.total - subtotal)}</dd>
+                  <dt className="text-muted-foreground">Phí vận chuyển / giảm giá</dt>
+                  <dd className="tabular-nums">{formatVnd(order.total - subtotal)}</dd>
                 </div>
               )}
-              <div className="flex justify-between border-t pt-2 text-base font-semibold">
-                <dt>Tổng cộng</dt>
-                <dd className="text-primary">{formatVnd(order.total)}</dd>
+              <div className="flex items-baseline justify-between border-t pt-2">
+                <dt className="font-semibold">Tổng cộng</dt>
+                <dd className="text-lg font-bold tabular-nums text-primary">{formatVnd(order.total)}</dd>
               </div>
             </dl>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4 sm:space-y-5">
-          <Card>
-            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-              <CardTitle className="text-base">Khách hàng</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
-              <Row icon={User}>
-                {order.customerId ? (
-                  <Link
-                    href={ROUTES.customerDetail(order.customerId)}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {order.customerName ?? order.recipientName}
-                  </Link>
-                ) : (
-                  <span className="font-medium">{order.customerName ?? order.recipientName}</span>
+            {(isRoot || order.agencyName) && (
+              <dl className="mt-4 space-y-2 border-t pt-4 text-sm">
+                {isRoot && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Gian hàng</dt>
+                    <dd className="text-right font-medium">{order.shopName ?? "—"}</dd>
+                  </div>
                 )}
-                {order.customerCode && (
-                  <span className="ml-1.5 font-mono text-xs text-muted-foreground">{order.customerCode}</span>
-                )}
-              </Row>
-              <Row icon={Phone}>
-                <a
-                  href={`tel:${order.customerPhone ?? order.recipientPhone}`}
-                  className="text-primary hover:underline"
-                >
-                  {order.customerPhone ?? order.recipientPhone}
-                </a>
-              </Row>
-              {order.customerEmail && <Row icon={Mail}>{order.customerEmail}</Row>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-              <CardTitle className="text-base">Thông tin giao hàng</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
-              <Row icon={User}>
-                <span className="font-medium">{order.recipientName}</span>
-                {order.customerPhone && order.recipientPhone !== order.customerPhone && (
-                  <span className="ml-1.5 rounded bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700">
-                    Khác người đặt
-                  </span>
-                )}
-              </Row>
-              <Row icon={Phone}>
-                <a href={`tel:${order.recipientPhone}`} className="text-primary hover:underline">
-                  {order.recipientPhone}
-                </a>
-              </Row>
-              <Row icon={MapPin}>
-                <div>
-                  <div>{order.street ?? order.address}</div>
-                  {order.ward && order.province && (
-                    <div className="text-xs text-muted-foreground">
-                      {order.ward}, {order.province}
-                    </div>
-                  )}
-                </div>
-              </Row>
-              {order.deliveryNote && <Row icon={MessageSquare}>{order.deliveryNote}</Row>}
-              {order.deliveredAt && <Row icon={CalendarCheck}>Giao lúc {formatDate(order.deliveredAt)}</Row>}
-            </CardContent>
-          </Card>
-
-          {(isRoot || order.agencyName) && (
-            <Card>
-              <CardContent className="space-y-2.5 p-4 sm:p-5">
-                {isRoot && <Row icon={Store}>{order.shopName ?? "—"}</Row>}
                 {order.agencyName && (
-                  <Row icon={Handshake}>
-                    Qua đại lý{" "}
-                    {isRoot && order.agencyId ? (
-                      <Link
-                        href={ROUTES.agencyDetail(order.agencyId)}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {order.agencyName}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{order.agencyName}</span>
-                    )}
-                  </Row>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Đại lý</dt>
+                    <dd className="text-right">
+                      {isRoot && order.agencyId ? (
+                        <Link
+                          href={ROUTES.agencyDetail(order.agencyId)}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {order.agencyName}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{order.agencyName}</span>
+                      )}
+                    </dd>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </dl>
+            )}
+          </Section>
 
           <OrderDispatchCard
             key={`${order.id}-${order.teamId}-${order.assigneeId}`}
@@ -318,40 +330,6 @@ export default function OrderDetailPage() {
             key={`${order.id}-${order.carrier}-${order.trackingCode}`}
             order={order}
           />
-
-          <Card>
-            <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-              <CardTitle className="flex items-center gap-1.5 text-base">
-                <StickyNote className="h-4 w-4" /> Ghi chú nội bộ
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-4 pt-0 sm:p-6 sm:pt-0">
-              <Textarea
-                rows={3}
-                value={noteValue}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Chỉ người bán thấy — VD: khách hẹn giao sau 17h"
-              />
-              {note !== null && note !== (order.internalNote ?? "") && (
-                <div className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setNote(null)}
-                  >
-                    Huỷ
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void onSaveNote()}
-                    disabled={saveNote.isPending}
-                  >
-                    Lưu ghi chú
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
 

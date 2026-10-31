@@ -113,7 +113,7 @@ export function StaffFormDialog({ open, onOpenChange, staff }: Props) {
           <DialogTitle>{isEdit ? "Sửa nhân viên điều phối" : "Thêm nhân viên điều phối"}</DialogTitle>
           {!isEdit && (
             <p className="text-sm text-muted-foreground">
-              Tạo tài khoản đầy đủ trên nền tảng, mặc định vai trò điều phối của gian hàng. Nhân viên đăng nhập bằng
+              Tạo tài khoản đầy đủ trên nền tảng, mặc định vai trò nhân viên điều phối của Mevi. Nhân viên đăng nhập bằng
               email và mật khẩu bạn đặt bên dưới.
             </p>
           )}

@@ -11,9 +11,10 @@ export function actor() {
   const user = mockUserFromToken(getAccessToken());
   if (!user) throw new HttpError(401, "Phiên đăng nhập không hợp lệ");
   const isRoot = isRootRole(user.roles ?? []);
-  if (!isRoot && !user.shopId) throw new HttpError(403, "Tài khoản chưa được gán gian hàng");
-  // Staff accounts are pinned to their own assigned orders on top of the shop
-  return { user, isRoot, shopId: isRoot ? undefined : user.shopId, staffId: isRoot ? undefined : user.staffId };
+  const staffId = isRoot ? undefined : user.staffId;
+  if (!isRoot && !staffId && !user.shopId) throw new HttpError(403, "Tài khoản chưa được gán gian hàng");
+  // Dispatch staff are Mevi accounts: no shop, pinned to their own assigned orders instead
+  return { user, isRoot, shopId: isRoot || staffId ? undefined : user.shopId, staffId };
 }
 
 export function requireRoot() {

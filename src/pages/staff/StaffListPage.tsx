@@ -11,7 +11,6 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { StatusPill } from "@/components/common/ui-bits";
-import { useShopFilter } from "@/features/shop";
 import {
   STAFF_STATUS,
   type Staff,
@@ -38,11 +37,7 @@ const baseFilters: TableFilterDef[] = [
 
 export default function StaffListPage() {
   const { toast } = useToast();
-  const shopFilter = useShopFilter();
-  const table = useTableParams<Required<Pick<StaffListParams, "status">> & { shopId: string }>({
-    status: "all",
-    shopId: shopFilter.initialShopId,
-  });
+  const table = useTableParams<Required<Pick<StaffListParams, "status">>>({ status: "all" });
   const { data: page, isFetching } = useStaffList(table.params);
   const update = useUpdateStaff();
   const del = useDeleteStaff();
@@ -150,7 +145,7 @@ export default function StaffListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={shopFilter.filter ? [shopFilter.filter, ...baseFilters] : baseFilters}
+        filters={baseFilters}
         searchPlaceholder="Tìm theo tên, email, SĐT..."
         enableMobileCard
         onEdit={(s) => {
@@ -165,7 +160,7 @@ export default function StaffListPage() {
         open={!!deleting}
         onOpenChange={(o) => !o && setDeleting(null)}
         title="Xoá nhân viên?"
-        description={`${deleting?.name ?? ""} sẽ mất quyền truy cập gian hàng ngay lập tức. Lịch sử thao tác của họ vẫn được giữ lại.`}
+        description={`${deleting?.name ?? ""} sẽ mất quyền truy cập ngay lập tức và không còn nhận đơn điều phối. Lịch sử thao tác của họ vẫn được giữ lại.`}
         onConfirm={() => void confirmDelete()}
         loading={del.isPending}
       />

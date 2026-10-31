@@ -63,12 +63,12 @@ export function OrderDispatchCard({ order }: { order: OrderDetail }) {
 
   return (
     <Card>
-      <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
-        <CardTitle className="flex items-center gap-1.5 text-base">
+      <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
+        <CardTitle className="flex items-center gap-1.5 text-sm font-semibold [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-muted-foreground">
           <Network className="h-4 w-4" /> Điều phối
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+      <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
         <div className="space-y-1.5">
           <Label>Nhóm xử lý</Label>
           <Select

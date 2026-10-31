@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import type { Staff, StaffInput, StaffStatus } from "@/features/staff/types";
 import { db } from "../db";
-import { actor, assertOwns, requireShopAdmin, scoped } from "../scope";
+import { requireRoot } from "../scope";
 import { HttpError, type MockHandler, paginate, uid } from "../utils";
 
 const EP = API_ENDPOINTS.admin.staff;
@@ -9,7 +9,7 @@ const EP = API_ENDPOINTS.admin.staff;
 const teamOf = (id: string) => db.dispatchTeams.find((t) => t.memberIds.includes(id));
 const withShop = (s: Staff): Staff => {
   const team = teamOf(s.id);
-  return { ...s, shopName: db.shops.find((x) => x.id === s.shopId)?.name, teamId: team?.id ?? null, teamName: team?.name ?? null };
+  return { ...s, teamId: team?.id ?? null, teamName: team?.name ?? null };
 };
 
 /** A staff member belongs to at most one team: drop them from every other team, then add to `teamId` */
@@ -32,15 +32,12 @@ const profileOf = (b: Partial<StaffInput>) => ({
   idNumber: b.idNumber?.trim() || null,
   address: b.address?.trim() || null,
 });
-const findOwned = (id: string) => assertOwns(db.staff.find((x) => x.id === id), "Không tìm thấy nhân viên");
-
-/** Shop admins add to their own shop; root's dispatch staff go to the first shop */
-function resolveShopId() {
-  const a = actor();
-  if (a.shopId) return a.shopId;
-  if (!db.shops[0]) throw new HttpError(400, "Chưa có gian hàng nào");
-  return db.shops[0].id;
-}
+const findOwned = (id: string) => {
+  requireRoot();
+  const s = db.staff.find((x) => x.id === id);
+  if (!s) throw new HttpError(404, "Không tìm thấy nhân viên");
+  return s;
+};
 
 /** Phone and email each identify one login across the platform */
 function assertUnique(phone?: string, email?: string, exceptId?: string) {
@@ -56,7 +53,8 @@ export const staffHandlers: MockHandler[] = [
     path: EP.base,
     handle: ({ query }) => {
       const is = (actual: string, wanted: unknown) => !wanted || wanted === "all" || wanted === actual;
-      const rows = scoped(db.staff, query.shopId)
+      requireRoot();
+      const rows = db.staff
         .filter((s) => is(s.role, query.role) && is(s.status, query.status))
         .map(withShop);
       return { data: paginate(rows, query, (s) => `${s.name} ${s.phone} ${s.email}`) };
@@ -66,13 +64,11 @@ export const staffHandlers: MockHandler[] = [
     method: "POST",
     path: EP.base,
     handle: ({ body }: { body: StaffInput }) => {
-      requireShopAdmin();
-      const shopId = resolveShopId();
+      requireRoot();
       assertUnique(body.phone, body.email);
       const now = new Date().toISOString();
       const s: Staff = {
         id: uid("st"),
-        shopId,
         name: body.name.trim(),
         phone: body.phone.trim(),
         email: body.email.trim(),
@@ -99,7 +95,6 @@ export const staffHandlers: MockHandler[] = [
       assertUnique(body.phone, body.email, s.id);
       if (body.status === "active" && s.status === "invited")
         throw new HttpError(400, "Nhân viên cần tự kích hoạt tài khoản qua lời mời");
-      // Moving staff between shops isn't supported — shopId is ignored on update
       const { name, phone, email, status } = body;
       Object.assign(
         s,
