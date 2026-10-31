@@ -108,8 +108,8 @@ export const db: {
     reviews: [],
     customers: [],
     dispatchTeams: [
-      { id: "t1", shopId: "s1", name: "Nhóm gạo & ngũ cốc", description: "Xử lý đơn nhóm Gạo đặc sản", leaderId: "st1", memberIds: ["st1", "st2"], productGroupIds: ["g1"], active: true, createdAt: daysAgo(40) },
-      { id: "t2", shopId: "s1", name: "Nhóm quà tặng", description: "Đóng gói & giao set quà", leaderId: "st2", memberIds: ["st2", "st4"], productGroupIds: ["g2"], active: true, createdAt: daysAgo(30) },
+      { id: "t1", name: "Nhóm gạo & ngũ cốc", description: "Xử lý đơn danh mục Gạo, Hạt", leaderId: "st1", memberIds: ["st1", "st2"], categories: ["Gạo", "Hạt"], active: true, createdAt: daysAgo(40) },
+      { id: "t2", name: "Nhóm đặc sản", description: "Cà phê, trà, mật ong & gia vị", leaderId: "st4", memberIds: ["st4"], categories: ["Cà phê", "Trà", "Mật ong", "Gia vị"], active: true, createdAt: daysAgo(30) },
     ],
     farmRegistrations: [
       { id: "fr1", shopId: "s1", farmId: "f1", name: "Gạo ST24 thơm dẻo", category: "Gạo", description: "Vụ Đông Xuân, canh tác theo hướng hữu cơ.", packaging: "Túi 5kg", proposedPrice: 150000, quantity: 200, images: [img("rice-st24")], certifications: ["VietGAP"], status: "pending", createdAt: daysAgo(1) },
@@ -691,12 +691,11 @@ for (const o of db.orders) {
   }
 }
 
-// ── Dispatch: route each order to the team owning its product group, members in turn ──
+// ── Dispatch: route each order to the team owning its danh mục, members in turn ──
 for (const o of [...db.orders].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
-  const groupIds = db.productGroups.filter((g) => o.items?.some((it) => g.productIds.includes(it.productId))).map((g) => g.id);
-  const team = db.dispatchTeams.find((t) => t.shopId === o.shopId && t.productGroupIds.some((g) => groupIds.includes(g)));
-  // Leave the newest few unassigned so "Tự động phân đơn" has work to do
-  if (!team || Date.now() - new Date(o.createdAt).getTime() < 2 * 86_400_000) continue;
+  const categories = (o.items ?? []).map((it) => db.products.find((p) => p.id === it.productId)?.category);
+  const team = db.dispatchTeams.find((t) => t.categories.some((c) => categories.includes(c)));
+  if (!team) continue;
   o.teamId = team.id;
   const i = team.nextMemberIndex ?? 0;
   o.assigneeId = team.memberIds[i % team.memberIds.length];

@@ -29,7 +29,7 @@ const NONE = "none";
 export function OrderDispatchCard({ order }: { order: OrderDetail }) {
   const { toast } = useToast();
   const { isStaff } = useAccess();
-  const { data: teams } = useDispatchTeams({ shopId: order.shopId, size: 100 });
+  const { data: teams } = useDispatchTeams({ size: 100 });
   const assign = useAssignOrder();
   const [teamId, setTeamId] = useState(order.teamId ?? NONE);
   const [assigneeId, setAssigneeId] = useState(order.assigneeId ?? NONE);

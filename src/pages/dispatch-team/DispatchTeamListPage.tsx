@@ -21,7 +21,6 @@ import {
   useDispatchTeams,
   useUpdateDispatchTeam,
 } from "@/features/dispatch-team";
-import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
 import { Initials } from "@/pages/customer/CustomerListPage";
@@ -31,11 +30,8 @@ import { DispatchTeamFormDialog } from "./components/DispatchTeamFormDialog";
 export default function DispatchTeamListPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const shopFilter = useShopFilter();
   const isMobile = useIsMobile();
-  const table = useTableParams<{ shopId: string }>({
-    shopId: shopFilter.initialShopId,
-  });
+  const table = useTableParams({});
   const { data: page, isFetching } = useDispatchTeams(table.params);
   const update = useUpdateDispatchTeam();
   const del = useDeleteDispatchTeam();
@@ -54,7 +50,7 @@ export default function DispatchTeamListPage() {
         aria-label="Tự động phân đơn"
       >
         <Wand2 className="h-4 w-4 md:mr-1.5" />
-        <span className="max-md:hidden">Tự động phân đơn</span>
+        <span className="max-md:hidden">Phân đơn còn tồn</span>
       </Button>
       <Button
         onClick={() => {
@@ -108,7 +104,6 @@ export default function DispatchTeamListPage() {
         </div>
       ),
     },
-    ...shopFilter.column<DispatchTeamRow>(),
     {
       key: "memberIds",
       label: "Thành viên",
@@ -134,17 +129,17 @@ export default function DispatchTeamListPage() {
       ),
     },
     {
-      key: "productGroupIds",
-      label: "Nhóm sản phẩm",
+      key: "categories",
+      label: "Danh mục phụ trách",
       render: (_, t) =>
-        t.productGroups.length ? (
+        t.categories.length ? (
           <div className="flex flex-wrap gap-1">
-            {t.productGroups.map((g) => (
+            {t.categories.map((c) => (
               <span
-                key={g.id}
+                key={c}
                 className="rounded-full bg-muted px-2 py-0.5 text-xs"
               >
-                {g.name}
+                {c}
               </span>
             ))}
           </div>
@@ -228,13 +223,11 @@ export default function DispatchTeamListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={shopFilter.filter ? [shopFilter.filter] : undefined}
         searchPlaceholder="Tìm theo tên nhóm..."
         enableMobileCard
         renderMobileCard={(t, helpers) => (
           <DispatchTeamMobileCard
             team={t}
-            showShop={shopFilter.isRoot}
             onOrders={() => navigate(`${ROUTES.orders}?teamId=${t.id}`)}
             onToggle={() => void toggle(t)}
             helpers={helpers}
@@ -258,8 +251,8 @@ export default function DispatchTeamListPage() {
         open={confirmAuto}
         onOpenChange={setConfirmAuto}
         loading={auto.isPending}
-        title="Tự động phân đơn?"
-        description="Các đơn chưa có nhóm và chưa giao sẽ được chuyển cho nhóm điều phối phụ trách nhóm sản phẩm của đơn, lần lượt cho từng thành viên."
+        title="Phân các đơn còn tồn?"
+        description="Đơn mới được tự động giao cho nhóm phụ trách danh mục sản phẩm, lần lượt cho từng thành viên. Thao tác này phân lại các đơn chưa có nhóm (VD: đơn đặt trước khi danh mục được gán nhóm)."
         confirmLabel="Phân đơn"
         onConfirm={() => void runAuto()}
       />

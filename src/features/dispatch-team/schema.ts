@@ -6,8 +6,7 @@ export const dispatchTeamSchema = z
     description: z.string().trim().max(200, "Tối đa 200 ký tự").optional(),
     memberIds: z.array(z.string()).min(1, "Chọn ít nhất một thành viên"),
     leaderId: z.string().nullable().optional(),
-    productGroupIds: z.array(z.string()),
-    shopId: z.string().optional(),
+    categories: z.array(z.string()),
   })
   .refine((v) => !v.leaderId || v.memberIds.includes(v.leaderId), {
     path: ["leaderId"],

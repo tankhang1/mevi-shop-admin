@@ -16,7 +16,7 @@ const withShop = (s: Staff): Staff => {
 function setTeam(staff: Staff, teamId: string | null | undefined) {
   if (teamId === undefined) return;
   const target = teamId ? db.dispatchTeams.find((t) => t.id === teamId) : undefined;
-  if (teamId && target?.shopId !== staff.shopId) throw new HttpError(400, "Nhóm điều phối không thuộc gian hàng");
+  if (teamId && !target) throw new HttpError(400, "Không tìm thấy nhóm điều phối");
   db.dispatchTeams.forEach((t) => {
     if (t.id === target?.id || !t.memberIds.includes(staff.id)) return;
     t.memberIds = t.memberIds.filter((id) => id !== staff.id);

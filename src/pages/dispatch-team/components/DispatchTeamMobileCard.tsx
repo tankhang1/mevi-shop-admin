@@ -1,4 +1,4 @@
-import { ChevronRight, Crown, Pause, Pencil, Play, Store, Trash2 } from "lucide-react";
+import { ChevronRight, Crown, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import type { MobileCardHelpers } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
 import type { DispatchTeamRow } from "@/features/dispatch-team";
@@ -9,13 +9,11 @@ const iconBtn = "flex h-8 w-8 items-center justify-center rounded-lg border bg-b
 /** Team card: who's in it, what it handles, and its open orders as the main tap target */
 export function DispatchTeamMobileCard({
   team: t,
-  showShop,
   onOrders,
   onToggle,
   helpers,
 }: {
   team: DispatchTeamRow;
-  showShop: boolean;
   onOrders: () => void;
   onToggle: () => void;
   helpers: MobileCardHelpers<DispatchTeamRow>;
@@ -57,20 +55,14 @@ export function DispatchTeamMobileCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
-          {t.productGroups.length ? (
-            t.productGroups.map((g) => (
-              <span key={g.id} className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {g.name}
+          {t.categories.length ? (
+            t.categories.map((c) => (
+              <span key={c} className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                {c}
               </span>
             ))
           ) : (
-            <span className="text-[11px] text-muted-foreground">Chưa gán nhóm sản phẩm</span>
-          )}
-          {showShop && t.shopName && (
-            <span className="ml-auto inline-flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
-              <Store className="h-3 w-3 shrink-0" />
-              <span className="truncate">{t.shopName}</span>
-            </span>
+            <span className="text-[11px] text-muted-foreground">Chưa gán danh mục</span>
           )}
         </div>
       </div>

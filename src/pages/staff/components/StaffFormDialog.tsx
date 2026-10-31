@@ -58,7 +58,7 @@ export function StaffFormDialog({ open, onOpenChange, staff }: Props) {
   const update = useUpdateStaff();
   const isEdit = !!staff;
   const { data: teams } = useDispatchTeams({ size: 100 }, open);
-  const teamOptions = (teams?.items ?? []).filter((t) => !staff || t.shopId === staff.shopId);
+  const teamOptions = teams?.items ?? [];
   const {
     register,
     control,

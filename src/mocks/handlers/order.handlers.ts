@@ -83,8 +83,8 @@ export const orderHandlers: MockHandler[] = [
       // Moving an order to someone else is the admin's call
       requireShopAdmin();
       const o = findOwned(params.id);
-      const team = body.teamId ? db.dispatchTeams.find((t) => t.id === body.teamId && t.shopId === o.shopId) : null;
-      if (body.teamId && !team) throw new HttpError(400, "Nhóm điều phối không thuộc gian hàng của đơn");
+      const team = body.teamId ? db.dispatchTeams.find((t) => t.id === body.teamId) : null;
+      if (body.teamId && !team) throw new HttpError(400, "Không tìm thấy nhóm điều phối");
       if (body.assigneeId && !team?.memberIds.includes(body.assigneeId))
         throw new HttpError(400, "Người xử lý phải là thành viên của nhóm");
       o.teamId = team?.id ?? null;

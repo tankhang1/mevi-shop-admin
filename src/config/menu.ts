@@ -45,7 +45,7 @@ export const shopMenu: AdminMenuSection[] = [
     roles: [...ALL, ...STAFF],
     items: [
       { id: "orders", label: "Đơn đặt hàng", icon: ShoppingCart, href: ROUTES.orders, roles: [...ALL, ...STAFF] },
-      { id: "dispatch-teams", label: "Nhóm điều phối", icon: Network, href: ROUTES.dispatchTeams, roles: [...ALL] },
+      { id: "dispatch-teams", label: "Nhóm điều phối", icon: Network, href: ROUTES.dispatchTeams, roles: [...ROOT] },
       { id: "customers", label: "Khách hàng", icon: Users, href: ROUTES.customers, roles: [...ALL] },
       { id: "staff", label: "Nhân viên điều phối", icon: UserCog, href: ROUTES.staff, roles: [...ALL] },
     ],
