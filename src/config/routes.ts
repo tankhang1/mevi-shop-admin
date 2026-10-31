@@ -19,6 +19,8 @@ export const ROUTES = {
   staff: "/admin/staff",
   /** Same value as SHOP_ROUTES.dispatchTeams (eco-shared-ui ≥ next release) */
   dispatchTeams: "/admin/dispatch-teams",
+  dispatchTeamCreate: "/admin/dispatch-teams/new",
+  dispatchTeamEdit: (id: string) => `/admin/dispatch-teams/${id}/edit`,
   /** Same value as SHOP_ROUTES.reports (eco-shared-ui ≥ next release) */
   reports: "/admin/reports",
   /** One page per report — /admin/reports/agency | product | group | farm */

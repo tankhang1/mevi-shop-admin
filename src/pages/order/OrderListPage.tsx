@@ -22,6 +22,7 @@ import {
   useOrders,
   useUpdateOrderStatus,
 } from "@/features/order";
+import { BackLink } from "@/components/common/BackLink";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ROUTES } from "@/config/routes";
 import { useDispatchTeams } from "@/features/dispatch-team";
@@ -182,8 +183,16 @@ export default function OrderListPage() {
 
   const finalStep = pending && isFinalOrderStatus(pending.next);
 
+  // Opened from "Xem đơn của nhóm" on the dispatch team page
+  const fromTeam = new URLSearchParams(search).has("teamId");
+
   return (
     <>
+      {fromTeam && (
+        <div className="mb-4">
+          <BackLink to={ROUTES.dispatchTeams} label="Nhóm điều phối" />
+        </div>
+      )}
       {isMobile && (
         <OrderStatusChips
           value={table.state.filters.status ?? "all"}

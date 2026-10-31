@@ -25,7 +25,6 @@ import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
 import { Initials } from "@/pages/customer/CustomerListPage";
 import { DispatchTeamMobileCard } from "./components/DispatchTeamMobileCard";
-import { DispatchTeamFormDialog } from "./components/DispatchTeamFormDialog";
 
 export default function DispatchTeamListPage() {
   const { toast } = useToast();
@@ -36,8 +35,6 @@ export default function DispatchTeamListPage() {
   const update = useUpdateDispatchTeam();
   const del = useDeleteDispatchTeam();
   const auto = useAutoAssignOrders();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<DispatchTeamRow | undefined>();
   const [deleting, setDeleting] = useState<DispatchTeamRow | null>(null);
   const [confirmAuto, setConfirmAuto] = useState(false);
 
@@ -52,12 +49,7 @@ export default function DispatchTeamListPage() {
         <Wand2 className="h-4 w-4 md:mr-1.5" />
         <span className="max-md:hidden">Phân đơn còn tồn</span>
       </Button>
-      <Button
-        onClick={() => {
-          setEditing(undefined);
-          setOpen(true);
-        }}
-      >
+      <Button onClick={() => navigate(ROUTES.dispatchTeamCreate)}>
         <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Tạo" : "Tạo nhóm"}
       </Button>
     </>
@@ -235,17 +227,9 @@ export default function DispatchTeamListPage() {
         )}
         columnToggleable={!isMobile}
         downloadable={!isMobile}
-        onEdit={(t) => {
-          setEditing(t);
-          setOpen(true);
-        }}
+        onEdit={(t) => navigate(ROUTES.dispatchTeamEdit(t.id))}
         onDelete={setDeleting}
         rowActions={actions}
-      />
-      <DispatchTeamFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        team={editing}
       />
       <ConfirmDialog
         open={confirmAuto}

@@ -32,6 +32,8 @@ function titleFor(path: string) {
   if (path.startsWith(ROUTES.agencies)) return "Đại lý";
   if (path === ROUTES.reviews) return "Đánh giá khách hàng";
   if (path === ROUTES.dispatchTeams) return "Nhóm điều phối";
+  if (path === ROUTES.dispatchTeamCreate) return "Tạo nhóm điều phối";
+  if (path.startsWith(ROUTES.dispatchTeams)) return "Sửa nhóm điều phối";
   if (path === ROUTES.report("agency")) return "Doanh thu theo đại lý / CTV";
   if (path === ROUTES.report("product")) return "Doanh thu theo sản phẩm";
   if (path === ROUTES.report("group")) return "Doanh thu theo nhóm sản phẩm";

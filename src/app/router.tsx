@@ -23,6 +23,7 @@ const CustomerListPage = lazy(() => import("@/pages/customer/CustomerListPage"))
 const CustomerDetailPage = lazy(() => import("@/pages/customer/CustomerDetailPage"));
 const OrderDetailPage = lazy(() => import("@/pages/order/OrderDetailPage"));
 const DispatchTeamListPage = lazy(() => import("@/pages/dispatch-team/DispatchTeamListPage"));
+const DispatchTeamFormPage = lazy(() => import("@/pages/dispatch-team/DispatchTeamFormPage"));
 const OrderListPage = lazy(() => import("@/pages/order/OrderListPage"));
 const AgencyListPage = lazy(() => import("@/pages/agency/AgencyListPage"));
 const AgencyDetailPage = lazy(() => import("@/pages/agency/AgencyDetailPage"));
@@ -43,6 +44,7 @@ const rootOnly = (Page: ComponentType) =>
     );
   };
 const ApprovalRoute = rootOnly(ProductApprovalPage);
+const DispatchTeamFormRoute = rootOnly(DispatchTeamFormPage);
 
 /** Staff work from their order queue; the dashboard shows shop-wide numbers they shouldn't see */
 function DashboardRoute() {
@@ -75,6 +77,8 @@ function ProtectedRoutes() {
             <Route path={ROUTES.customers} component={CustomerListPage} />
             <Route path={ROUTES.orderDetail(":id")} component={OrderDetailPage} />
             <Route path={ROUTES.dispatchTeams} component={DispatchTeamListPage} />
+            <Route path={ROUTES.dispatchTeamCreate} component={DispatchTeamFormRoute} />
+            <Route path={ROUTES.dispatchTeamEdit(":id")} component={DispatchTeamFormRoute} />
             <Route path={ROUTES.orders} component={OrderListPage} />
             <Route path={ROUTES.agencyDetail(":id")} component={AgencyDetailRoute} />
             <Route path={ROUTES.agencies} component={AgencyListRoute} />
