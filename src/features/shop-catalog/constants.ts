@@ -46,3 +46,18 @@ export const BASE_UNIT_SHORT = { KG: "kg", LITER: "lít" } as const;
 
 /** Quick picks for the free-text `certifications` list */
 export const CERTIFICATION_SUGGESTIONS = ["VietGAP", "GlobalGAP", "Hữu cơ", "OCOP 3 sao", "OCOP 4 sao", "OCOP 5 sao", "HACCP", "ISO 22000"];
+
+export const MOVEMENT_STATUS_STYLE = {
+  PENDING: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },
+  APPROVED: { label: "Đã duyệt", className: "bg-emerald-100 text-emerald-800" },
+  REJECTED: { label: "Bị từ chối", className: "bg-red-100 text-red-700" },
+  CANCELLED: { label: "Nông hộ đã huỷ", className: "bg-slate-100 text-slate-600" },
+} as const;
+
+export const MOVEMENT_TYPE_STYLE = {
+  RECEIPT: { label: "Nhập hàng", className: "bg-emerald-100 text-emerald-800" },
+  ADJUSTMENT: { label: "Điều chỉnh", className: "bg-sky-100 text-sky-800" },
+} as const;
+
+/** Stock quantity / unit cost limits (§2.5) */
+export const STOCK_LIMITS = { quantity: 100_000_000, note: 1000 } as const;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -20,10 +21,10 @@ interface Props {
   onConfirm: (reason: string) => void;
 }
 
-/** Reject / cancel style actions that must record why */
+/** Reject / cancel style actions that must record why; stays open while `loading` */
 export function ReasonDialog(props: Props) {
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+    <Dialog open={props.open} onOpenChange={(o) => !props.loading && props.onOpenChange(o)}>
       <DialogContent className="max-w-md">
         {props.open && <Body {...props} />}
       </DialogContent>
@@ -55,11 +56,12 @@ function Body({
           rows={3}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          disabled={loading}
           autoFocus
         />
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" disabled={loading} onClick={() => onOpenChange(false)}>
           Quay lại
         </Button>
         <Button
@@ -67,7 +69,8 @@ function Body({
           disabled={!reason.trim() || loading}
           onClick={() => onConfirm(reason.trim())}
         >
-          {confirmLabel}
+          {loading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+          {loading ? "Đang xử lý..." : confirmLabel}
         </Button>
       </DialogFooter>
     </>

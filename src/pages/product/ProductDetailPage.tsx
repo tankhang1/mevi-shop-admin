@@ -20,6 +20,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
 import { CatalogStatusToggle } from "./components/CatalogStatusToggle";
 import { ProductInfo } from "./components/ProductInfo";
+import { CatalogStockMovementTable } from "@/pages/inventory/components/CatalogStockMovementTable";
 import { StockMovementTable } from "@/pages/inventory/components/StockMovementTable";
 import { ProductReviews } from "./components/ProductReviews";
 import { ProductStockCard } from "./components/ProductStockCard";
@@ -97,9 +98,7 @@ export default function ProductDetailPage() {
             <TabsTrigger value="sales" className="gap-1.5">
               Lịch sử bán hàng <MockBadge />
             </TabsTrigger>
-            <TabsTrigger value="imports" className="gap-1.5">
-              Lịch sử nhập hàng <MockBadge />
-            </TabsTrigger>
+            <TabsTrigger value="imports">Lịch sử tồn kho</TabsTrigger>
             <TabsTrigger value="stock">Tồn kho hiện tại</TabsTrigger>
           </TabsList>
         </div>
@@ -112,16 +111,14 @@ export default function ProductDetailPage() {
         <TabsContent value="sales" className="mt-0">
           <StockMovementTable productId={String(product.id)} type="out" />
         </TabsContent>
-        {/* TODO: switch to GET /api/admin/shop/stock-movements?productId= (BE notice §2.5.4) */}
         <TabsContent value="imports" className="mt-0">
-          <StockMovementTable productId={String(product.id)} type="in" />
+          <CatalogStockMovementTable productId={product.id} />
         </TabsContent>
         <TabsContent value="stock" className="mt-0 space-y-3">
           <ProductStockCard product={product} />
-          {/* Inventory screens are still on mocks */}
           <Button variant="outline" size="sm" asChild>
-            <Link href={ROUTES.inventoryHistory(String(product.id))} className="gap-1.5">
-              <History className="h-4 w-4" /> Quản lý kho <MockBadge />
+            <Link href={ROUTES.inventoryHistory(String(product.id))}>
+              <History className="mr-1.5 h-4 w-4" /> Quản lý kho
             </Link>
           </Button>
         </TabsContent>

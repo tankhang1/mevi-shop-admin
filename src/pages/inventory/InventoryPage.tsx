@@ -27,6 +27,7 @@ import {
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
+import { MockBadge } from "@/components/common/MockBadge";
 import { StatusPill } from "@/components/common/ui-bits";
 import { PRODUCT_SOURCE } from "@/features/product";
 import { ROUTES } from "@/config/routes";
@@ -38,6 +39,7 @@ import {
   useInventory,
   useInventoryStats,
 } from "@/features/inventory";
+import { useStockMovementCounts } from "@/features/shop-catalog";
 import { useShopFilter } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { useAccess } from "@/features/auth";
@@ -46,9 +48,9 @@ import { ImportPickDialog } from "./components/ImportPickDialog";
 import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockAdjustDialog } from "./components/StockAdjustDialog";
 import { StockAlertDialog } from "./components/StockAlertDialog";
-import { PendingMovementsTable } from "./components/PendingMovementsTable";
-import { StockMovementTable } from "./components/StockMovementTable";
+import { CatalogStockMovementTable } from "./components/CatalogStockMovementTable";
 import { SupplyRequestsTable } from "./components/SupplyRequestsTable";
+import { StockReceiptDialog } from "./components/StockReceiptDialog";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -211,18 +213,21 @@ function StockTable({
 }
 
 export default function InventoryPage() {
+  // Low / out / approved-today counts: still mock (inventory list API §2.9 not wired yet)
   const { data: stats } = useInventoryStats();
+  const { data: farmCounts } = useStockMovementCounts({ source: "FARM" });
   const { isShopAdmin, isRoot } = useAccess();
   const canReviewSupply = isShopAdmin || isRoot;
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
   const [alerting, setAlerting] = useState<InventoryItem | null>(null);
   const [picking, setPicking] = useState(false);
+  const [stocking, setStocking] = useState<number | null>(null);
 
   usePageActions(() => (
     <Button onClick={() => setPicking(true)}>
       <ArrowDownToLine className="mr-1.5 h-4 w-4" />
       {/* One flex child: Button's gap would otherwise add space between the parts */}
-      <span>Nhập hàng từ Mevi</span>
+      <span>Nhập hàng</span>
     </Button>
   ));
 
@@ -235,6 +240,7 @@ export default function InventoryPage() {
         value: stats?.low ?? "—",
         icon: AlertTriangle,
         tone: "text-amber-600",
+        mock: true,
       },
       {
         title: "Sản phẩm đã hết hàng",
@@ -242,13 +248,14 @@ export default function InventoryPage() {
         value: stats?.out ?? "—",
         icon: PackageX,
         tone: "text-destructive",
+        mock: true,
       },
     ],
     [
       {
         title: "Tổng đơn đã duyệt",
         short: "Đã duyệt",
-        value: stats ? nf.format(stats.approved) : "—",
+        value: farmCounts ? nf.format(farmCounts.approved) : "—",
         icon: ClipboardCheck,
         tone: "text-primary",
       },
@@ -258,11 +265,13 @@ export default function InventoryPage() {
         value: stats?.approvedToday ?? "—",
         icon: CalendarCheck,
         tone: "text-emerald-600",
+        // No "reviewed today" count in the API
+        mock: true,
       },
       {
         title: "Đơn chờ duyệt",
         short: "Chờ duyệt",
-        value: stats?.pending ?? "—",
+        value: farmCounts?.pending ?? "—",
         icon: Clock,
         tone: "text-sky-600",
       },
@@ -285,7 +294,10 @@ export default function InventoryPage() {
                 key={it.title}
                 className="flex flex-col items-center gap-1 px-1 py-3"
               >
-                <it.icon className={`h-4 w-4 ${it.tone}`} />
+                <span className="flex items-center gap-1">
+                  <it.icon className={`h-4 w-4 ${it.tone}`} />
+                  {"mock" in it && <MockBadge className="px-0.5 [&>svg]:hidden" />}
+                </span>
                 <span className="text-lg font-bold leading-none tabular-nums">
                   {it.value}
                 </span>
@@ -302,12 +314,10 @@ export default function InventoryPage() {
             )}
           >
             {row.map((it) => (
-              <StatsCard
-                key={it.title}
-                title={it.title}
-                value={it.value}
-                icon={it.icon}
-              />
+              <div key={it.title} className="relative">
+                <StatsCard title={it.title} value={it.value} icon={it.icon} />
+                {"mock" in it && <MockBadge className="absolute right-3 top-3" />}
+              </div>
             ))}
           </div>
         </div>
@@ -326,14 +336,16 @@ export default function InventoryPage() {
           {canReviewSupply && (
             <TabsTrigger value="supply-requests" className="gap-1.5">
               Yêu cầu cung ứng
-              {!!stats?.pending && (
+              {!!farmCounts?.pending && (
                 <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
-                  {stats.pending}
+                  {farmCounts.pending}
                 </span>
               )}
             </TabsTrigger>
           )}
-          <TabsTrigger value="stock">Hàng tồn</TabsTrigger>
+          <TabsTrigger value="stock" className="gap-1.5">
+            Hàng tồn <MockBadge />
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
           <StockTable onAdjust={setAdjusting} onAlert={setAlerting} />
@@ -343,14 +355,12 @@ export default function InventoryPage() {
             <SupplyRequestsTable />
           </TabsContent>
         )}
-        <TabsContent value="pending" className="mt-0">
-          <PendingMovementsTable />
-        </TabsContent>
         <TabsContent value="history" className="mt-0">
-          <StockMovementTable />
+          <CatalogStockMovementTable />
         </TabsContent>
       </Tabs>
 
+      {/* Legacy dialog for the mock "Hàng tồn" rows */}
       <StockAdjustDialog
         item={adjusting}
         onOpenChange={(o) => !o && setAdjusting(null)}
@@ -358,11 +368,12 @@ export default function InventoryPage() {
       <ImportPickDialog
         open={picking}
         onOpenChange={setPicking}
-        onPick={(item) => {
+        onPick={(productId) => {
           setPicking(false);
-          setAdjusting(item);
+          setStocking(productId);
         }}
       />
+      <StockReceiptDialog productId={stocking} onOpenChange={(o) => !o && setStocking(null)} />
       <StockAlertDialog
         item={alerting}
         onOpenChange={(o) => !o && setAlerting(null)}

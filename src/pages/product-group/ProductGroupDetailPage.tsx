@@ -1,22 +1,19 @@
 import { useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { Pencil, Trash2 } from "lucide-react";
-import { Button, Card } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import placeholder from "@/assets/images/image-placeholder.webp";
+import { Button, Card, DataTable, useIsMobile } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
-import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
+import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
 import { useCatalogProducts, useCategory } from "@/features/shop-catalog";
-import { formatVnd } from "@/lib/format";
+import { useTableParams } from "@/hooks/useTableParams";
+import { fromSpringPage, toSpringPageParams } from "@/lib/pagination";
+import { CatalogProductMobileCard } from "@/pages/product/components/CatalogProductMobileCard";
+import { catalogProductColumns } from "@/pages/product/components/catalog-product-columns";
 import { DeleteProductGroupDialog } from "./components/DeleteProductGroupDialog";
 import { ProductGroupFormDialog } from "./components/ProductGroupFormDialog";
 import { GroupThumb } from "./ProductGroupListPage";
-
-const STATUS = {
-  ACTIVE: { label: "Đang kinh doanh", className: "bg-emerald-100 text-emerald-800" },
-  INACTIVE: { label: "Tạm ngưng", className: "bg-slate-100 text-slate-700" },
-};
 
 export default function ProductGroupDetailPage() {
   const params = useParams<{ id: string }>();
@@ -24,7 +21,9 @@ export default function ProductGroupDetailPage() {
   const [, navigate] = useLocation();
   const { data: group, isLoading, isError } = useCategory(id);
   // A product belongs to exactly one category — members come from the product list filtered by it
-  const { data: products, isLoading: loadingProducts } = useCatalogProducts({ categoryId: id, size: 100 });
+  const isMobile = useIsMobile();
+  const table = useTableParams();
+  const { data: products, isFetching } = useCatalogProducts(toSpringPageParams({ ...table.params, categoryId: id }));
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -46,7 +45,6 @@ export default function ProductGroupDetailPage() {
   if (isLoading) return <LoadingBlock />;
   if (isError || !group) return <EmptyBlock>Không tìm thấy nhóm sản phẩm.</EmptyBlock>;
 
-  const items = products?.content ?? [];
 
   return (
     <div className="space-y-4">
@@ -61,34 +59,29 @@ export default function ProductGroupDetailPage() {
         </div>
       </Card>
 
-      <Card className="p-4 sm:p-5">
+      <section>
         <div className="mb-3">
           <h3 className="font-semibold">Sản phẩm trong nhóm</h3>
           <p className="text-sm text-muted-foreground">{products?.totalElements ?? 0} sản phẩm</p>
         </div>
 
-        {loadingProducts ? (
-          <LoadingBlock />
-        ) : items.length === 0 ? (
-          <EmptyBlock>Nhóm chưa có sản phẩm nào. Chọn nhóm này trong form tạo / sửa sản phẩm để thêm.</EmptyBlock>
-        ) : (
-          <ul className="divide-y">
-            {items.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 py-2.5">
-                <img src={p.thumbnailUrl || placeholder} alt="" className="h-10 w-10 shrink-0 rounded-md border object-cover" />
-                <Link href={ROUTES.productDetail(String(p.id))} className="min-w-0 flex-1 hover:underline">
-                  <div className="truncate text-sm font-medium">{p.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {p.code} · {formatVnd(p.minPrice)}
-                    {p.maxPrice !== p.minPrice && ` – ${formatVnd(p.maxPrice)}`}
-                  </div>
-                </Link>
-                <StatusPill {...STATUS[p.status]} />
-              </li>
-            ))}
-          </ul>
+        <DataTable
+          {...table.bind(fromSpringPage(products), isFetching)}
+          // Same columns as the product list, minus the category (it's this group)
+          columns={catalogProductColumns.filter((c) => c.key !== "category")}
+          searchPlaceholder="Tìm trong nhóm theo tên, mã, SKU..."
+          enableMobileCard
+          renderMobileCard={(p, helpers) => <CatalogProductMobileCard product={p} helpers={helpers} />}
+          columnToggleable={!isMobile}
+          onView={(p) => navigate(ROUTES.productDetail(String(p.id)))}
+          onEdit={(p) => navigate(ROUTES.productEdit(String(p.id)))}
+        />
+        {!isFetching && products?.totalElements === 0 && !table.params.keyword && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Nhóm chưa có sản phẩm nào. Chọn nhóm này trong form tạo / sửa sản phẩm để thêm.
+          </p>
         )}
-      </Card>
+      </section>
 
       <ProductGroupFormDialog open={editing} onOpenChange={setEditing} group={group} />
       <DeleteProductGroupDialog
