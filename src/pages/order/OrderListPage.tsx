@@ -19,6 +19,7 @@ import {
   ORDER_FLOW,
   EMPTY_ORDER_FILTERS,
   type OrderFilters,
+  type OrderListParams,
   countActive,
   isFinalOrderStatus,
   useOrders,
@@ -42,13 +43,27 @@ export default function OrderListPage() {
   const isMobile = useIsMobile();
   const shopFilter = useShopFilter();
   const search = useSearch();
-  const table = useTableParams<OrderFilters & { shopId: string }>({
+  // Pre-set filters from the URL, e.g. ?teamId= from "Xem đơn của nhóm",
+  // ?productId=&status=completed&from=&to=&agencyId= from a report's product row
+  const urlParams = new URLSearchParams(search);
+  const fromUrl = Object.fromEntries(
+    (Object.keys(EMPTY_ORDER_FILTERS) as (keyof OrderFilters)[]).flatMap((k) => {
+      const v = urlParams.get(k);
+      return v ? [[k, v]] : [];
+    }),
+  ) as Partial<OrderFilters>;
+  const table = useTableParams<OrderFilters & { shopId: string; agencyId: string }>({
     ...EMPTY_ORDER_FILTERS,
+    ...fromUrl,
     shopId: shopFilter.initialShopId,
-    // ?teamId= comes from "Xem đơn của nhóm" on the dispatch team page
-    teamId: new URLSearchParams(search).get("teamId") ?? "all",
+    agencyId: urlParams.get("agencyId") ?? "",
   });
-  const { data: page, isFetching } = useOrders(table.params);
+  const { data: page, isFetching } = useOrders({
+    ...table.params,
+    // Filters are kept as plain strings; status/dateField always hold one of the option values
+    status: table.params.status as OrderListParams["status"],
+    dateField: table.params.dateField as OrderListParams["dateField"],
+  });
   const [filterOpen, setFilterOpen] = useState(false);
   const applyFilters = (next: OrderFilters & { shopId?: string }) => {
     const { onFilterChange } = table.bind(page, isFetching);

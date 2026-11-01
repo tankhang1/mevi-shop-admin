@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { ROUTES } from "@/config/routes";
 import { Banknote, CalendarDays, Package, ShoppingBag } from "lucide-react";
 import {
   type Column,
@@ -63,13 +65,21 @@ const columns: Column<RevenueRow>[] = [
 export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
   const isMobile = useIsMobile();
   const [preset, setPreset] = useState("30");
+  const [, navigate] = useLocation();
+  const range = rangeFor(Number(preset));
+  // Order list pre-filtered to the completed orders behind this product's figure
+  const openOrders = (r: RevenueRow) => {
+    const q = new URLSearchParams({ productId: r.id, status: "completed", ...range });
+    if (agencyId) q.set("agencyId", agencyId);
+    navigate(`${ROUTES.orders}?${q}`);
+  };
   const today = isoDay(new Date());
   const now = new Date();
   const monthFrom = isoDay(new Date(now.getFullYear(), now.getMonth(), 1));
 
   const { data: allTime } = useRevenueReport({ groupBy: "product", agencyId, from: ALL_TIME_FROM, to: today });
   const { data: month } = useRevenueReport({ groupBy: "product", agencyId, from: monthFrom, to: today });
-  const { data, isLoading, isFetching } = useRevenueReport({ groupBy: "product", agencyId, ...rangeFor(Number(preset)) });
+  const { data, isLoading, isFetching } = useRevenueReport({ groupBy: "product", agencyId, ...range });
 
   const stats = [
     { title: "Tổng doanh thu", value: allTime ? formatVnd(allTime.totals.revenue) : "—", note: allTime ? `${nf.format(allTime.totals.orders)} đơn hoàn tất` : "", icon: Banknote },
@@ -131,7 +141,8 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
               searchPlaceholder="Tìm sản phẩm..."
               filterable={false}
               enableMobileCard
-              renderMobileCard={(r) => <RevenueMobileCard row={r} showCommission={false} />}
+              onRowClick={openOrders}
+              renderMobileCard={(r) => <RevenueMobileCard row={r} showCommission={false} onClick={() => openOrders(r)} />}
               columnToggleable={!isMobile}
               downloadable={!isMobile}
             />
