@@ -1,9 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { productPhotoApi } from "../../api";
-import type { PhotoFormat } from "../../types";
+import type { UploadProductPhotoInput } from "../../types";
 
+/** One file per call; run in parallel for multi-select */
 export function useUploadProductPhoto() {
-  return useMutation({
-    mutationFn: ({ file, format }: { file: File; format?: PhotoFormat }) => productPhotoApi.upload(file, format),
-  });
+  return useMutation({ mutationFn: (input: UploadProductPhotoInput) => productPhotoApi.upload(input) });
 }
