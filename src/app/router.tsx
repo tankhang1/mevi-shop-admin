@@ -30,6 +30,7 @@ const AgencyDetailPage = lazy(() => import("@/pages/agency/AgencyDetailPage"));
 const ReviewListPage = lazy(() => import("@/pages/review/ReviewListPage"));
 const StaffListPage = lazy(() => import("@/pages/staff/StaffListPage"));
 const ReportPage = lazy(() => import("@/pages/report/ReportPage"));
+const AgencyReportPage = lazy(() => import("@/pages/report/AgencyReportPage"));
 const MyShopPage = lazy(() => import("@/pages/shop/MyShopPage"));
 const ShopListPage = lazy(() => import("@/pages/shop/ShopListPage"));
 const ShopDetailPage = lazy(() => import("@/pages/shop/ShopDetailPage"));
@@ -54,6 +55,7 @@ function DashboardRoute() {
 }
 const AgencyListRoute = rootOnly(AgencyListPage);
 const AgencyDetailRoute = rootOnly(AgencyDetailPage);
+const AgencyReportRoute = rootOnly(AgencyReportPage);
 
 function ProtectedRoutes() {
   return (
@@ -83,6 +85,7 @@ function ProtectedRoutes() {
             <Route path={ROUTES.agencyDetail(":id")} component={AgencyDetailRoute} />
             <Route path={ROUTES.agencies} component={AgencyListRoute} />
             <Route path={ROUTES.reviews} component={ReviewListPage} />
+            <Route path={ROUTES.agencyReport(":id")} component={AgencyReportRoute} />
             <Route path={`${ROUTES.reports}/:kind`} component={ReportPage} />
             <Route path={ROUTES.reports}>
               <Redirect to={ROUTES.report("agency")} replace />

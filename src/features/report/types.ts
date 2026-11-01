@@ -13,6 +13,8 @@ export interface RevenueRow {
   share: number;
   /** Agency report only — commission earned on that revenue */
   commission?: number;
+  /** Agency report only — đại lý vs CTV */
+  kind?: "agency" | "ctv";
 }
 
 /** Time bucket picked by the backend from the range length */
@@ -54,6 +56,8 @@ export interface RevenueReportParams {
   category?: string;
   /** Orders through an agency / CTV link vs direct sales */
   source?: OrderSource;
+  /** One agency / CTV's referred orders only */
+  agencyId?: string;
   /** Root only */
   shopId?: string;
 }

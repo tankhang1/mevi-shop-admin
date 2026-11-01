@@ -13,8 +13,10 @@ import {
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import {
+  AGENCY_KIND,
   type Agency,
   type AgencyFormValues,
+  type AgencyKind,
   agencySchema,
   toSlug,
   useCreateAgency,
@@ -32,6 +34,7 @@ interface Props {
 
 const DEFAULTS: AgencyFormValues = {
   name: "",
+  kind: "agency",
   slug: "",
   brandColor: "#214c3a",
   logoUrl: "",
@@ -45,6 +48,7 @@ const toFormValues = (a?: Agency): AgencyFormValues =>
   a
     ? {
         name: a.name,
+        kind: a.kind ?? "agency",
         slug: a.slug,
         brandColor: a.brandColor ?? DEFAULTS.brandColor,
         logoUrl: a.logoUrl ?? "",
@@ -166,6 +170,20 @@ export function AgencyFormDialog({ open, onOpenChange, agency }: Props) {
               {...register("logoUrl")}
             />
             {err("logoUrl")}
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="kind">Loại đối tác</Label>
+            <select
+              id="kind"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+              {...register("kind")}
+            >
+              {(Object.keys(AGENCY_KIND) as AgencyKind[]).map((k) => (
+                <option key={k} value={k}>
+                  {AGENCY_KIND[k].label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="commissionRate">

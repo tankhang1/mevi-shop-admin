@@ -554,6 +554,7 @@ export const db: {
     agencies: [
       {
         id: "a1",
+        kind: "agency",
         name: "Mevi Đà Lạt",
         slug: "mevi-da-lat",
         brandColor: "#214c3a",
@@ -566,6 +567,7 @@ export const db: {
       },
       {
         id: "a2",
+        kind: "ctv",
         name: "Nông sản Miền Tây",
         slug: "nong-san-mien-tay",
         brandColor: "#c2410c",
@@ -578,6 +580,7 @@ export const db: {
       },
       {
         id: "a3",
+        kind: "agency",
         name: "Đặc sản Tây Bắc",
         slug: "dac-san-tay-bac",
         brandColor: "#1d4ed8",

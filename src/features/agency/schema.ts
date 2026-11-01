@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const agencySchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên gian hàng"),
+  kind: z.enum(["agency", "ctv"]),
   slug: z
     .string()
     .trim()

@@ -5,7 +5,7 @@ import { db } from "../db";
 import { scoped } from "../scope";
 import type { MockHandler } from "../utils";
 
-type Acc = { label: string; sub?: string; orders: Set<string>; units: number; revenue: number; commission: number };
+type Acc = { label: string; sub?: string; kind?: "agency" | "ctv"; orders: Set<string>; units: number; revenue: number; commission: number };
 
 interface Filters {
   groupBy: RevenueGroupBy;
@@ -14,6 +14,7 @@ interface Filters {
   shopId?: unknown;
   category?: string;
   source?: string;
+  agencyId?: string;
 }
 
 const DAY = 86_400_000;
@@ -33,7 +34,7 @@ function bucketsFor(from: Date, to: Date): { bucket: TrendBucket; starts: Date[]
 }
 
 /** Revenue = completed orders only; product/group/farm reports use line revenue, agency uses order totals */
-function buildReport({ groupBy, from, to, shopId, category, source }: Filters): RevenueReport {
+function buildReport({ groupBy, from, to, shopId, category, source, agencyId }: Filters): RevenueReport {
   const fromD = startOfDay(new Date(from));
   const toD = new Date(startOfDay(new Date(to)).getTime() + DAY - 1);
   const inCategory = (productId: string) =>
@@ -42,6 +43,7 @@ function buildReport({ groupBy, from, to, shopId, category, source }: Filters): 
     .filter((o) => o.status === "completed")
     .filter((o) => new Date(o.createdAt) >= fromD && new Date(o.createdAt) <= toD)
     .filter((o) => !source || source === "all" || (source === "agency" ? !!o.agencyId : !o.agencyId))
+    .filter((o) => !agencyId || o.agencyId === agencyId)
     // With a category filter only matching lines count; drop orders left with none
     .map((o) => ({ ...o, items: (o.items ?? []).filter((it) => inCategory(it.productId)) }))
     .filter((o) => o.items.length > 0)
@@ -72,6 +74,7 @@ function buildReport({ groupBy, from, to, shopId, category, source }: Filters): 
     if (groupBy === "agency") {
       const a = o.agencyId ? db.agencies.find((x) => x.id === o.agencyId) : undefined;
       const b = a ? bucket(a.id, a.name, `Hoa hồng ${o.commissionRate ?? a.commissionRate}%`) : bucket("none", "Bán trực tiếp", "Không qua đại lý / CTV");
+      if (a) b.kind = a.kind;
       b.orders.add(o.id);
       b.units += (o.items ?? []).reduce((s, it) => s + it.quantity, 0);
       b.revenue += o.total;
@@ -114,7 +117,7 @@ function buildReport({ groupBy, from, to, shopId, category, source }: Filters): 
       units: b.units,
       revenue: b.revenue,
       share: totalRevenue ? Math.round((b.revenue / totalRevenue) * 1000) / 10 : 0,
-      ...(groupBy === "agency" ? { commission: b.commission } : {}),
+      ...(groupBy === "agency" ? { commission: b.commission, kind: b.kind } : {}),
     }))
     .sort((a, b) => b.revenue - a.revenue);
 
@@ -158,6 +161,7 @@ export const reportHandlers: MockHandler[] = [
         shopId: query.shopId,
         category: query.category as string | undefined,
         source: query.source as string | undefined,
+        agencyId: query.agencyId as string | undefined,
       }),
     }),
   },

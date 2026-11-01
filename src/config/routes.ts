@@ -25,6 +25,8 @@ export const ROUTES = {
   reports: "/admin/reports",
   /** One page per report — /admin/reports/agency | product | group | farm */
   report: (kind: "agency" | "product" | "group" | "farm") => `/admin/reports/${kind}`,
+  /** One đại lý / CTV's sales report */
+  agencyReport: (id: string) => `/admin/reports/agency/${id}`,
   /** Same value as SHOP_ROUTES.farmRegistrations (eco-shared-ui ≥ next release) */
   farmRegistrations: "/admin/farm-registrations",
   agencyDetail: (id: string) => `${SHOP_ROUTES.agencies}/${id}`,

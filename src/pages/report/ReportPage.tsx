@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Redirect, useParams } from "wouter";
+import { Redirect, useLocation, useParams } from "wouter";
 import { Banknote, HandCoins, Package, ShoppingBag } from "lucide-react";
 import {
   type Column,
@@ -11,13 +11,15 @@ import {
   StatsCard,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
+import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
+import { AGENCY_KIND } from "@/features/agency";
 import {
   type RevenueGroupBy,
   type RevenueRow,
   useRevenueReport,
 } from "@/features/report";
 import { ROUTES } from "@/config/routes";
+import { useAccess } from "@/features/auth";
 import { useShopFilter } from "@/features/shop";
 import { formatVnd } from "@/lib/format";
 import { ReportFilters } from "./components/ReportFilters";
@@ -25,6 +27,7 @@ import {
   type ReportFilterState,
   defaultFilters,
 } from "./components/report-filters";
+import { ShopSalesReport } from "./components/ShopSalesReport";
 import { ReportTrendChart } from "./components/ReportTrendChart";
 import { RevenueMobileCard } from "./components/RevenueMobileCard";
 import { RevenueBars } from "./components/RevenueBars";
@@ -51,6 +54,8 @@ const nf = new Intl.NumberFormat("vi-VN");
 
 export default function ReportPage() {
   const shopFilter = useShopFilter();
+  const { isRoot } = useAccess();
+  const [, navigate] = useLocation();
   const isMobile = useIsMobile();
   const { kind } = useParams<{ kind: string }>();
   const view = VIEWS.find((v) => v.value === kind);
@@ -69,6 +74,10 @@ export default function ReportPage() {
   const isAgency = groupBy === "agency";
   // Hooks above run for every route; bail out only after them
   if (!view) return <Redirect to={ROUTES.report("agency")} replace />;
+  // Đại lý / CTV (shop admin) see their own sales, not the per-agency breakdown
+  if (!isRoot && groupBy === "agency") return <ShopSalesReport />;
+
+  const openAgency = (r: RevenueRow) => r.id !== "none" && navigate(ROUTES.agencyReport(r.id));
 
   const columns: Column<RevenueRow>[] = [
     {
@@ -85,6 +94,7 @@ export default function ReportPage() {
             }
           >
             {r.label}
+            {r.kind && <StatusPill {...AGENCY_KIND[r.kind]} className={`ml-2 align-middle ${AGENCY_KIND[r.kind].className}`} />}
           </div>
           {r.sub && (
             <div className="text-xs text-muted-foreground">{r.sub}</div>
@@ -227,7 +237,14 @@ export default function ReportPage() {
                   searchPlaceholder={`Tìm ${view.entity.toLowerCase()}...`}
                   filterable={false}
                   enableMobileCard
-                  renderMobileCard={(r) => <RevenueMobileCard row={r} showCommission={isAgency} />}
+                  onRowClick={isAgency ? openAgency : undefined}
+                  renderMobileCard={(r) => (
+                    <RevenueMobileCard
+                      row={r}
+                      showCommission={isAgency}
+                      onClick={isAgency && r.id !== "none" ? () => openAgency(r) : undefined}
+                    />
+                  )}
                   columnToggleable={!isMobile}
                   downloadable={!isMobile}
                 />

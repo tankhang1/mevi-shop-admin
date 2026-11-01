@@ -1,9 +1,13 @@
 import type { OrderStatus } from "@/features/order/types";
 import type { ListParams, Paginated } from "@/types/api";
 
+/** Đại lý = business partner · CTV = individual collaborator; both earn commission via a referral link */
+export type AgencyKind = "agency" | "ctv";
+
 export interface Agency {
   id: string;
   name: string;
+  kind: AgencyKind;
   slug: string;
   brandColor?: string;
   logoUrl?: string;
