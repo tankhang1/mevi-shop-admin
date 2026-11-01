@@ -35,6 +35,40 @@ export const API_ENDPOINTS = {
       /** PATCH { lowStockThreshold?, variantThresholds? } */
       threshold: (productId: string) => `/api/admin/shop/inventory/${productId}/threshold`,
     },
+    /** Mevi shop catalog (BE notice 2026-10-28) — responses are NOT wrapped in `{ data }` */
+    catalog: {
+      categories: {
+        base: "/api/admin/shop/product-categories",
+        detail: (id: number) => `/api/admin/shop/product-categories/${id}`,
+      },
+      products: {
+        base: "/api/admin/shop/products",
+        detail: (id: number) => `/api/admin/shop/products/${id}`,
+        /** PUT { status } */
+        status: (id: number) => `/api/admin/shop/products/${id}/status`,
+        /** PUT { thresholds: [{ variantId, threshold }] } */
+        lowStockThresholds: (id: number) => `/api/admin/shop/products/${id}/low-stock-thresholds`,
+        /** POST — nhập hàng (MEVI / FARM) */
+        stockReceipts: (id: number) => `/api/admin/shop/products/${id}/stock-receipts`,
+        /** POST — điều chỉnh tồn kho */
+        stockAdjustments: (id: number) => `/api/admin/shop/products/${id}/stock-adjustments`,
+      },
+      /** GET — one row per variant */
+      inventory: "/api/admin/shop/inventory",
+      stockMovements: {
+        base: "/api/admin/shop/stock-movements",
+        statusCounts: "/api/admin/shop/stock-movements/status-counts",
+        /** POST { unitCost? } */
+        approve: (id: number) => `/api/admin/shop/stock-movements/${id}/approve`,
+        /** POST { reason } */
+        reject: (id: number) => `/api/admin/shop/stock-movements/${id}/reject`,
+      },
+      /** Farm pickers for supply sources */
+      farmZoneGroups: "/api/admin/farm/production-zones/groups",
+      farmZones: "/api/admin/farm/production-zones",
+      /** POST multipart `file` ?format=JPEG|WEBP */
+      productPhotos: "/api/storage/product-photos",
+    },
     customers: {
       base: "/api/admin/shop/customers",
       stats: "/api/admin/shop/customers/stats",
