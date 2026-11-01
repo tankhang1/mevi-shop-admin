@@ -46,7 +46,7 @@ export function ReportFilters({
     f.shopId === initialShopId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
+    <div className="grid grid-cols-2 gap-2 md:flex! md:flex-wrap md:items-center">
       <Tabs
         className="col-span-2"
         value={f.preset}
@@ -72,7 +72,7 @@ export function ReportFilters({
         <div className="col-span-2 flex items-center gap-1.5">
           <Input
             type="date"
-            className="h-9 min-w-0 flex-1 md:w-[150px] md:flex-none"
+            className="h-9 min-w-0 flex-1 md:w-[150px]! md:flex-none"
             value={f.from}
             max={f.to}
             onChange={(e) => e.target.value && set({ from: e.target.value })}
@@ -81,7 +81,7 @@ export function ReportFilters({
           <span className="text-muted-foreground">→</span>
           <Input
             type="date"
-            className="h-9 min-w-0 flex-1 md:w-[150px] md:flex-none"
+            className="h-9 min-w-0 flex-1 md:w-[150px]! md:flex-none"
             value={f.to}
             min={f.from}
             max={isoDay(new Date())}
@@ -95,7 +95,7 @@ export function ReportFilters({
         value={f.source}
         onValueChange={(v) => set({ source: v as OrderSource })}
       >
-        <SelectTrigger className="h-9 w-full md:w-44" aria-label="Nguồn đơn">
+        <SelectTrigger className="h-9 w-full md:w-44!" aria-label="Nguồn đơn">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -106,7 +106,7 @@ export function ReportFilters({
       </Select>
 
       <Select value={f.category} onValueChange={(v) => set({ category: v })}>
-        <SelectTrigger className="h-9 w-full md:w-40" aria-label="Danh mục">
+        <SelectTrigger className="h-9 w-full md:w-40!" aria-label="Danh mục">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -121,7 +121,7 @@ export function ReportFilters({
 
       {shopOptions && (
         <Select value={f.shopId} onValueChange={(v) => set({ shopId: v })}>
-          <SelectTrigger className="h-9 w-full md:w-48" aria-label="Gian hàng">
+          <SelectTrigger className="h-9 w-full md:w-48!" aria-label="Gian hàng">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
