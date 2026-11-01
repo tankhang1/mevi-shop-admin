@@ -53,7 +53,9 @@ export const shopMenu: AdminMenuSection[] = [
   {
     title: "Báo cáo doanh thu",
     items: [
-      { id: "report-agency", label: "Theo đại lý / CTV", icon: Handshake, href: ROUTES.report("agency"), roles: [...ALL] },
+      { id: "report-sales", label: "Doanh thu của tôi", icon: LayoutDashboard, href: ROUTES.report("sales"), roles: [...SHOP] },
+      // A shop is itself a đại lý / CTV — it gets "Doanh thu của tôi" instead of this breakdown
+      { id: "report-agency", label: "Theo đại lý / CTV", icon: Handshake, href: ROUTES.report("agency"), roles: [...ROOT] },
       { id: "report-product", label: "Theo sản phẩm", icon: Package, href: ROUTES.report("product"), roles: [...ALL] },
       { id: "report-group", label: "Theo nhóm sản phẩm", icon: FolderTree, href: ROUTES.report("group"), roles: [...ALL] },
       { id: "report-farm", label: "Theo nông hộ", icon: Sprout, href: ROUTES.report("farm"), roles: [...ALL] },

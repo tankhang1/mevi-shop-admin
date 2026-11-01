@@ -73,11 +73,22 @@ export default function ReportPage() {
   });
   const isAgency = groupBy === "agency";
   // Hooks above run for every route; bail out only after them
+  // Shop admin's own sales overview; root has the per-dimension reports instead
+  if (kind === "sales") return isRoot ? <Redirect to={ROUTES.report("agency")} replace /> : <ShopSalesReport />;
   if (!view) return <Redirect to={ROUTES.report("agency")} replace />;
-  // Đại lý / CTV (shop admin) see their own sales, not the per-agency breakdown
-  if (!isRoot && groupBy === "agency") return <ShopSalesReport />;
+  // A shop is itself a đại lý / CTV — its own figures live on "Doanh thu của tôi"
+  if (!isRoot && groupBy === "agency") return <Redirect to={ROUTES.report("sales")} replace />;
 
   const openAgency = (r: RevenueRow) => r.id !== "none" && navigate(ROUTES.agencyReport(r.id));
+  // Product / group rows → order list pre-filtered to the completed orders behind that figure
+  const orderFilterKey = groupBy === "product" ? "productId" : groupBy === "group" ? "productGroupId" : null;
+  const openOrders = (r: RevenueRow) => {
+    if (!orderFilterKey || r.id === "none") return;
+    const q = new URLSearchParams({ [orderFilterKey]: r.id, status: "completed", from: filters.from, to: filters.to });
+    if (shopFilter.isRoot && filters.shopId !== "all") q.set("shopId", filters.shopId);
+    navigate(`${ROUTES.orders}?${q}`);
+  };
+  const openRow = isAgency ? openAgency : orderFilterKey ? openOrders : undefined;
 
   const columns: Column<RevenueRow>[] = [
     {
@@ -237,12 +248,12 @@ export default function ReportPage() {
                   searchPlaceholder={`Tìm ${view.entity.toLowerCase()}...`}
                   filterable={false}
                   enableMobileCard
-                  onRowClick={isAgency ? openAgency : undefined}
+                  onRowClick={openRow}
                   renderMobileCard={(r) => (
                     <RevenueMobileCard
                       row={r}
                       showCommission={isAgency}
-                      onClick={isAgency && r.id !== "none" ? () => openAgency(r) : undefined}
+                      onClick={openRow && r.id !== "none" ? () => openRow(r) : undefined}
                     />
                   )}
                   columnToggleable={!isMobile}

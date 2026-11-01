@@ -23,8 +23,8 @@ export const ROUTES = {
   dispatchTeamEdit: (id: string) => `/admin/dispatch-teams/${id}/edit`,
   /** Same value as SHOP_ROUTES.reports (eco-shared-ui ≥ next release) */
   reports: "/admin/reports",
-  /** One page per report — /admin/reports/agency | product | group | farm */
-  report: (kind: "agency" | "product" | "group" | "farm") => `/admin/reports/${kind}`,
+  /** One page per report — /admin/reports/agency | product | group | farm, plus sales (shop admin's own) */
+  report: (kind: "sales" | "agency" | "product" | "group" | "farm") => `/admin/reports/${kind}`,
   /** One đại lý / CTV's sales report */
   agencyReport: (id: string) => `/admin/reports/agency/${id}`,
   /** Same value as SHOP_ROUTES.farmRegistrations (eco-shared-ui ≥ next release) */

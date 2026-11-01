@@ -55,7 +55,7 @@ export default function OrderListPage() {
   const table = useTableParams<OrderFilters & { shopId: string; agencyId: string }>({
     ...EMPTY_ORDER_FILTERS,
     ...fromUrl,
-    shopId: shopFilter.initialShopId,
+    shopId: urlParams.get("shopId") ?? shopFilter.initialShopId,
     agencyId: urlParams.get("agencyId") ?? "",
   });
   const { data: page, isFetching } = useOrders({

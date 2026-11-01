@@ -24,6 +24,7 @@ import { formatCompactVnd, formatPercent, formatVnd } from "@/lib/format";
 import { BarList } from "./components/BarList";
 import { KpiCard } from "./components/KpiCard";
 import { MobileKpis } from "./components/MobileKpis";
+import { ReportShortcuts } from "./components/ReportShortcuts";
 import { SnapshotStrip } from "./components/SnapshotStrip";
 import { TopProducts } from "./components/TopProducts";
 import { TrendChart } from "./components/TrendChart";
@@ -89,7 +90,10 @@ export default function DashboardPage() {
       <SnapshotStrip snapshot={data.snapshot} isRoot={isRoot} />
 
       {isMobile ? (
-        <MobileKpis kpis={data.kpis} rangeLabel={rangeLabel} />
+        <>
+          <MobileKpis kpis={data.kpis} rangeLabel={rangeLabel} />
+          <ReportShortcuts />
+        </>
       ) : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Doanh thu" metric={data.kpis.revenue} format={formatVnd} icon={Wallet} rangeLabel={rangeLabel} />
