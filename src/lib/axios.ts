@@ -11,7 +11,8 @@ function createClient({ mock }: { mock: boolean }) {
     baseURL: env.apiBaseUrl,
     timeout: 30_000,
     headers: { "Content-Type": "application/json" },
-    ...(mock && { adapter: mockAdapter }),
+    // Explicit network adapter: mocks/install.ts swaps axios.defaults.adapter, which instances would inherit
+    adapter: mock ? mockAdapter : ["xhr", "fetch"],
   });
 }
 

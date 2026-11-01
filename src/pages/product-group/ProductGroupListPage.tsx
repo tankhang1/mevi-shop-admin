@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { FolderTree, Plus } from "lucide-react";
 import { type Column, Button, DataTable, useIsMobile } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
-import { type ProductGroup, useProductGroups } from "@/features/product-group";
-import { useShopFilter } from "@/features/shop";
+import { type ProductCategory, useCategories } from "@/features/shop-catalog";
 import { useTableParams } from "@/hooks/useTableParams";
 import { ProductGroupMobileCard } from "./components/ProductGroupMobileCard";
 import { DeleteProductGroupDialog } from "./components/DeleteProductGroupDialog";
 import { ProductGroupFormDialog } from "./components/ProductGroupFormDialog";
 
-export function GroupThumb({ group, size = "h-10 w-10" }: { group: Pick<ProductGroup, "imageUrl">; size?: string }) {
+export function GroupThumb({ group, size = "h-10 w-10" }: { group: Pick<ProductCategory, "imageUrl">; size?: string }) {
   return group.imageUrl ? (
     <img src={group.imageUrl} alt="" className={`${size} shrink-0 rounded-lg border object-cover`} />
   ) : (
@@ -21,15 +20,24 @@ export function GroupThumb({ group, size = "h-10 w-10" }: { group: Pick<ProductG
   );
 }
 
+const normalize = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
 export default function ProductGroupListPage() {
   const [, navigate] = useLocation();
-  const shopFilter = useShopFilter();
   const isMobile = useIsMobile();
-  const table = useTableParams<{ shopId: string }>({ shopId: shopFilter.initialShopId });
-  const { data: page, isFetching } = useProductGroups(table.params);
+  const table = useTableParams();
+  // The API returns every category at once (no paging / search) — filter + page on the client
+  const { data: categories, isFetching } = useCategories();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<ProductGroup | undefined>();
-  const [deleting, setDeleting] = useState<ProductGroup | null>(null);
+  const [editing, setEditing] = useState<ProductCategory | undefined>();
+  const [deleting, setDeleting] = useState<ProductCategory | null>(null);
+
+  const page = useMemo(() => {
+    const { page: p = 1, size = 10, keyword } = table.params;
+    const q = keyword ? normalize(keyword) : "";
+    const rows = (categories ?? []).filter((c) => !q || normalize(`${c.name} ${c.handle}`).includes(q));
+    return { items: rows.slice((p - 1) * size, p * size), page: p, size, total: rows.length };
+  }, [categories, table.params]);
 
   usePageActions(() => (
     <Button
@@ -42,7 +50,7 @@ export default function ProductGroupListPage() {
     </Button>
   ), [isMobile]);
 
-  const columns: Column<ProductGroup>[] = [
+  const columns: Column<ProductCategory>[] = [
     {
       key: "name",
       label: "Nhóm sản phẩm",
@@ -50,21 +58,16 @@ export default function ProductGroupListPage() {
       render: (_, g) => (
         <div className="flex min-w-0 items-center gap-3">
           <GroupThumb group={g} />
-          <div className="min-w-0">
-            <div className="truncate font-medium">{g.name}</div>
-            {g.description && <div className="line-clamp-1 max-w-md text-xs text-muted-foreground">{g.description}</div>}
-          </div>
+          <div className="truncate font-medium">{g.name}</div>
         </div>
       ),
     },
-    ...shopFilter.column<ProductGroup>(),
     {
-      key: "productIds",
-      label: "Sản phẩm",
-      width: "110px",
-      mobilePriority: "badge",
-      render: (_, g) => <span className="whitespace-nowrap text-sm">{g.productIds.length} sản phẩm</span>,
+      key: "description",
+      label: "Mô tả",
+      render: (v) => <span className="line-clamp-2 max-w-md text-sm text-muted-foreground">{v ? String(v) : "—"}</span>,
     },
+    { key: "handle", label: "Đường dẫn", render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
   ];
 
   return (
@@ -72,15 +75,12 @@ export default function ProductGroupListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        filters={shopFilter.filter ? [shopFilter.filter] : undefined}
         searchPlaceholder="Tìm theo tên nhóm..."
         enableMobileCard
-        renderMobileCard={(g, helpers) => (
-          <ProductGroupMobileCard group={g} showShop={shopFilter.isRoot} helpers={helpers} />
-        )}
+        renderMobileCard={(g, helpers) => <ProductGroupMobileCard group={g} helpers={helpers} />}
         columnToggleable={!isMobile}
         downloadable={!isMobile}
-        onView={(g) => navigate(ROUTES.productGroupDetail(g.id))}
+        onView={(g) => navigate(ROUTES.productGroupDetail(String(g.id)))}
         onEdit={(g) => {
           setEditing(g);
           setOpen(true);

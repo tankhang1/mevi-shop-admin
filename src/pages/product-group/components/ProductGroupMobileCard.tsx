@@ -1,17 +1,15 @@
-import { ChevronRight, Package, Pencil, Store, Trash2 } from "lucide-react";
+import { ChevronRight, Link2, Pencil, Trash2 } from "lucide-react";
 import type { MobileCardHelpers } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import type { ProductGroup } from "@/features/product-group";
+import type { ProductCategory } from "@/features/shop-catalog";
 import { GroupThumb } from "../ProductGroupListPage";
 
 /** Compact one-row card — tap opens the group, edit/delete stay one tap away */
 export function ProductGroupMobileCard({
   group: g,
-  showShop,
   helpers,
 }: {
-  group: ProductGroup;
-  showShop: boolean;
-  helpers: MobileCardHelpers<ProductGroup>;
+  group: ProductCategory;
+  helpers: MobileCardHelpers<ProductCategory>;
 }) {
   return (
     <div className="flex items-center rounded-2xl border bg-card shadow-sm">
@@ -25,15 +23,10 @@ export function ProductGroupMobileCard({
           <h3 className="truncate text-sm font-semibold">{g.name}</h3>
           {g.description && <p className="truncate text-xs text-muted-foreground">{g.description}</p>}
           <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap">
-              <Package className="h-3 w-3" /> {g.productIds.length} sản phẩm
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <Link2 className="h-3 w-3 shrink-0" />
+              <span className="truncate font-mono">{g.handle}</span>
             </span>
-            {showShop && g.shopName && (
-              <span className="inline-flex min-w-0 items-center gap-1">
-                <Store className="h-3 w-3 shrink-0" />
-                <span className="truncate">{g.shopName}</span>
-              </span>
-            )}
           </div>
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

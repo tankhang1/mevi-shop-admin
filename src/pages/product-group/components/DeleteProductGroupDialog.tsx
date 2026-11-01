@@ -1,16 +1,16 @@
 import { DeleteDialog, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { type ProductGroup, useDeleteProductGroup } from "@/features/product-group";
+import { type ProductCategory, isConflictError, isStorefrontSyncError, useDeleteCategory } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 
 interface Props {
-  group: ProductGroup | null;
+  group: ProductCategory | null;
   onOpenChange: (open: boolean) => void;
   onDeleted?: () => void;
 }
 
 export function DeleteProductGroupDialog({ group, onOpenChange, onDeleted }: Props) {
   const { toast } = useToast();
-  const del = useDeleteProductGroup();
+  const del = useDeleteCategory();
 
   const onConfirm = async () => {
     if (!group) return;
@@ -20,7 +20,15 @@ export function DeleteProductGroupDialog({ group, onOpenChange, onDeleted }: Pro
       onOpenChange(false);
       onDeleted?.();
     } catch (e) {
-      toast({ variant: "destructive", title: "Không thể xoá", description: getErrorMessage(e) });
+      toast({
+        variant: "destructive",
+        title: "Không thể xoá",
+        description: isConflictError(e)
+          ? "Nhóm vẫn còn sản phẩm. Chuyển các sản phẩm sang nhóm khác trước khi xoá."
+          : isStorefrontSyncError(e)
+            ? "Chưa cập nhật được trang shop, vui lòng thử lại"
+            : getErrorMessage(e),
+      });
     }
   };
 
@@ -29,7 +37,7 @@ export function DeleteProductGroupDialog({ group, onOpenChange, onDeleted }: Pro
       open={!!group}
       onOpenChange={onOpenChange}
       title="Xoá nhóm sản phẩm?"
-      description={`Nhóm "${group?.name ?? ""}" sẽ bị xoá. Các sản phẩm trong nhóm vẫn được giữ nguyên.`}
+      description={`Nhóm "${group?.name ?? ""}" sẽ bị xoá. Chỉ xoá được khi nhóm không còn sản phẩm.`}
       onConfirm={() => void onConfirm()}
       loading={del.isPending}
     />

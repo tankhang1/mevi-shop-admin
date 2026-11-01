@@ -12,3 +12,6 @@ export const isStorefrontSyncError = (error: unknown) => axios.isAxiosError(erro
 
 /** FE product URL: `/products/<handle>-i.<id>` */
 export const productPath = (p: { handle: string; id: number }) => `/products/${p.handle}-i.${p.id}`;
+
+/** 409 — e.g. deleting a category that still has products, or a stock movement no longer PENDING */
+export const isConflictError = (error: unknown) => axios.isAxiosError(error) && error.response?.status === 409;

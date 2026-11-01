@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -11,52 +12,54 @@ import {
   Form,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { ImageUploadField, SelectField, TextField, TextareaField } from "@/components/form";
+import { ImageUploadField, TextField, TextareaField } from "@/components/form";
 import {
-  type ProductGroup,
-  type ProductGroupFormValues,
-  productGroupSchema,
-  useCreateProductGroup,
-  useUpdateProductGroup,
-} from "@/features/product-group";
-import { useShopFilter } from "@/features/shop";
+  type CategoryFormValues,
+  type ProductCategory,
+  PRODUCT_PHOTO_MAX_BYTES,
+  categorySchema,
+  getFieldErrors,
+  isStorefrontSyncError,
+  productPhotoApi,
+  toCategoryFormValues,
+  toCategoryInput,
+  useCreateCategory,
+  useUpdateCategory,
+} from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 
-type F = ProductGroupFormValues;
+type F = CategoryFormValues;
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pass a group to edit it; omit to create a new one */
-  group?: ProductGroup;
+  /** Pass a category to edit it; omit to create a new one */
+  group?: ProductCategory;
 }
 
-const toFormValues = (g?: ProductGroup): F => ({
-  name: g?.name ?? "",
-  description: g?.description ?? "",
-  imageUrl: g?.imageUrl ?? "",
-  shopId: g?.shopId ?? "",
-});
+const FIELD_ERROR: Record<string, string> = {
+  "api.message.validation.duplicate": "Đã được dùng bởi nhóm khác",
+  "api.message.validation.invalidFormat": "Sai định dạng",
+};
+
+const uploadImage = async (file: File) => (await productPhotoApi.upload({ file })).fileUrl;
 
 export function ProductGroupFormDialog({ open, onOpenChange, group }: Props) {
   const { toast } = useToast();
-  const { isRoot, filter: shopOptions } = useShopFilter();
-  const create = useCreateProductGroup();
-  const update = useUpdateProductGroup();
+  const create = useCreateCategory();
+  const update = useUpdateCategory();
   const isEdit = !!group;
-  const form = useForm<F>({ resolver: zodResolver(productGroupSchema), defaultValues: toFormValues(group) });
+  const saving = create.isPending || update.isPending;
+  const form = useForm<F>({ resolver: zodResolver(categorySchema), defaultValues: toCategoryFormValues(group) });
 
   // Re-seed on open (keyed on id so a background refetch doesn't wipe in-progress edits)
   useEffect(() => {
-    if (open) form.reset(toFormValues(group));
+    if (open) form.reset(toCategoryFormValues(group));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, group?.id]);
 
-  const onSubmit = async (data: F) => {
-    if (isRoot && !isEdit && !data.shopId) {
-      form.setError("shopId", { message: "Vui lòng chọn gian hàng" });
-      return;
-    }
+  const onSubmit = async (values: F) => {
+    const data = toCategoryInput(values, group?.sortOrder);
     try {
       if (isEdit) {
         await update.mutateAsync({ id: group.id, data });
@@ -67,7 +70,14 @@ export function ProductGroupFormDialog({ open, onOpenChange, group }: Props) {
       }
       onOpenChange(false);
     } catch (e) {
-      toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
+      const fieldErrors = Object.entries(getFieldErrors(e)).filter(([k]) => k in values);
+      fieldErrors.forEach(([k, reason]) => form.setError(k as keyof F, { message: FIELD_ERROR[reason] ?? reason }));
+      if (fieldErrors.length) return;
+      toast({
+        variant: "destructive",
+        title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Lỗi",
+        description: getErrorMessage(e),
+      });
     }
   };
 
@@ -79,19 +89,29 @@ export function ProductGroupFormDialog({ open, onOpenChange, group }: Props) {
         </DialogHeader>
         <Form {...form}>
           <form id="product-group-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {isRoot && !isEdit && shopOptions && (
-              <SelectField<F> name="shopId" label="Gian hàng" required options={shopOptions.options} />
-            )}
-            <ImageUploadField<F> name="imageUrl" label="Hình ảnh" hint="Ảnh vuông, JPEG/PNG/WebP ≤ 8 MB." />
-            <TextField<F> name="name" label="Tên nhóm" required placeholder="VD: Quà Tết, Gạo đặc sản" />
+            <ImageUploadField<F>
+              name="imageUrl"
+              label="Hình ảnh"
+              hint="Ảnh vuông, JPEG/PNG/WebP ≤ 20 MB."
+              upload={uploadImage}
+              maxBytes={PRODUCT_PHOTO_MAX_BYTES}
+            />
+            <TextField<F> name="name" label="Tên nhóm" required placeholder="VD: Trái cây sấy, Gạo đặc sản" />
+            <TextField<F>
+              name="handle"
+              label="Đường dẫn (handle)"
+              placeholder="trai-cay-say"
+              description={isEdit ? "Để trống để giữ nguyên." : "Để trống để tự sinh từ tên."}
+            />
             <TextareaField<F> name="description" label="Mô tả" rows={3} placeholder="Giới thiệu ngắn về nhóm sản phẩm" />
           </form>
         </Form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
             Huỷ
           </Button>
-          <Button type="submit" form="product-group-form" disabled={form.formState.isSubmitting}>
+          <Button type="submit" form="product-group-form" disabled={saving}>
+            {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             {isEdit ? "Lưu thay đổi" : "Thêm nhóm"}
           </Button>
         </DialogFooter>
