@@ -50,6 +50,9 @@ export const mockUserFromToken = (token: string | null) =>
     ? DEMO_USERS.find((u) => u.userId === token.slice(PREFIX.length))
     : undefined;
 
+/** Who the legacy mocks act as: a real SSO token maps to the first demo account (super admin) */
+export const mockActorUser = (token: string | null) => mockUserFromToken(token) ?? (token ? DEMO_USERS[0] : undefined);
+
 /** Demo workspace the shared layout header shows in mock mode */
 export const DEMO_WORKSPACE = {
   id: 1,

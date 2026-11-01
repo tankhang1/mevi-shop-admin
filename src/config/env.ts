@@ -2,7 +2,7 @@ const read = (value: string | undefined, fallback = "") => value?.trim() || fall
 
 export const env = {
   apiBaseUrl: read(import.meta.env.VITE_API_BASE_URL),
-  /** "true" → every axios call is answered by src/mocks (dummy data) */
+  /** "true" → legacy APIs (apiClient) are answered by src/mocks; auth + shop-catalog always hit the real backend */
   useMock: read(import.meta.env.VITE_USE_MOCK, "true") === "true",
   auth: {
     provider: read(import.meta.env.VITE_AUTH_PROVIDER, "farm"),

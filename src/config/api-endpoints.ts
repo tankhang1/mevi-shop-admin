@@ -3,6 +3,10 @@ export const API_ENDPOINTS = {
   auth: {
     me: "/auth/me",
     login: (provider: string) => `/auth/login/${encodeURIComponent(provider)}`,
+    /** POST — Bearer old token → `string` | `{ access_token }` */
+    refresh: "/auth/refresh",
+    /** POST ?post_logout_redirect_uri= */
+    logout: "/auth/logout",
   },
   admin: {
     summary: "/api/admin/shop/summary",

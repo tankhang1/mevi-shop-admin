@@ -1,14 +1,14 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { env } from "@/config/env";
 import { ROUTES } from "@/config/routes";
-import { apiClient } from "@/lib/axios";
+import { realApiClient } from "@/lib/axios";
 import { useAuthStore } from "../store/auth.store";
 import type { AuthMe } from "../types";
 
 const REDIRECT_KEY = "redirect_path";
 
 export const authApi = {
-  getMe: async () => (await apiClient.get<AuthMe>(API_ENDPOINTS.auth.me)).data,
+  getMe: async () => (await realApiClient.get<AuthMe>(API_ENDPOINTS.auth.me)).data,
 
   /** Backend redirects back to `callback_url?token=...` after SSO login */
   startLogin: () => {
@@ -31,13 +31,17 @@ export const authApi = {
     return path;
   },
 
-  logout: () => {
+  /** Ends the SSO session; errors are ignored — we always clear and redirect */
+  logout: async () => {
+    const redirectUri = env.auth.postLogoutRedirectUri || ROUTES.login;
+    try {
+      await realApiClient.post(API_ENDPOINTS.auth.logout, null, {
+        params: { post_logout_redirect_uri: redirectUri },
+      });
+    } catch {
+      // ignore
+    }
     useAuthStore.getState().clear();
-    // Mock sessions never touched the SSO server, so just return to our own login page
-    window.location.replace(
-      env.useMock
-        ? ROUTES.login
-        : env.auth.postLogoutRedirectUri || ROUTES.login,
-    );
+    window.location.replace(redirectUri);
   },
 };

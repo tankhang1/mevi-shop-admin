@@ -1,6 +1,6 @@
 import { isRootRole } from "@/features/auth/roles";
 import { getAccessToken } from "@/features/auth/store/auth.store";
-import { mockUserFromToken } from "./users";
+import { mockActorUser } from "./users";
 import { HttpError } from "./utils";
 
 /**
@@ -8,7 +8,7 @@ import { HttpError } from "./utils";
  * Root sees everything; a shop admin is pinned to `shopId`.
  */
 export function actor() {
-  const user = mockUserFromToken(getAccessToken());
+  const user = mockActorUser(getAccessToken());
   if (!user) throw new HttpError(401, "Phiên đăng nhập không hợp lệ");
   const isRoot = isRootRole(user.roles ?? []);
   const staffId = isRoot ? undefined : user.staffId;

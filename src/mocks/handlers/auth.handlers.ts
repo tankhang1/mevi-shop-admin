@@ -1,10 +1,10 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { getAccessToken } from "@/features/auth/store/auth.store";
-import { DEMO_WORKSPACE, mockUserFromToken } from "../users";
+import { DEMO_WORKSPACE, mockActorUser } from "../users";
 import { HttpError, type MockHandler } from "../utils";
 
 function currentUser() {
-  const user = mockUserFromToken(getAccessToken());
+  const user = mockActorUser(getAccessToken());
   if (!user) throw new HttpError(401, "Phiên đăng nhập không hợp lệ");
   return user;
 }

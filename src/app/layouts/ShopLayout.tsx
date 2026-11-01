@@ -5,8 +5,6 @@ import {
   ShopMobileLayout,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { DemoAccountSwitcher } from "@/components/common/DemoAccountSwitcher";
-import { env } from "@/config/env";
 import { menuFor, mobileNavFor, shopMenu } from "@/config/menu";
 import { ROUTES } from "@/config/routes";
 import { useAccess } from "@/features/auth";
@@ -77,7 +75,7 @@ export function ShopLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {layout}
-      {env.useMock && <DemoAccountSwitcher />}
+      {/* DemoAccountSwitcher disabled: login is real SSO now, a demo token would break real APIs */}
     </>
   );
 }
