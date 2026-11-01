@@ -1,24 +1,9 @@
 import { useState } from "react";
 import { BellRing, Layers, Package } from "lucide-react";
-import {
-  Button,
-  Card,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  useToast,
-} from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { Button, Card } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
-import {
-  type CatalogProduct,
-  applyFieldErrors,
-  isStorefrontSyncError,
-  useSetLowStockThresholds,
-} from "@/features/shop-catalog";
-import { getErrorMessage } from "@/lib/api-error";
+import type { CatalogProduct } from "@/features/shop-catalog";
+import { LowStockThresholdDialog } from "./LowStockThresholdDialog";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -74,92 +59,7 @@ export function ProductStockCard({ product: p }: { product: CatalogProduct }) {
         </div>
       </Card>
 
-      <ThresholdDialog product={p} open={editing} onOpenChange={setEditing} />
+      <LowStockThresholdDialog productId={editing ? p.id : null} onOpenChange={setEditing} />
     </div>
-  );
-}
-
-/** PUT /products/{id}/low-stock-thresholds — empty = no warning */
-function ThresholdDialog({ product, open, onOpenChange }: { product: CatalogProduct; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { toast } = useToast();
-  const save = useSetLowStockThresholds();
-  const [values, setValues] = useState<Record<number, string>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const reset = () => {
-    setValues(Object.fromEntries(product.variants.map((v) => [v.id, v.lowStockThreshold != null ? String(v.lowStockThreshold) : ""])));
-    setErrors({});
-  };
-
-  const submit = async () => {
-    const thresholds = product.variants.map((v) => {
-      const raw = values[v.id]?.trim();
-      return { variantId: v.id, threshold: raw ? Number(raw) : null };
-    });
-    if (thresholds.some((t) => t.threshold != null && (!Number.isInteger(t.threshold) || t.threshold < 0 || t.threshold > 100_000_000))) {
-      toast({ variant: "destructive", title: "Ngưỡng phải là số nguyên từ 0 đến 100.000.000" });
-      return;
-    }
-    try {
-      await save.mutateAsync({ id: product.id, thresholds });
-      toast({ title: "Đã lưu cảnh báo hàng tồn", description: product.title });
-      onOpenChange(false);
-    } catch (e) {
-      const next: Record<string, string> = {};
-      applyFieldErrors(e, ((name: string, err: { message: string }) => (next[name] = err.message)) as never);
-      setErrors(next);
-      toast({
-        variant: "destructive",
-        title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Không thể lưu",
-        description: getErrorMessage(e),
-      });
-    }
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (o) reset();
-        onOpenChange(o);
-      }}
-    >
-      <DialogContent className="max-w-md" onOpenAutoFocus={reset}>
-        <DialogHeader>
-          <DialogTitle>Cảnh báo hàng tồn</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">Quy cách “Sắp hết” khi tồn kho ≤ ngưỡng. Để trống = không cảnh báo.</p>
-        <div className="space-y-3">
-          {product.variants.map((v, i) => (
-            <div key={v.id} className="grid grid-cols-[minmax(0,1fr)_140px] items-center gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{v.title}</div>
-                <div className="text-xs text-muted-foreground">Tồn {nf.format(v.inventoryQuantity)}</div>
-              </div>
-              <div>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="Không cảnh báo"
-                  value={values[v.id] ?? ""}
-                  onChange={(e) => setValues((s) => ({ ...s, [v.id]: e.target.value }))}
-                />
-                {errors[`thresholds.${i}.threshold`] && (
-                  <p className="mt-1 text-xs text-destructive">{errors[`thresholds.${i}.threshold`]}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" disabled={save.isPending} onClick={() => onOpenChange(false)}>
-            Huỷ
-          </Button>
-          <Button disabled={save.isPending} onClick={() => void submit()}>
-            {save.isPending ? "Đang lưu..." : "Lưu"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

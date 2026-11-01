@@ -61,3 +61,9 @@ export const MOVEMENT_TYPE_STYLE = {
 
 /** Stock quantity / unit cost limits (§2.5) */
 export const STOCK_LIMITS = { quantity: 100_000_000, note: 1000 } as const;
+
+export const STOCK_STATUS_STYLE = {
+  IN_STOCK: { label: "Còn hàng", className: "bg-emerald-100 text-emerald-800" },
+  LOW_STOCK: { label: "Sắp hết", className: "bg-amber-100 text-amber-800" },
+  OUT_OF_STOCK: { label: "Hết hàng", className: "bg-red-100 text-red-700" },
+} as const;

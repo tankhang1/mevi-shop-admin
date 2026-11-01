@@ -10,7 +10,6 @@ import {
   ExternalLink,
   History,
   PackageX,
-  Sprout,
 } from "lucide-react";
 import {
   type Column,
@@ -29,81 +28,81 @@ import {
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { MockBadge } from "@/components/common/MockBadge";
 import { StatusPill } from "@/components/common/ui-bits";
-import { PRODUCT_SOURCE } from "@/features/product";
 import { ROUTES } from "@/config/routes";
-import {
-  type InventoryItem,
-  type InventoryListParams,
-  STOCK_STATUS,
-  type StockStatus,
-  useInventory,
-  useInventoryStats,
-} from "@/features/inventory";
-import { useStockMovementCounts } from "@/features/shop-catalog";
-import { useShopFilter } from "@/features/shop";
-import { useTableParams } from "@/hooks/useTableParams";
 import { useAccess } from "@/features/auth";
+import { useInventoryStats } from "@/features/inventory";
+import {
+  type InventoryRow,
+  STOCK_STATUS_STYLE,
+  type StockStatus,
+  useCatalogInventory,
+  useCategories,
+  useStockMovementCounts,
+} from "@/features/shop-catalog";
+import { useTableParams } from "@/hooks/useTableParams";
+import { cleanFilters, fromSpringPage, toSpringPageParams } from "@/lib/pagination";
 import { usePageActions } from "@/app/layouts/page-header.store";
+import { LowStockThresholdDialog } from "@/pages/product/components/LowStockThresholdDialog";
+import { CatalogStockMovementTable } from "./components/CatalogStockMovementTable";
 import { ImportPickDialog } from "./components/ImportPickDialog";
 import { InventoryMobileCard } from "./components/InventoryMobileCard";
-import { StockAdjustDialog } from "./components/StockAdjustDialog";
-import { StockAlertDialog } from "./components/StockAlertDialog";
-import { CatalogStockMovementTable } from "./components/CatalogStockMovementTable";
-import { SupplyRequestsTable } from "./components/SupplyRequestsTable";
 import { StockReceiptDialog } from "./components/StockReceiptDialog";
+import { SupplyRequestsTable } from "./components/SupplyRequestsTable";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
-const stockFilter: TableFilterDef = {
-  key: "stockStatus",
-  label: "Hàng tồn",
-  options: (Object.keys(STOCK_STATUS) as StockStatus[]).map((s) => ({
-    label: STOCK_STATUS[s].label,
-    value: s,
-  })),
-};
+/** Row target for the per-row dialogs */
+type RowRef = { productId: number; variantId: number };
 
-function StockTable({
-  onAdjust,
-  onAlert,
-}: {
-  onAdjust: (item: InventoryItem) => void;
-  onAlert: (item: InventoryItem) => void;
-}) {
+const rowKey = (r: InventoryRow) => `${r.product.id}:${r.variant.id}`;
+
+/** "Hàng tồn" — GET /inventory (§2.9), one row per quy cách */
+function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAlert: (r: RowRef) => void }) {
   const [, navigate] = useLocation();
-  const shopFilter = useShopFilter();
   const isMobile = useIsMobile();
-  const table = useTableParams<
-    Pick<InventoryListParams, "stockStatus"> & { shopId: string }
-  >({
-    stockStatus: "all",
-    shopId: shopFilter.initialShopId,
-  });
-  const { data: page, isFetching } = useInventory(table.params);
+  const { data: categories } = useCategories();
+  const table = useTableParams<{ stockStatus: string; categoryId: string }>({ stockStatus: "all", categoryId: "all" });
+  const { page, size, keyword, ...f } = table.params;
+  const c = cleanFilters(f);
+  const { data, isFetching } = useCatalogInventory(
+    toSpringPageParams({
+      page,
+      size,
+      keyword,
+      stockStatus: c.stockStatus as StockStatus | undefined,
+      categoryId: c.categoryId ? Number(c.categoryId) : undefined,
+    }),
+  );
+  // DataTable needs a unique `id` per row; a product has several quy cách
+  const rows = data && { ...data, content: data.content.map((r) => ({ ...r, id: rowKey(r) })) };
+  const ref = (r: InventoryRow): RowRef => ({ productId: r.product.id, variantId: r.variant.id });
 
-  const columns: Column<InventoryItem>[] = [
+  const filters: TableFilterDef[] = [
     {
-      key: "name",
+      key: "stockStatus",
+      label: "Hàng tồn",
+      options: (Object.keys(STOCK_STATUS_STYLE) as StockStatus[]).map((s) => ({ label: STOCK_STATUS_STYLE[s].label, value: s })),
+    },
+    { key: "categoryId", label: "Nhóm sản phẩm", options: (categories ?? []).map((x) => ({ label: x.name, value: String(x.id) })) },
+  ];
+
+  const columns: Column<InventoryRow>[] = [
+    {
+      key: "product",
       label: "Sản phẩm",
       mobilePriority: "primary",
-      render: (_, p) => (
+      render: (_, r) => (
         <div className="flex min-w-0 items-center gap-3">
-          <img
-            src={p.images[0] || placeholder}
-            alt=""
-            className="h-10 w-10 shrink-0 rounded-md border object-cover"
-          />
+          <img src={r.product.thumbnailUrl || placeholder} alt="" className="h-10 w-10 shrink-0 rounded-md border object-cover" />
           <div className="min-w-0">
             <Link
-              href={ROUTES.productDetail(p.productId)}
+              href={ROUTES.productDetail(String(r.product.id))}
               onClick={(e) => e.stopPropagation()}
               className="block truncate font-medium text-primary hover:underline"
             >
-              {p.name}
+              {r.product.title}
             </Link>
-            <div className="font-mono text-xs text-muted-foreground">
-              {p.sku}
-            </div>
+            <div className="font-mono text-xs text-muted-foreground">{r.product.code}</div>
           </div>
         </div>
       ),
@@ -111,42 +110,23 @@ function StockTable({
     {
       key: "variant",
       label: "Quy cách",
-      render: (v) => (
-        <span className="whitespace-nowrap font-medium">
-          {String(v ?? "—")}
-        </span>
-      ),
-    },
-    { key: "category", label: "Nhóm sản phẩm" },
-    {
-      key: "source",
-      label: "Nguồn",
-      render: (_, p) => (
-        <div className="flex flex-col items-start gap-1">
-          {p.isAgricultural ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-              <Sprout className="h-3 w-3" /> Nông sản
-            </span>
-          ) : (
-            <StatusPill {...PRODUCT_SOURCE[p.source ?? "self"]} />
-          )}
-          {!!p.pendingCount && (
-            <span className="text-xs text-amber-700">
-              {p.pendingCount} chờ duyệt
-            </span>
-          )}
+      render: (_, r) => (
+        <div className="whitespace-nowrap">
+          <div className="font-medium">{r.variant.title}</div>
+          <div className="font-mono text-xs text-muted-foreground">{r.variant.sku}</div>
         </div>
       ),
     },
+    { key: "category", label: "Nhóm sản phẩm", render: (_, r) => r.category?.name ?? "—" },
     {
-      key: "stock",
+      key: "inventoryQuantity",
       label: "Số lượng",
       mobilePriority: "secondary",
-      render: (_, p) => (
+      render: (_, r) => (
         <div className="whitespace-nowrap">
-          <span className="text-base font-semibold">{nf.format(p.stock)}</span>
+          <span className="text-base font-semibold tabular-nums">{nf.format(r.inventoryQuantity)}</span>
           <span className="ml-1.5 text-xs text-muted-foreground">
-            / cảnh báo ≤ {p.lowStockThreshold}
+            {r.lowStockThreshold != null ? `/ cảnh báo ≤ ${nf.format(r.lowStockThreshold)}` : "/ chưa đặt cảnh báo"}
           </span>
         </div>
       ),
@@ -155,54 +135,31 @@ function StockTable({
       key: "stockStatus",
       label: "Trạng thái",
       mobilePriority: "badge",
-      render: (v) => <StatusPill {...STOCK_STATUS[v as StockStatus]} />,
+      render: (_, r) => <StatusPill {...STOCK_STATUS_STYLE[r.stockStatus]} />,
     },
   ];
 
-  const actions: RowAction<InventoryItem>[] = [
-    {
-      key: "history",
-      label: "Lịch sử",
-      icon: History,
-      onClick: (p) => navigate(ROUTES.inventoryHistory(p.productId)),
-    },
-    {
-      key: "import",
-      label: "Nhập hàng",
-      icon: ArrowDownToLine,
-      onClick: onAdjust,
-    },
-    {
-      key: "alert",
-      label: "Cảnh báo hàng tồn",
-      icon: BellRing,
-      onClick: onAlert,
-    },
-    {
-      key: "product",
-      label: "Xem sản phẩm",
-      icon: ExternalLink,
-      onClick: (p) => navigate(ROUTES.productDetail(p.productId)),
-    },
+  const actions: RowAction<InventoryRow>[] = [
+    { key: "import", label: "Nhập hàng", icon: ArrowDownToLine, onClick: (r) => onAdjust(ref(r)) },
+    { key: "alert", label: "Cảnh báo hàng tồn", icon: BellRing, onClick: (r) => onAlert(ref(r)) },
+    { key: "history", label: "Lịch sử", icon: History, onClick: (r) => navigate(ROUTES.inventoryHistory(String(r.product.id))) },
+    { key: "product", label: "Xem sản phẩm", icon: ExternalLink, onClick: (r) => navigate(ROUTES.productDetail(String(r.product.id))) },
   ];
 
   return (
     <DataTable
-      {...table.bind(page, isFetching)}
+      {...table.bind(fromSpringPage(rows), isFetching)}
       columns={columns}
-      filters={
-        shopFilter.filter ? [shopFilter.filter, stockFilter] : [stockFilter]
-      }
-      searchPlaceholder="Tìm theo tên, mã sản phẩm..."
+      filters={filters}
+      searchPlaceholder="Tìm theo tên, mã sản phẩm, quy cách, SKU..."
       enableMobileCard
-      renderMobileCard={(p) => (
+      renderMobileCard={(r) => (
         <InventoryMobileCard
-          item={p}
-          showShop={shopFilter.isRoot}
-          onAdjust={() => onAdjust(p)}
-          onAlert={() => onAlert(p)}
-          onHistory={() => navigate(ROUTES.inventoryHistory(p.productId))}
-          onProduct={() => navigate(ROUTES.productDetail(p.productId))}
+          item={r}
+          onAdjust={() => onAdjust(ref(r))}
+          onAlert={() => onAlert(ref(r))}
+          onHistory={() => navigate(ROUTES.inventoryHistory(String(r.product.id)))}
+          onProduct={() => navigate(ROUTES.productDetail(String(r.product.id)))}
         />
       )}
       columnToggleable={!isMobile}
@@ -213,15 +170,17 @@ function StockTable({
 }
 
 export default function InventoryPage() {
-  // Low / out / approved-today counts: still mock (inventory list API §2.9 not wired yet)
+  // "Approved today" has no API yet — still mock
   const { data: stats } = useInventoryStats();
   const { data: farmCounts } = useStockMovementCounts({ source: "FARM" });
+  // Counts = totalElements of size-1 inventory calls (rows are quy cách, not products)
+  const { data: low } = useCatalogInventory({ stockStatus: "LOW_STOCK", size: 1 });
+  const { data: out } = useCatalogInventory({ stockStatus: "OUT_OF_STOCK", size: 1 });
   const { isShopAdmin, isRoot } = useAccess();
   const canReviewSupply = isShopAdmin || isRoot;
-  const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
-  const [alerting, setAlerting] = useState<InventoryItem | null>(null);
   const [picking, setPicking] = useState(false);
-  const [stocking, setStocking] = useState<number | null>(null);
+  const [stocking, setStocking] = useState<Partial<RowRef> | null>(null);
+  const [alerting, setAlerting] = useState<RowRef | null>(null);
 
   usePageActions(() => (
     <Button onClick={() => setPicking(true)}>
@@ -232,24 +191,10 @@ export default function InventoryPage() {
   ));
 
   // Row 1: hàng tồn alerts; row 2: đề xuất cung ứng from nông hộ
-  const statRows = [
+  const statRows: { title: string; short: string; value: string | number; icon: typeof Clock; tone: string; mock?: boolean }[][] = [
     [
-      {
-        title: "Sản phẩm sắp hết hàng",
-        short: "Sắp hết",
-        value: stats?.low ?? "—",
-        icon: AlertTriangle,
-        tone: "text-amber-600",
-        mock: true,
-      },
-      {
-        title: "Sản phẩm đã hết hàng",
-        short: "Hết hàng",
-        value: stats?.out ?? "—",
-        icon: PackageX,
-        tone: "text-destructive",
-        mock: true,
-      },
+      { title: "Quy cách sắp hết hàng", short: "Sắp hết", value: low ? nf.format(low.totalElements) : "—", icon: AlertTriangle, tone: "text-amber-600" },
+      { title: "Quy cách đã hết hàng", short: "Hết hàng", value: out ? nf.format(out.totalElements) : "—", icon: PackageX, tone: "text-destructive" },
     ],
     [
       {
@@ -259,22 +204,8 @@ export default function InventoryPage() {
         icon: ClipboardCheck,
         tone: "text-primary",
       },
-      {
-        title: "Đơn duyệt trong ngày",
-        short: "Hôm nay",
-        value: stats?.approvedToday ?? "—",
-        icon: CalendarCheck,
-        tone: "text-emerald-600",
-        // No "reviewed today" count in the API
-        mock: true,
-      },
-      {
-        title: "Đơn chờ duyệt",
-        short: "Chờ duyệt",
-        value: farmCounts?.pending ?? "—",
-        icon: Clock,
-        tone: "text-sky-600",
-      },
+      { title: "Đơn duyệt trong ngày", short: "Hôm nay", value: stats?.approvedToday ?? "—", icon: CalendarCheck, tone: "text-emerald-600", mock: true },
+      { title: "Đơn chờ duyệt", short: "Chờ duyệt", value: farmCounts?.pending ?? "—", icon: Clock, tone: "text-sky-600" },
     ],
   ];
 
@@ -283,40 +214,23 @@ export default function InventoryPage() {
       {statRows.map((row, r) => (
         <div key={r} className="space-y-4">
           {/* Mobile: one compact strip per row instead of stacked cards */}
-          <div
-            className={cn(
-              "grid divide-x rounded-xl border bg-card md:hidden!",
-              row.length === 2 ? "grid-cols-2" : "grid-cols-3",
-            )}
-          >
+          <div className={cn("grid divide-x rounded-xl border bg-card md:hidden!", row.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
             {row.map((it) => (
-              <div
-                key={it.title}
-                className="flex flex-col items-center gap-1 px-1 py-3"
-              >
+              <div key={it.title} className="flex flex-col items-center gap-1 px-1 py-3">
                 <span className="flex items-center gap-1">
                   <it.icon className={`h-4 w-4 ${it.tone}`} />
-                  {"mock" in it && <MockBadge className="px-0.5 [&>svg]:hidden" />}
+                  {it.mock && <MockBadge className="px-0.5 [&>svg]:hidden" />}
                 </span>
-                <span className="text-lg font-bold leading-none tabular-nums">
-                  {it.value}
-                </span>
-                <span className="text-center text-[11px] leading-tight text-muted-foreground">
-                  {it.short}
-                </span>
+                <span className="text-lg font-bold leading-none tabular-nums">{it.value}</span>
+                <span className="text-center text-[11px] leading-tight text-muted-foreground">{it.short}</span>
               </div>
             ))}
           </div>
-          <div
-            className={cn(
-              "hidden gap-4 md:grid!",
-              row.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3",
-            )}
-          >
+          <div className={cn("hidden gap-4 md:grid!", row.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3")}>
             {row.map((it) => (
               <div key={it.title} className="relative">
                 <StatsCard title={it.title} value={it.value} icon={it.icon} />
-                {"mock" in it && <MockBadge className="absolute right-3 top-3" />}
+                {it.mock && <MockBadge className="absolute right-3 top-3" />}
               </div>
             ))}
           </div>
@@ -324,12 +238,7 @@ export default function InventoryPage() {
       ))}
 
       <Tabs defaultValue="history" className="space-y-4">
-        <TabsList
-          className={cn(
-            "grid w-full md:inline-flex md:w-auto",
-            canReviewSupply ? "grid-cols-3" : "grid-cols-2",
-          )}
-        >
+        <TabsList className={cn("grid w-full md:inline-flex md:w-auto", canReviewSupply ? "grid-cols-3" : "grid-cols-2")}>
           <TabsTrigger value="history">
             Lịch sử<span className="max-md:hidden">&nbsp;hàng</span>
           </TabsTrigger>
@@ -337,18 +246,14 @@ export default function InventoryPage() {
             <TabsTrigger value="supply-requests" className="gap-1.5">
               Yêu cầu cung ứng
               {!!farmCounts?.pending && (
-                <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">
-                  {farmCounts.pending}
-                </span>
+                <span className="rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">{farmCounts.pending}</span>
               )}
             </TabsTrigger>
           )}
-          <TabsTrigger value="stock" className="gap-1.5">
-            Hàng tồn <MockBadge />
-          </TabsTrigger>
+          <TabsTrigger value="stock">Hàng tồn</TabsTrigger>
         </TabsList>
         <TabsContent value="stock" className="mt-0">
-          <StockTable onAdjust={setAdjusting} onAlert={setAlerting} />
+          <StockTable onAdjust={setStocking} onAlert={setAlerting} />
         </TabsContent>
         {canReviewSupply && (
           <TabsContent value="supply-requests" className="mt-0">
@@ -360,22 +265,22 @@ export default function InventoryPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Legacy dialog for the mock "Hàng tồn" rows */}
-      <StockAdjustDialog
-        item={adjusting}
-        onOpenChange={(o) => !o && setAdjusting(null)}
-      />
       <ImportPickDialog
         open={picking}
         onOpenChange={setPicking}
         onPick={(productId) => {
           setPicking(false);
-          setStocking(productId);
+          setStocking({ productId });
         }}
       />
-      <StockReceiptDialog productId={stocking} onOpenChange={(o) => !o && setStocking(null)} />
-      <StockAlertDialog
-        item={alerting}
+      <StockReceiptDialog
+        productId={stocking?.productId ?? null}
+        variantId={stocking?.variantId}
+        onOpenChange={(o) => !o && setStocking(null)}
+      />
+      <LowStockThresholdDialog
+        productId={alerting?.productId ?? null}
+        focusVariantId={alerting?.variantId}
         onOpenChange={(o) => !o && setAlerting(null)}
       />
     </div>
