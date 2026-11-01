@@ -9,9 +9,6 @@ import {
   CardHeader,
   CardTitle,
   DataTable,
-  Tabs,
-  TabsList,
-  TabsTrigger,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
@@ -21,7 +18,8 @@ import { ReportTrendChart } from "./ReportTrendChart";
 import { RevenueBars } from "./RevenueBars";
 import { RevenueMobileCard } from "./RevenueMobileCard";
 import { TopSeriesChart } from "./TopSeriesChart";
-import { PRESETS, isoDay, rangeFor } from "./report-filters";
+import { ReportFilters } from "./ReportFilters";
+import { type ReportFilterState, defaultFilters, isoDay } from "./report-filters";
 
 const nf = new Intl.NumberFormat("vi-VN");
 /** Far enough back to cover every order — "all time" for the total tile */
@@ -64,9 +62,11 @@ const columns: Column<RevenueRow>[] = [
  */
 export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
   const isMobile = useIsMobile();
-  const [preset, setPreset] = useState("30");
+  const [filters, setFilters] = useState<ReportFilterState>(() => defaultFilters());
   const [, navigate] = useLocation();
-  const range = rangeFor(Number(preset));
+  const range = { from: filters.from, to: filters.to };
+  // Category / source narrow every figure; the date range only drives the charts and table
+  const criteria = { category: filters.category, source: agencyId ? undefined : filters.source };
   // Order list pre-filtered to the completed orders behind this product's figure
   const openOrders = (r: RevenueRow) => {
     const q = new URLSearchParams({ productId: r.id, status: "completed", ...range });
@@ -77,9 +77,9 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
   const now = new Date();
   const monthFrom = isoDay(new Date(now.getFullYear(), now.getMonth(), 1));
 
-  const { data: allTime } = useRevenueReport({ groupBy: "product", agencyId, from: ALL_TIME_FROM, to: today });
-  const { data: month } = useRevenueReport({ groupBy: "product", agencyId, from: monthFrom, to: today });
-  const { data, isLoading, isFetching } = useRevenueReport({ groupBy: "product", agencyId, ...range });
+  const { data: allTime } = useRevenueReport({ groupBy: "product", agencyId, ...criteria, from: ALL_TIME_FROM, to: today });
+  const { data: month } = useRevenueReport({ groupBy: "product", agencyId, ...criteria, from: monthFrom, to: today });
+  const { data, isLoading, isFetching } = useRevenueReport({ groupBy: "product", agencyId, ...criteria, ...range });
 
   const stats = [
     { title: "Tổng doanh thu", value: allTime ? formatVnd(allTime.totals.revenue) : "—", note: allTime ? `${nf.format(allTime.totals.orders)} đơn hoàn tất` : "", icon: Banknote },
@@ -103,15 +103,7 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
         ))}
       </div>
 
-      <Tabs value={preset} onValueChange={setPreset}>
-        <TabsList className="grid w-full grid-cols-4 md:inline-flex! md:w-auto!">
-          {PRESETS.filter((p) => p.value !== "custom").map((p) => (
-            <TabsTrigger key={p.value} value={p.value} className="px-1 text-xs md:px-3 md:text-sm">
-              {p.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <ReportFilters value={filters} onChange={setFilters} initialShopId="all" showSource={!agencyId} />
 
       {isLoading || !data ? (
         <LoadingBlock />

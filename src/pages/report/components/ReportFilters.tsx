@@ -28,6 +28,8 @@ interface Props {
   /** Root only */
   shopOptions?: { label: string; value: string }[];
   initialShopId: string;
+  /** Off for one agency's report — its orders are all agency-sourced */
+  showSource?: boolean;
 }
 
 /** One row above the charts; every chart, stat and table below follows it */
@@ -36,6 +38,7 @@ export function ReportFilters({
   onChange,
   shopOptions,
   initialShopId,
+  showSource = true,
 }: Props) {
   const set = (patch: Partial<ReportFilterState>) =>
     onChange({ ...f, ...patch });
@@ -91,19 +94,21 @@ export function ReportFilters({
         </div>
       )}
 
-      <Select
-        value={f.source}
-        onValueChange={(v) => set({ source: v as OrderSource })}
-      >
-        <SelectTrigger className="h-9 w-full md:w-44!" aria-label="Nguồn đơn">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Mọi nguồn đơn</SelectItem>
-          <SelectItem value="agency">Qua đại lý / CTV</SelectItem>
-          <SelectItem value="direct">Bán trực tiếp</SelectItem>
-        </SelectContent>
-      </Select>
+      {showSource && (
+        <Select
+          value={f.source}
+          onValueChange={(v) => set({ source: v as OrderSource })}
+        >
+          <SelectTrigger className="h-9 w-full md:w-44!" aria-label="Nguồn đơn">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Mọi nguồn đơn</SelectItem>
+            <SelectItem value="agency">Qua đại lý / CTV</SelectItem>
+            <SelectItem value="direct">Bán trực tiếp</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
 
       <Select value={f.category} onValueChange={(v) => set({ category: v })}>
         <SelectTrigger className="h-9 w-full md:w-40!" aria-label="Danh mục">
@@ -135,15 +140,15 @@ export function ReportFilters({
         </Select>
       )}
 
-      {!isDefault && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onChange(defaultFilters(initialShopId))}
-        >
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Đặt lại
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9"
+        disabled={isDefault}
+        onClick={() => onChange(defaultFilters(initialShopId))}
+      >
+        <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Đặt lại
+      </Button>
     </div>
   );
 }

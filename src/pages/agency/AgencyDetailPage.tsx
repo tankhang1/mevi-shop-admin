@@ -49,6 +49,7 @@ import { AgencyActiveToggle } from "./components/AgencyActiveToggle";
 import { AgencyCommissions } from "./components/AgencyCommissions";
 import { AgencyFormDialog } from "./components/AgencyFormDialog";
 import { DeleteAgencyDialog } from "./components/DeleteAgencyDialog";
+import { ShopSalesReport } from "@/pages/report/components/ShopSalesReport";
 
 /** Storefront the agency's referral link points to (?ref={slug}) */
 const SHOP_URL = import.meta.env.VITE_SHOP_URL ?? "https://mevi.vn";
@@ -319,6 +320,7 @@ export default function AgencyDetailPage() {
             <TabsList>
               <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
               <TabsTrigger value="commissions">Hoa hồng</TabsTrigger>
+              <TabsTrigger value="report">Báo cáo</TabsTrigger>
             </TabsList>
             <TabsContent value="orders" className="mt-0">
               <DataTable
@@ -332,6 +334,9 @@ export default function AgencyDetailPage() {
             </TabsContent>
             <TabsContent value="commissions" className="mt-0">
               <AgencyCommissions agency={agency} />
+            </TabsContent>
+            <TabsContent value="report" className="mt-0">
+              <ShopSalesReport agencyId={agency.id} />
             </TabsContent>
           </Tabs>
         </div>
