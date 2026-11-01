@@ -48,6 +48,9 @@ export function ReportFilters({
     f.source === "all" &&
     f.shopId === initialShopId;
 
+  // Mobile 2-col grid: source, category, shop, reset — reset spans the row when it'd sit alone
+  const halfCells = Number(showSource) + 1 + Number(!!shopOptions) + 1;
+
   return (
     <div className="grid grid-cols-2 gap-2 md:flex! md:flex-wrap md:items-center">
       <Tabs
@@ -143,7 +146,7 @@ export function ReportFilters({
       <Button
         variant="outline"
         size="sm"
-        className="h-9"
+        className={halfCells % 2 ? "col-span-2 h-9 md:col-span-1" : "h-9"}
         disabled={isDefault}
         onClick={() => onChange(defaultFilters(initialShopId))}
       >
