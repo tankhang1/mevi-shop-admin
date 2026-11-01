@@ -1,51 +1,41 @@
-import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import type { UseFormReturn } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import { SchemaStepperForm, type SchemaStep } from "@/components/form";
-import { type ProductFormValues, productSchema } from "@/features/product";
-import {
-  BasicInfoSection,
-  ImagesSection,
-  ReviewSection,
-  SuppliersSection,
-  VariantsSection,
-} from "./sections";
+import { type CatalogProductFormValues, catalogProductSchema } from "@/features/shop-catalog";
+import { BasicInfoSection, ImagesSection, ReviewSection, SuppliersSection, VariantsSection } from "./sections";
+
+type F = CatalogProductFormValues;
 
 interface Props {
-  defaultValues: ProductFormValues;
+  /** Owned by the page so it can map backend `fieldErrors` back onto fields */
+  form: UseFormReturn<F>;
   submitLabel: string;
   isSubmitting?: boolean;
-  onSubmit: (values: ProductFormValues) => void;
+  onSubmit: (values: F) => void;
   onCancel: () => void;
 }
 
-export function ProductStepperForm({ defaultValues, ...props }: Props) {
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues,
-    mode: "onTouched",
-  });
+export function ProductStepperForm({ form, ...props }: Props) {
+  const agricultural = useWatch({ control: form.control, name: "agricultural" });
 
-  const isAgricultural = useWatch({
-    control: form.control,
-    name: "isAgricultural",
-  });
-
-  const steps: SchemaStep<ProductFormValues>[] = [
+  const steps: SchemaStep<F>[] = [
     {
       id: "info",
       title: "Thông tin cơ bản",
       description: "Tên, mã, nhóm sản phẩm",
       fields: [
-        "name",
-        "sku",
-        "category",
+        "title",
+        "code",
+        "handle",
+        "categoryId",
         "description",
-        "shelfLife",
-        "storage",
+        "active",
+        "agricultural",
+        "shelfLifeValue",
+        "shelfLifeUnit",
+        "storageCondition",
+        "storageInstructions",
         "certifications",
-        "isAgricultural",
-        "cropId",
-        "baseUnit",
       ],
       content: <BasicInfoSection />,
     },
@@ -53,20 +43,16 @@ export function ProductStepperForm({ defaultValues, ...props }: Props) {
       id: "images",
       title: "Hình ảnh",
       description: "Ảnh bìa và thư viện ảnh",
-      fields: ["images"],
+      fields: ["media"],
       content: <ImagesSection />,
     },
-    ...(isAgricultural
+    ...(agricultural
       ? [
           {
             id: "suppliers",
-            title: "Liên kết cung ứng",
-            description: "Nông hộ & vườn canh tác",
-            fields: [
-              "farmId",
-              "regionId",
-              "sources",
-            ] as (keyof ProductFormValues & string)[],
+            title: "Nguồn cung nông sản",
+            description: "Vườn canh tác & cây trồng",
+            fields: ["supplySources"] as (keyof F & string)[],
             content: <SuppliersSection />,
           },
         ]
@@ -74,7 +60,7 @@ export function ProductStepperForm({ defaultValues, ...props }: Props) {
     {
       id: "variants",
       title: "Quy cách & giá",
-      description: "Giá bán, giá gốc",
+      description: "SKU, giá bán, giá gốc",
       fields: ["variants"],
       content: <VariantsSection />,
     },
@@ -87,12 +73,5 @@ export function ProductStepperForm({ defaultValues, ...props }: Props) {
     },
   ];
 
-  return (
-    <SchemaStepperForm
-      form={form}
-      schema={productSchema}
-      steps={steps}
-      {...props}
-    />
-  );
+  return <SchemaStepperForm form={form} schema={catalogProductSchema} steps={steps} {...props} />;
 }

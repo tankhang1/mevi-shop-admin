@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { Pencil, Trash2 } from "lucide-react";
+import { History, Pencil, Trash2 } from "lucide-react";
 import {
   Button,
   DeleteDialog,
@@ -12,22 +12,25 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
-import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
+import { MockBadge } from "@/components/common/MockBadge";
+import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { BUSINESS_STATUS, businessStatusOf, useDeleteProduct, useProduct } from "@/features/product";
+import { isStorefrontSyncError, useCatalogProduct, useDeleteCatalogProduct } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
-import { StockMovementTable } from "@/pages/inventory/components/StockMovementTable";
+import { CatalogStatusToggle } from "./components/CatalogStatusToggle";
 import { ProductInfo } from "./components/ProductInfo";
-import { ProductStockCard } from "./components/ProductStockCard";
+import { StockMovementTable } from "@/pages/inventory/components/StockMovementTable";
 import { ProductReviews } from "./components/ProductReviews";
+import { ProductStockCard } from "./components/ProductStockCard";
 
 export default function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = Number(params.id) || undefined;
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: product, isLoading, isError } = useProduct(id);
-  const del = useDeleteProduct();
+  const { data: product, isLoading, isError } = useCatalogProduct(id);
+  const del = useDeleteCatalogProduct();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   usePageActions(
@@ -39,7 +42,7 @@ export default function ProductDetailPage() {
             <span className="max-sm:hidden">Xoá</span>
           </Button>
           <Button asChild>
-            <Link href={ROUTES.productEdit(product.id)}>
+            <Link href={ROUTES.productEdit(String(product.id))}>
               <Pencil className="mr-1.5 h-4 w-4" /> <span className="sm:hidden">Sửa</span>
               <span className="max-sm:hidden">Chỉnh sửa</span>
             </Link>
@@ -64,10 +67,14 @@ export default function ProductDetailPage() {
   const onDelete = async () => {
     try {
       await del.mutateAsync(product.id);
-      toast({ title: "Đã xoá sản phẩm", description: product.name });
+      toast({ title: "Đã xoá sản phẩm", description: product.title });
       navigate(ROUTES.products);
     } catch (e) {
-      toast({ variant: "destructive", title: "Không thể xoá", description: getErrorMessage(e) });
+      toast({
+        variant: "destructive",
+        title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Không thể xoá",
+        description: getErrorMessage(e),
+      });
     }
   };
 
@@ -75,31 +82,48 @@ export default function ProductDetailPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <BackLink to={ROUTES.products} label="Danh mục sản phẩm" />
-        <StatusPill {...BUSINESS_STATUS[businessStatusOf(product)]} />
-        <span className="text-xs text-muted-foreground">Tạo lúc {formatDate(product.createdAt)}</span>
+        <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          Tạm ngưng kinh doanh <CatalogStatusToggle product={product} />
+        </label>
+        <span className="text-xs text-muted-foreground">
+          Tạo lúc {formatDate(product.createdAt)} · Cập nhật {formatDate(product.updatedAt)}
+        </span>
       </div>
 
       <Tabs defaultValue="info" className="space-y-3">
         <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
           <TabsList>
             <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="sales">Lịch sử bán hàng</TabsTrigger>
-            <TabsTrigger value="imports">Lịch sử nhập hàng</TabsTrigger>
+            <TabsTrigger value="sales" className="gap-1.5">
+              Lịch sử bán hàng <MockBadge />
+            </TabsTrigger>
+            <TabsTrigger value="imports" className="gap-1.5">
+              Lịch sử nhập hàng <MockBadge />
+            </TabsTrigger>
             <TabsTrigger value="stock">Tồn kho hiện tại</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="info" className="mt-0 space-y-5">
           <ProductInfo product={product} />
-          <ProductReviews productId={product.id} />
+          {/* Reviews API not ready — still on mocks */}
+          <ProductReviews productId={String(product.id)} />
         </TabsContent>
+        {/* No orders API yet */}
         <TabsContent value="sales" className="mt-0">
-          <StockMovementTable productId={product.id} type="out" />
+          <StockMovementTable productId={String(product.id)} type="out" />
         </TabsContent>
+        {/* TODO: switch to GET /api/admin/shop/stock-movements?productId= (BE notice §2.5.4) */}
         <TabsContent value="imports" className="mt-0">
-          <StockMovementTable productId={product.id} type="in" />
+          <StockMovementTable productId={String(product.id)} type="in" />
         </TabsContent>
-        <TabsContent value="stock" className="mt-0">
+        <TabsContent value="stock" className="mt-0 space-y-3">
           <ProductStockCard product={product} />
+          {/* Inventory screens are still on mocks */}
+          <Button variant="outline" size="sm" asChild>
+            <Link href={ROUTES.inventoryHistory(String(product.id))} className="gap-1.5">
+              <History className="h-4 w-4" /> Quản lý kho <MockBadge />
+            </Link>
+          </Button>
         </TabsContent>
       </Tabs>
 
@@ -107,7 +131,7 @@ export default function ProductDetailPage() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Xoá sản phẩm?"
-        description={`Sản phẩm "${product.name}" sẽ bị xoá vĩnh viễn và không thể khôi phục.`}
+        description={`Sản phẩm "${product.title}" sẽ bị xoá khỏi admin và cửa hàng. Mã sản phẩm và SKU không dùng lại được.`}
         onConfirm={() => void onDelete()}
         loading={del.isPending}
       />

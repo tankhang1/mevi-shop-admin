@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { MockBadge } from "@/components/common/MockBadge";
 import { LoadingBlock } from "@/components/common/ui-bits";
 import { RatingSummary } from "@/features/review/components/review-bits";
 import { useReviewStats, useReviews } from "@/features/review";
@@ -16,7 +17,9 @@ export function ProductReviews({ productId }: { productId: string }) {
   return (
     <Card>
       <CardHeader className="pb-4">
-        <CardTitle className="text-base">Đánh giá của khách hàng</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          Đánh giá của khách hàng <MockBadge />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {stats && stats.total + stats.hidden > 0 && <RatingSummary stats={stats} />}
