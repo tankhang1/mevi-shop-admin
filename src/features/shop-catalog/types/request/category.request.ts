@@ -1,3 +1,8 @@
+export interface CategoryListParams {
+  /** Matches name or handle, case-insensitive */
+  keyword?: string;
+}
+
 export interface ProductCategoryInput {
   name: string;
   /** Empty: generated from name on create, kept on update */

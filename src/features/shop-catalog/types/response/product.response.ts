@@ -2,6 +2,13 @@ import type { BaseUnit, ProductStatus, ShelfLifeUnit, StorageCondition } from ".
 import type { CategoryRef } from "./category.response";
 
 /** Product / variant IDs are public 15–16 digit numbers — never compute on them */
+export interface CatalogProductStatusCounts {
+  active: number;
+  inactive: number;
+  /** active + inactive */
+  total: number;
+}
+
 export interface CatalogProductListItem {
   id: number;
   code: string;

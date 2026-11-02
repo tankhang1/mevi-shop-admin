@@ -1,11 +1,12 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { realApiClient } from "@/lib/axios";
-import type { ProductCategory, ProductCategoryInput } from "../types";
+import type { CategoryListParams, ProductCategory, ProductCategoryInput } from "../types";
 
 const EP = API_ENDPOINTS.admin.catalog.categories;
 
 export const categoryApi = {
-  list: async () => (await realApiClient.get<ProductCategory[]>(EP.base)).data,
+  /** Not paged, sorted by sortOrder then id */
+  list: async (params: CategoryListParams = {}) => (await realApiClient.get<ProductCategory[]>(EP.base, { params })).data,
 
   detail: async (id: number) => (await realApiClient.get<ProductCategory>(EP.detail(id))).data,
 

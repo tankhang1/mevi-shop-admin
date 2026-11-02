@@ -47,6 +47,10 @@ export const API_ENDPOINTS = {
       },
       products: {
         base: "/api/admin/shop/products",
+        /** GET ?categoryId&agricultural&lowStock&keyword → { active, inactive, total } */
+        statusCounts: "/api/admin/shop/products/status-counts",
+        /** PUT { productIds, categoryId } → 204 */
+        bulkCategory: "/api/admin/shop/products/category",
         detail: (id: number) => `/api/admin/shop/products/${id}`,
         /** PUT { status } */
         status: (id: number) => `/api/admin/shop/products/${id}/status`,

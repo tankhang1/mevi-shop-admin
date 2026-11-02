@@ -468,7 +468,7 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
           onSearch={setGroupKeyword}
           selectedLabel={source?.workspaceName || (source?.workspaceId ? `Nông hộ #${source.workspaceId}` : undefined)}
           placeholder="Chọn nông hộ / HTX"
-          searchPlaceholder="Tìm kiếm nông hộ..."
+          searchPlaceholder="Tìm theo tên, mã nông hộ hoặc SĐT..."
           emptyText="Không tìm thấy nông hộ"
           onChange={(_, option) => {
             set("workspaceName", option?.label ?? "");

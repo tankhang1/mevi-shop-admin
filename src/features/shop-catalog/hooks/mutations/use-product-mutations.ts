@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { catalogProductApi } from "../../api";
-import type { CatalogProductInput, LowStockThresholdInput, ProductStatus } from "../../types";
+import type { BulkSetProductCategoryInput, CatalogProductInput, LowStockThresholdInput, ProductStatus } from "../../types";
 import { catalogKeys } from "../query-keys";
-import { useInvalidateProducts } from "./invalidate";
+import { useInvalidateCategories, useInvalidateProducts } from "./invalidate";
 
 export function useCreateCatalogProduct() {
   const invalidate = useInvalidateProducts();
@@ -42,6 +42,15 @@ export function useSetLowStockThresholds() {
   return useMutation({
     mutationFn: ({ id, thresholds }: { id: number; thresholds: LowStockThresholdInput[] }) =>
       catalogProductApi.setLowStockThresholds(id, thresholds),
+    onSuccess: invalidate,
+  });
+}
+
+/** Moves products and changes `productCount` of both categories */
+export function useBulkSetProductCategory() {
+  const invalidate = useInvalidateCategories();
+  return useMutation({
+    mutationFn: (data: BulkSetProductCategoryInput) => catalogProductApi.bulkSetCategory(data),
     onSuccess: invalidate,
   });
 }

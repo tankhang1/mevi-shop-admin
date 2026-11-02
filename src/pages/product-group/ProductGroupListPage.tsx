@@ -20,22 +20,19 @@ export function GroupThumb({ group, size = "h-10 w-10" }: { group: Pick<ProductC
   );
 }
 
-const normalize = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-
 export default function ProductGroupListPage() {
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
   const table = useTableParams();
-  // The API returns every category at once (no paging / search) — filter + page on the client
-  const { data: categories, isFetching } = useCategories();
+  // Search runs on the API; it still returns every match at once (no paging) — page on the client
+  const { data: categories, isFetching } = useCategories({ keyword: table.params.keyword || undefined });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ProductCategory | undefined>();
   const [deleting, setDeleting] = useState<ProductCategory | null>(null);
 
   const page = useMemo(() => {
-    const { page: p = 1, size = 10, keyword } = table.params;
-    const q = keyword ? normalize(keyword) : "";
-    const rows = (categories ?? []).filter((c) => !q || normalize(`${c.name} ${c.handle}`).includes(q));
+    const { page: p = 1, size = 10 } = table.params;
+    const rows = categories ?? [];
     return { items: rows.slice((p - 1) * size, p * size), page: p, size, total: rows.length };
   }, [categories, table.params]);
 
@@ -67,6 +64,11 @@ export default function ProductGroupListPage() {
       label: "Mô tả",
       render: (v) => <span className="line-clamp-2 max-w-md text-sm text-muted-foreground">{v ? String(v) : "—"}</span>,
     },
+    {
+      key: "productCount",
+      label: "Số sản phẩm",
+      render: (v) => <span className="tabular-nums">{Number(v)}</span>,
+    },
     { key: "handle", label: "Đường dẫn", render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
   ];
 
@@ -75,7 +77,7 @@ export default function ProductGroupListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        searchPlaceholder="Tìm theo tên nhóm..."
+        searchPlaceholder="Tìm theo tên, đường dẫn..."
         enableMobileCard
         renderMobileCard={(g, helpers) => <ProductGroupMobileCard group={g} helpers={helpers} />}
         columnToggleable={!isMobile}

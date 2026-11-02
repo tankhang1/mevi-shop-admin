@@ -1,4 +1,4 @@
-import { ChevronRight, Link2, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Link2, Package, Pencil, Trash2 } from "lucide-react";
 import type { MobileCardHelpers } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import type { ProductCategory } from "@/features/shop-catalog";
 import { GroupThumb } from "../ProductGroupListPage";
@@ -23,6 +23,10 @@ export function ProductGroupMobileCard({
           <h3 className="truncate text-sm font-semibold">{g.name}</h3>
           {g.description && <p className="truncate text-xs text-muted-foreground">{g.description}</p>}
           <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <Package className="h-3 w-3" />
+              {g.productCount} sản phẩm
+            </span>
             <span className="inline-flex min-w-0 items-center gap-1">
               <Link2 className="h-3 w-3 shrink-0" />
               <span className="truncate font-mono">{g.handle}</span>

@@ -9,6 +9,7 @@ import {
   type CatalogProductListParams,
   type ProductStatus,
   isStorefrontSyncError,
+  useCatalogProductStatusCounts,
   useCatalogProducts,
   useCategories,
   useDeleteCatalogProduct,
@@ -36,23 +37,17 @@ function toQuery({ page, size, keyword, ...f }: { page?: number; size?: number; 
   }) satisfies CatalogProductListParams;
 }
 
-/** No stats endpoint — the counts are the `totalElements` of size-1 list calls */
-function useStatusCounts() {
-  const all = useCatalogProducts({ size: 1 });
-  const active = useCatalogProducts({ size: 1, status: "ACTIVE" });
-  const inactive = useCatalogProducts({ size: 1, status: "INACTIVE" });
-  if (!all.data || !active.data || !inactive.data) return undefined;
-  return { total: all.data.totalElements, active: active.data.totalElements, inactive: inactive.data.totalElements };
-}
-
 export default function ProductListPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const table = useTableParams<Filters>({ status: "all", categoryId: "all", agricultural: "all", lowStock: "all" });
-  const { data, isFetching } = useCatalogProducts(toQuery(table.params));
+  const query = toQuery(table.params);
+  const { data, isFetching } = useCatalogProducts(query);
   const page = fromSpringPage(data);
-  const stats = useStatusCounts();
+  // Same filters minus status/paging, so the cards match the list
+  const { categoryId, agricultural, lowStock, keyword } = query;
+  const { data: stats } = useCatalogProductStatusCounts({ categoryId, agricultural, lowStock, keyword });
   const { data: categories } = useCategories();
   const del = useDeleteCatalogProduct();
   const [target, setTarget] = useState<CatalogProductListItem | null>(null);

@@ -8,6 +8,15 @@ export interface CatalogProductListParams extends PageParams {
   lowStock?: boolean;
 }
 
+/** Same filters as the list, without `status` */
+export type CatalogProductStatusCountParams = Omit<CatalogProductListParams, "status" | "page" | "size">;
+
+export interface BulkSetProductCategoryInput {
+  /** 1–100 public product ids */
+  productIds: number[];
+  categoryId: number;
+}
+
 export interface ProductMediaInput {
   url: string;
   thumbnailUrl?: string | null;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import {
   Button,
@@ -12,82 +12,72 @@ import {
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
+import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import {
-  EmptyBlock,
-  LoadingBlock,
-  StatusPill,
-} from "@/components/common/ui-bits";
-import { PRODUCT_STATUS, useProducts } from "@/features/product";
-import {
-  type ProductGroupDetail,
-  useSetGroupProducts,
-} from "@/features/product-group";
+  type ProductCategory,
+  getFieldErrors,
+  isStorefrontSyncError,
+  useBulkSetProductCategory,
+  useCatalogProducts,
+} from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
-import { formatVnd } from "@/lib/format";
+import { CATALOG_STATUS } from "@/pages/product/components/catalog-product-columns";
+
+/** BE accepts 1–100 ids per call */
+const MAX_PICK = 100;
 
 interface Props {
-  group: ProductGroupDetail;
+  group: ProductCategory;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-/** Tick the shop's products that belong in this group */
+/** Tick products from other groups and move them into this one */
 export function AssignProductsDialog({ group, open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        {/* Mounted only while open, so the selection starts from the saved members each time */}
-        <AssignBody group={group} onDone={() => onOpenChange(false)} />
+        {/* Mounted only while open, so the selection starts empty each time */}
+        {open && <AssignBody group={group} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AssignBody({
-  group,
-  onDone,
-}: {
-  group: ProductGroupDetail;
-  onDone: () => void;
-}) {
+function AssignBody({ group, onDone }: { group: ProductCategory; onDone: () => void }) {
   const { toast } = useToast();
-  const save = useSetGroupProducts();
-  const { data: page, isLoading } = useProducts({
-    shopId: group.shopId,
-    size: 200,
-  });
-  const [picked, setPicked] = useState(() => new Set(group.productIds));
+  const move = useBulkSetProductCategory();
+  const [input, setInput] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [picked, setPicked] = useState<Set<number>>(() => new Set());
 
-  const products = useMemo(() => {
-    const k = keyword.trim().toLowerCase();
-    const rows = page?.items ?? [];
-    return k
-      ? rows.filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(k))
-      : rows;
-  }, [page, keyword]);
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(input.trim()), 300);
+    return () => clearTimeout(t);
+  }, [input]);
 
-  const toggle = (id: string) =>
+  const { data, isLoading } = useCatalogProducts({ keyword: keyword || undefined, size: 50 });
+  const products = (data?.content ?? []).filter((p) => p.category?.id !== group.id);
+
+  const toggle = (id: number) =>
     setPicked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else if (next.size < MAX_PICK) next.add(id);
       return next;
     });
 
   const onSave = async () => {
     try {
-      await save.mutateAsync({ id: group.id, productIds: [...picked] });
-      toast({
-        title: "Đã cập nhật sản phẩm trong nhóm",
-        description: `${group.name} · ${picked.size} sản phẩm`,
-      });
+      await move.mutateAsync({ productIds: [...picked], categoryId: group.id });
+      toast({ title: "Đã chuyển sản phẩm vào nhóm", description: `${group.name} · ${picked.size} sản phẩm` });
       onDone();
     } catch (e) {
+      const notFound = Object.keys(getFieldErrors(e)).some((k) => k.startsWith("productIds["));
       toast({
         variant: "destructive",
-        title: "Không thể lưu",
-        description: getErrorMessage(e),
+        title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Không thể chuyển nhóm",
+        description: notFound ? "Có sản phẩm không còn tồn tại, vui lòng tải lại danh sách." : getErrorMessage(e),
       });
     }
   };
@@ -95,14 +85,14 @@ function AssignBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Chọn sản phẩm cho “{group.name}”</DialogTitle>
+        <DialogTitle>Thêm sản phẩm vào “{group.name}”</DialogTitle>
       </DialogHeader>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Tìm theo tên, mã sản phẩm..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Tìm theo tên, mã sản phẩm, SKU..."
           className="pl-9!"
         />
       </div>
@@ -116,22 +106,19 @@ function AssignBody({
             {products.map((p) => (
               <li key={p.id}>
                 <label className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-2.5 hover:bg-muted/50">
-                  <Checkbox
-                    checked={picked.has(p.id)}
-                    onCheckedChange={() => toggle(p.id)}
-                  />
+                  <Checkbox checked={picked.has(p.id)} onCheckedChange={() => toggle(p.id)} />
                   <img
-                    src={p.images[0] || placeholder}
+                    src={p.thumbnailUrl || placeholder}
                     alt=""
                     className="h-10 w-10 shrink-0 rounded-md border object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.sku} · {formatVnd(p.salePrice ?? p.price)}
+                    <div className="truncate text-sm font-medium">{p.title}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {p.code} · Nhóm hiện tại: {p.category?.name ?? "—"}
                     </div>
                   </div>
-                  <StatusPill {...PRODUCT_STATUS[p.status]} />
+                  <StatusPill {...CATALOG_STATUS[p.status]} />
                 </label>
               </li>
             ))}
@@ -140,14 +127,15 @@ function AssignBody({
       </div>
       <DialogFooter className="items-center sm:justify-between">
         <span className="text-sm text-muted-foreground">
-          Đã chọn {picked.size} sản phẩm
+          Đã chọn {picked.size}
+          {picked.size >= MAX_PICK && ` (tối đa ${MAX_PICK})`} sản phẩm
         </span>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onDone}>
             Huỷ
           </Button>
-          <Button onClick={() => void onSave()} disabled={save.isPending}>
-            Lưu
+          <Button onClick={() => void onSave()} disabled={!picked.size || move.isPending}>
+            Chuyển vào nhóm
           </Button>
         </div>
       </DialogFooter>

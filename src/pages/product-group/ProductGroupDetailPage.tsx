@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Pencil, Trash2 } from "lucide-react";
+import { ArrowRightLeft, ListPlus, Pencil, Trash2 } from "lucide-react";
 import { Button, Card, DataTable, useIsMobile } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
@@ -11,6 +11,8 @@ import { useTableParams } from "@/hooks/useTableParams";
 import { fromSpringPage, toSpringPageParams } from "@/lib/pagination";
 import { CatalogProductMobileCard } from "@/pages/product/components/CatalogProductMobileCard";
 import { catalogProductColumns } from "@/pages/product/components/catalog-product-columns";
+import { AssignProductsDialog } from "./components/AssignProductsDialog";
+import { MoveProductsDialog } from "./components/MoveProductsDialog";
 import { DeleteProductGroupDialog } from "./components/DeleteProductGroupDialog";
 import { ProductGroupFormDialog } from "./components/ProductGroupFormDialog";
 import { GroupThumb } from "./ProductGroupListPage";
@@ -26,6 +28,9 @@ export default function ProductGroupDetailPage() {
   const { data: products, isFetching } = useCatalogProducts(toSpringPageParams({ ...table.params, categoryId: id }));
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  // undefined = closed; [] = open with nothing ticked; [id] = opened from a row
+  const [moving, setMoving] = useState<number[] | undefined>();
 
   usePageActions(
     () =>
@@ -60,9 +65,19 @@ export default function ProductGroupDetailPage() {
       </Card>
 
       <section>
-        <div className="mb-3">
-          <h3 className="font-semibold">Sản phẩm trong nhóm</h3>
-          <p className="text-sm text-muted-foreground">{products?.totalElements ?? 0} sản phẩm</p>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h3 className="font-semibold">Sản phẩm trong nhóm</h3>
+            <p className="text-sm text-muted-foreground">{group.productCount} sản phẩm</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMoving([])} disabled={!group.productCount}>
+              <ArrowRightLeft className="mr-1.5 h-4 w-4" /> Chuyển nhóm
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAssigning(true)}>
+              <ListPlus className="mr-1.5 h-4 w-4" /> Thêm sản phẩm
+            </Button>
+          </div>
         </div>
 
         <DataTable
@@ -75,14 +90,22 @@ export default function ProductGroupDetailPage() {
           columnToggleable={!isMobile}
           onView={(p) => navigate(ROUTES.productDetail(String(p.id)))}
           onEdit={(p) => navigate(ROUTES.productEdit(String(p.id)))}
+          rowActions={[{ key: "move", label: "Chuyển nhóm", icon: ArrowRightLeft, onClick: (p) => setMoving([p.id]) }]}
         />
         {!isFetching && products?.totalElements === 0 && !table.params.keyword && (
           <p className="mt-3 text-sm text-muted-foreground">
-            Nhóm chưa có sản phẩm nào. Chọn nhóm này trong form tạo / sửa sản phẩm để thêm.
+            Nhóm chưa có sản phẩm nào. Bấm “Thêm sản phẩm” hoặc chọn nhóm này trong form tạo / sửa sản phẩm.
           </p>
         )}
       </section>
 
+      <MoveProductsDialog
+        group={group}
+        open={!!moving}
+        onOpenChange={(o) => !o && setMoving(undefined)}
+        initialIds={moving}
+      />
+      <AssignProductsDialog group={group} open={assigning} onOpenChange={setAssigning} />
       <ProductGroupFormDialog open={editing} onOpenChange={setEditing} group={group} />
       <DeleteProductGroupDialog
         group={deleting ? group : null}
