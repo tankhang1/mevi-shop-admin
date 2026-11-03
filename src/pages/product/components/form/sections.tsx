@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Check, Loader2, Plus, Sparkles, Sprout, Star, Trash2, X } from "lucide-react";
+import { Boxes, Check, Loader2, Package, Plus, Scale, Sparkles, Sprout, Star, Trash2, X } from "lucide-react";
 import {
   Button,
   FormField,
@@ -22,7 +22,11 @@ import {
   TextareaField,
 } from "@/components/form";
 import {
+  AGRI_SELL_UNITS,
   BASE_UNIT_LABEL,
+  SELL_UNIT_LABEL,
+  SELL_UNIT_SHORT,
+  type SellUnit,
   CERTIFICATION_SUGGESTIONS,
   type CatalogProductFormValues,
   EMPTY_CATALOG_VARIANT,
@@ -34,6 +38,7 @@ import {
   productPhotoApi,
   toProductMedia,
   useCategories,
+  useFarmSubjects,
   useFarmZoneGroups,
   useFarmZones,
   validateProductPhoto,
@@ -46,6 +51,8 @@ const toOptions = <K extends string>(labels: Record<K, string>) =>
   (Object.keys(labels) as K[]).map((value) => ({ label: labels[value], value }));
 
 const BASE_UNIT_OPTIONS = toOptions(BASE_UNIT_LABEL);
+const SELL_UNIT_OPTIONS = toOptions(SELL_UNIT_LABEL);
+const AGRI_SELL_UNIT_OPTIONS = SELL_UNIT_OPTIONS.filter((o) => AGRI_SELL_UNITS.includes(o.value));
 const SHELF_LIFE_UNIT_OPTIONS = toOptions(SHELF_LIFE_UNIT_LABEL);
 const STORAGE_CONDITION_OPTIONS = toOptions(STORAGE_CONDITION_LABEL);
 
@@ -64,7 +71,7 @@ function slugifyCode(text: string): string {
 /** Bước 1: Thông tin cơ bản */
 export function BasicInfoSection() {
   const { control, setValue } = useFormContext<F>();
-  const title = useWatch({ control, name: "title" });
+  const [title, agricultural] = useWatch({ control, name: ["title", "agricultural"] });
   const { data: categories } = useCategories();
   const categoryOptions = (categories ?? []).map((c) => ({ label: c.name, value: String(c.id) }));
 
@@ -116,8 +123,9 @@ export function BasicInfoSection() {
       <SwitchField<F>
         name="agricultural"
         label="Sản phẩm Nông sản"
-        description="Bật để bổ sung bước liên kết nguồn cung từ vườn nông hộ"
+        description="Bật để chọn cây trồng và liên kết vườn nông hộ (không bắt buộc)"
       />
+      {agricultural && <CropFields />}
 
       <TextareaField<F> name="description" label="Mô tả" className="sm:col-span-2" rows={5} placeholder="Đặc điểm, câu chuyện sản phẩm..." />
 
@@ -282,65 +290,203 @@ export function ImagesSection() {
 }
 
 /** Error set on the array itself (min length, duplicates) */
-function ArrayError({ name }: { name: "variants" | "supplySources" }) {
+function ArrayError({ name }: { name: "variants" | "supplySources" | "sellByUnit" }) {
   const { formState } = useFormContext<F>();
   const err = formState.errors[name] as { message?: string; root?: { message?: string } } | undefined;
   const message = err?.message ?? err?.root?.message;
   return message ? <p className="text-sm font-medium text-destructive">{message}</p> : null;
 }
 
-/** Bước 3 — quy cách list (7) + storefront preview (3) */
+/** Checkbox card picking one selling mode; at least one must stay on (schema enforces) */
+function SellModeCard({
+  checked,
+  onToggle,
+  icon,
+  title,
+  description,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={onToggle}
+      className={cn(
+        "flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+        checked ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/50",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+          checked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+          {title}
+          <span
+            className={cn(
+              "flex size-4 items-center justify-center rounded border",
+              checked ? "border-primary bg-primary text-primary-foreground" : "border-input",
+            )}
+          >
+            {checked && <Check className="h-3 w-3" />}
+          </span>
+        </span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Bước 3 — hình thức bán (đơn vị tính / quy cách) + storefront preview */
 export function VariantsSection() {
-  const { control } = useFormContext<F>();
-  const { fields, append, remove } = useFieldArray({ control, name: "variants" });
+  const { control, setValue, trigger, getValues } = useFormContext<F>();
+  const { fields, append, remove, replace } = useFieldArray({ control, name: "variants" });
+  const [agricultural, sellByUnit, sellByPackage, sellingUnit] = useWatch({
+    control,
+    name: ["agricultural", "sellByUnit", "sellByPackage", "sellingUnit"],
+  });
+  const unitShort = sellingUnit ? SELL_UNIT_SHORT[sellingUnit as SellUnit] : "đơn vị";
+
+  const toggleUnit = () => {
+    const next = !sellByUnit;
+    setValue("sellByUnit", next, { shouldDirty: true });
+    // Nông sản: prefill đơn vị from the first supply source's base unit
+    if (next && !getValues("sellingUnit") && agricultural) {
+      setValue("sellingUnit", getValues("baseUnit") ?? "KG", { shouldDirty: true });
+    }
+    void trigger("sellByUnit");
+  };
+  const togglePackage = () => {
+    const next = !sellByPackage;
+    setValue("sellByPackage", next, { shouldDirty: true });
+    // Hidden quy cách must not block submit; restore one blank row when re-enabled
+    if (next && !fields.length) append(EMPTY_CATALOG_VARIANT);
+    if (!next) replace([]);
+    void trigger("sellByUnit");
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-      <div className="space-y-3">
-        <p className="text-sm font-medium">
-          Quy cách<span className="text-destructive"> *</span>
-        </p>
-        {fields.map((f, i) => (
-          <div key={f.id} className="rounded-xl border bg-card p-3">
-            <div className="-mx-3 mb-3 flex items-center justify-between gap-2 border-b px-3 pb-2">
-              <span className="text-sm font-semibold">Quy cách {i + 1}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={fields.length === 1}
-                onClick={() => remove(i)}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" /> Xoá
-              </Button>
+      <div className="space-y-5">
+        <div className="space-y-2">
+          <p className="text-sm font-medium">
+            Hình thức bán<span className="text-destructive"> *</span>
+            <span className="ml-1 font-normal text-muted-foreground">(chọn ít nhất 1, có thể cả 2)</span>
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SellModeCard
+              checked={!!sellByUnit}
+              onToggle={toggleUnit}
+              icon={<Scale className="h-5 w-5" />}
+              title="Theo đơn vị tính"
+              description={agricultural ? "Nông sản: bán lẻ theo kg hoặc lít" : "Bán lẻ theo kg, lít, cái..."}
+            />
+            <SellModeCard
+              checked={!!sellByPackage}
+              onToggle={togglePackage}
+              icon={<Package className="h-5 w-5" />}
+              title="Theo quy cách"
+              description="Đóng gói sẵn: bao 5kg, hộp 6 quả..."
+            />
+          </div>
+          <ArrayError name="sellByUnit" />
+        </div>
+
+        {sellByUnit && (
+          <div className="rounded-xl border bg-card p-3">
+            <div className="-mx-3 mb-3 flex items-center gap-2 border-b px-3 pb-2">
+              <Scale className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Đơn vị tính</span>
             </div>
-            <div className="grid items-start gap-3 sm:grid-cols-2">
-              <TextField<F> name={`variants.${i}.title`} label="Tên quy cách" required placeholder="VD: Túi 5kg" />
-              <TextField<F> name={`variants.${i}.sku`} label="SKU" placeholder="Tự sinh nếu để trống" />
-              <TextField<F> name={`variants.${i}.price`} label="Giá bán" required type="number" suffix="VND" />
-              <TextField<F>
-                name={`variants.${i}.compareAtPrice`}
-                label="Giá gốc"
-                type="number"
-                suffix="VND"
-                placeholder="Không bắt buộc"
+            <div className="grid items-start gap-3 sm:grid-cols-3">
+              <SelectField<F>
+                name="sellingUnit"
+                label="Đơn vị"
+                required
+                options={agricultural ? AGRI_SELL_UNIT_OPTIONS : SELL_UNIT_OPTIONS}
+                placeholder="Chọn đơn vị"
               />
+              <TextField<F> name="unitPrice" label={`Giá bán / ${unitShort}`} required type="number" suffix="VND" />
+              <TextField<F> name="unitCompareAtPrice" label="Giá gốc" type="number" suffix="VND" placeholder="Không bắt buộc" />
             </div>
           </div>
-        ))}
-        <ArrayError name="variants" />
-        <p className="text-xs text-muted-foreground">
-          Tồn kho không nhập ở đây — quy cách mới có tồn kho 0, cập nhật qua phiếu nhập hàng / điều chỉnh.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={fields.length >= PRODUCT_LIMITS.variants}
-          onClick={() => append(EMPTY_CATALOG_VARIANT)}
-        >
-          <Plus className="mr-1 h-4 w-4" /> Thêm quy cách
-        </Button>
+        )}
+
+        {sellByPackage && (
+          <div className="space-y-3">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <Package className="h-4 w-4 text-primary" /> Quy cách
+            </p>
+            {fields.map((f, i) => (
+              <div key={f.id} className="rounded-xl border bg-card p-3">
+                <div className="-mx-3 mb-3 flex items-center justify-between gap-2 border-b px-3 pb-2">
+                  <span className="text-sm font-semibold">Quy cách {i + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={fields.length === 1}
+                    onClick={() => remove(i)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Xoá
+                  </Button>
+                </div>
+                <div className="grid items-start gap-3 sm:grid-cols-2">
+                  <TextField<F> name={`variants.${i}.title`} label="Tên quy cách" required placeholder="VD: Bao 5kg" />
+                  <TextField<F> name={`variants.${i}.sku`} label="SKU" placeholder="Tự sinh nếu để trống" />
+                  <TextField<F> name={`variants.${i}.price`} label="Giá bán" required type="number" suffix="VND" />
+                  <TextField<F>
+                    name={`variants.${i}.compareAtPrice`}
+                    label="Giá gốc"
+                    type="number"
+                    suffix="VND"
+                    placeholder="Không bắt buộc"
+                  />
+                  {sellByUnit && (
+                    <TextField<F>
+                      name={`variants.${i}.unitQuantity`}
+                      label={`Quy đổi ra ${unitShort}`}
+                      className="sm:col-span-2"
+                      type="number"
+                      suffix={unitShort}
+                      placeholder="Không quy đổi"
+                      description={`1 quy cách = bao nhiêu ${unitShort}. Có quy đổi: tồn kho tính từ tồn kho đơn vị; để trống: tồn kho quy cách riêng.`}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+            <ArrayError name="variants" />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={fields.length >= PRODUCT_LIMITS.variants}
+              onClick={() => append(EMPTY_CATALOG_VARIANT)}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Thêm quy cách
+            </Button>
+          </div>
+        )}
+
+        <div className="flex gap-2 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+          <Boxes className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Tồn kho không nhập ở đây — tồn kho mới là 0, cập nhật qua phiếu nhập hàng / điều chỉnh. Tồn kho theo
+            cả đơn vị tính và quy cách; quy cách có quy đổi dùng tồn kho đơn vị tính.
+          </p>
+        </div>
       </div>
 
       <VariantPreview />
@@ -418,31 +564,66 @@ function VariantPreview() {
   );
 }
 
-/** One supply source: Nông hộ → Vườn → Cây trồng + đơn vị tính */
+/** Nông sản: cây trồng / giống + đơn vị tính cơ bản — chọn trước, lọc nông hộ & vườn theo nó */
+function CropFields() {
+  const { control, setValue, getValues } = useFormContext<F>();
+  const [keyword, setKeyword] = useState("");
+  const name = useWatch({ control, name: "productionSubjectName" });
+  const id = useWatch({ control, name: "productionSubjectId" });
+  const { data, isFetching } = useFarmSubjects({ keyword: keyword || undefined, size: 20 });
+  const options = (data?.content ?? []).map((s) => ({ label: s.name, value: String(s.id) }));
+
+  return (
+    <div className="contents">
+      <AsyncComboboxField<F>
+        name="productionSubjectId"
+        label="Cây trồng / giống cây trồng"
+        required
+        options={options}
+        loading={isFetching}
+        onSearch={setKeyword}
+        selectedLabel={name || (id ? `Cây trồng #${id}` : undefined)}
+        placeholder="Chọn cây trồng"
+        searchPlaceholder="Tìm cây trồng, giống..."
+        emptyText="Không tìm thấy cây trồng"
+        onChange={(v, option) => {
+          setValue("productionSubjectName", option?.label ?? "", { shouldDirty: true });
+          // Linked vườn belong to the old crop — drop them
+          if (v !== id && getValues("supplySources").length) setValue("supplySources", [], { shouldDirty: true });
+        }}
+      />
+      <SelectField<F> name="baseUnit" label="Đơn vị tính" required options={BASE_UNIT_OPTIONS} />
+    </div>
+  );
+}
+
+/** One supply source: Nông hộ → Vườn (lọc theo cây trồng của sản phẩm) */
 function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => void }) {
   const { control, setValue, trigger } = useFormContext<F>();
   const source = useWatch({ control, name: `supplySources.${index}` });
   // Nông hộ search runs on the API (`keyword`), not on the loaded page
   const [groupKeyword, setGroupKeyword] = useState("");
-  const { data: groups, isFetching: loadingGroups } = useFarmZoneGroups({ keyword: groupKeyword || undefined, size: 20 });
-  const { data: zones } = useFarmZones(source?.workspaceId ? Number(source.workspaceId) : undefined);
-  const zone = zones?.content.find((z) => String(z.id) === source?.productionZoneId);
+  const [subjectId, subjectName] = useWatch({ control, name: ["productionSubjectId", "productionSubjectName"] });
+  const subject = subjectId ? Number(subjectId) : undefined;
+  // Only nông hộ / vườn growing the product's cây trồng
+  const { data: groups, isFetching: loadingGroups } = useFarmZoneGroups({
+    keyword: groupKeyword || undefined,
+    productionSubjectId: subject,
+    size: 20,
+  });
+  const { data: zonesPage } = useFarmZones(source?.workspaceId ? Number(source.workspaceId) : undefined, subject);
+  // Client-side guard in case the API ignores the filter
+  const zones = (zonesPage?.content ?? []).filter((z) => !subject || z.subjects.some((s) => s.id === subject));
 
   const groupOptions = (groups?.content ?? []).map((g) => ({ label: g.workspaceName, value: String(g.workspaceId) }));
-  const zoneOptions = (zones?.content ?? []).map((z) => ({ label: `${z.name} · ${z.code}`, value: String(z.id) }));
+  const zoneOptions = zones.map((z) => ({ label: `${z.name} · ${z.code}`, value: String(z.id) }));
   if (source?.productionZoneId && !zoneOptions.some((o) => o.value === source.productionZoneId)) {
     zoneOptions.push({ label: source.zoneName || `Vườn #${source.productionZoneId} (đã xoá)`, value: source.productionZoneId });
-  }
-  const subjectOptions = (zone?.subjects ?? []).map((s) => ({ label: s.name, value: String(s.id) }));
-  if (source?.productionSubjectId && !subjectOptions.some((o) => o.value === source.productionSubjectId)) {
-    subjectOptions.push({ label: source.subjectName || `Cây trồng #${source.productionSubjectId}`, value: source.productionSubjectId });
   }
 
   // Clearing a dependent field must not flag it red; it's validated again when the user picks a value
   const set = (key: keyof F["supplySources"][number], value: string) =>
     setValue(`supplySources.${index}.${key}`, value, { shouldDirty: true });
-  /** Re-validate after a pick — mode "onTouched" won't, so a stale "required" error would stay */
-  const revalidate = () => void trigger(`supplySources.${index}`);
 
   return (
     <div className={cn("space-y-4", index > 0 && "border-t pt-5")}>
@@ -474,8 +655,6 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
             set("workspaceName", option?.label ?? "");
             set("productionZoneId", "");
             set("zoneName", "");
-            set("productionSubjectId", "");
-            set("subjectName", "");
             void trigger(`supplySources.${index}.workspaceId`);
           }}
         />
@@ -489,30 +668,12 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
           searchPlaceholder="Tìm kiếm vườn..."
           emptyText="Không có vườn phù hợp"
           onChange={(v) => {
-            const picked = zones?.content.find((z) => String(z.id) === v);
-            set("zoneName", picked?.name ?? "");
-            // Auto-pick the crop when the vườn grows only one
-            const only = picked?.subjects.length === 1 ? picked.subjects[0] : undefined;
-            set("productionSubjectId", only ? String(only.id) : "");
-            set("subjectName", only?.name ?? "");
-            void trigger(only ? `supplySources.${index}` : `supplySources.${index}.productionZoneId`);
+            set("zoneName", zones.find((z) => String(z.id) === v)?.name ?? "");
+            set("productionSubjectId", subjectId);
+            set("subjectName", subjectName);
+            void trigger(`supplySources.${index}.productionZoneId`);
           }}
         />
-        <ComboboxField<F>
-          name={`supplySources.${index}.productionSubjectId`}
-          label="Cây trồng liên kết"
-          required
-          options={subjectOptions}
-          disabled={!source?.productionZoneId}
-          placeholder={source?.productionZoneId ? "Chọn cây trồng" : "Chọn vườn trước"}
-          searchPlaceholder="Tìm cây trồng..."
-          emptyText="Vườn chưa khai báo cây trồng"
-          onChange={(v) => {
-            set("subjectName", subjectOptions.find((o) => o.value === v)?.label ?? "");
-            revalidate();
-          }}
-        />
-        <SelectField<F> name={`supplySources.${index}.baseUnit`} label="Đơn vị tính cơ bản" required options={BASE_UNIT_OPTIONS} />
       </div>
     </div>
   );
@@ -522,6 +683,7 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
 export function SuppliersSection() {
   const { control } = useFormContext<F>();
   const { fields, append, remove } = useFieldArray({ control, name: "supplySources" });
+  const [subjectName, baseUnit] = useWatch({ control, name: ["productionSubjectName", "baseUnit"] });
 
   return (
     <div className="space-y-6">
@@ -532,8 +694,8 @@ export function SuppliersSection() {
         <div className="space-y-1">
           <h4 className="text-sm font-semibold text-primary">Nguồn cung nông sản</h4>
           <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Mỗi nguồn gồm một vườn canh tác, cây trồng của vườn đó và đơn vị tính cơ bản. Nông hộ có vườn trong
-            danh sách mới đề xuất nhập hàng được cho sản phẩm này.
+            Không bắt buộc. Chỉ hiển thị nông hộ / vườn đang canh tác cây trồng đã chọn ở bước 1. Nông hộ có
+            vườn trong danh sách mới đề xuất nhập hàng được cho sản phẩm này.
           </p>
         </div>
       </div>
@@ -542,7 +704,13 @@ export function SuppliersSection() {
         <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-semibold">Vườn canh tác liên kết</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Tối đa {PRODUCT_LIMITS.supplySources} nguồn</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+                <Sprout className="h-3 w-3" /> {subjectName || "Chưa chọn cây trồng"}
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium">{BASE_UNIT_LABEL[baseUnit ?? "KG"]}</span>
+              <span className="text-muted-foreground">· Tối đa {PRODUCT_LIMITS.supplySources} nguồn</span>
+            </div>
           </div>
           <Button
             type="button"

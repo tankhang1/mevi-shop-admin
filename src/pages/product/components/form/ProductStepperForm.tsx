@@ -31,6 +31,8 @@ export function ProductStepperForm({ form, ...props }: Props) {
         "description",
         "active",
         "agricultural",
+        "productionSubjectId",
+        "baseUnit",
         "shelfLifeValue",
         "shelfLifeUnit",
         "storageCondition",
@@ -51,7 +53,7 @@ export function ProductStepperForm({ form, ...props }: Props) {
           {
             id: "suppliers",
             title: "Nguồn cung nông sản",
-            description: "Vườn canh tác & cây trồng",
+            description: "Liên kết vườn (không bắt buộc)",
             fields: ["supplySources"] as (keyof F & string)[],
             content: <SuppliersSection />,
           },
@@ -59,9 +61,9 @@ export function ProductStepperForm({ form, ...props }: Props) {
       : []),
     {
       id: "variants",
-      title: "Quy cách & giá",
-      description: "SKU, giá bán, giá gốc",
-      fields: ["variants"],
+      title: "Hình thức bán & giá",
+      description: "Đơn vị tính, quy cách, giá",
+      fields: ["sellByUnit", "sellingUnit", "unitPrice", "unitCompareAtPrice", "sellByPackage", "variants"],
       content: <VariantsSection />,
     },
     {

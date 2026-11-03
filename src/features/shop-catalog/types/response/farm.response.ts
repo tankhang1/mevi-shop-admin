@@ -6,6 +6,11 @@ export interface FarmZoneGroup {
   zoneCount: number;
 }
 
+export interface FarmSubject {
+  id: number;
+  name: string;
+}
+
 export interface FarmZone {
   id: number;
   code: string;

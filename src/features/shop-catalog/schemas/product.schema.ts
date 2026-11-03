@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CODE_PATTERN, HANDLE_PATTERN, PRODUCT_LIMITS as L } from "../constants";
+import { AGRI_SELL_UNITS, CODE_PATTERN, HANDLE_PATTERN, PRODUCT_LIMITS as L, SELL_UNIT_LABEL, type SellUnit } from "../constants";
 import type { CatalogProduct, CatalogProductInput } from "../types";
 
 /** "" from an empty number input → undefined, so "required" reads better than "invalid number" */
@@ -27,6 +27,11 @@ const variantSchema = z
       .refine((v) => !v || CODE_PATTERN.test(v), "Chỉ gồm chữ, số và - _ ."),
     price: requiredPrice,
     compareAtPrice: optionalPrice,
+    /** Quy đổi sang đơn vị tính — "" = không quy đổi. Chỉ dùng khi bật bán theo đơn vị */
+    unitQuantity: z
+      .string()
+      .trim()
+      .refine((v) => !v || (/^\d+(\.\d{1,3})?$/.test(v) && +v > 0 && +v <= 100000), "Số dương, tối đa 3 chữ số thập phân"),
   })
   .refine((v) => v.compareAtPrice == null || v.compareAtPrice > v.price, {
     path: ["compareAtPrice"],
@@ -41,7 +46,8 @@ const supplySourceSchema = z.object({
   workspaceName: z.string(),
   productionZoneId: z.string().min(1, "Vui lòng chọn vườn"),
   zoneName: z.string(),
-  productionSubjectId: z.string().min(1, "Vui lòng chọn cây trồng"),
+  /** Mirrors the product-level crop; kept for display/back-compat */
+  productionSubjectId: z.string(),
   subjectName: z.string(),
   baseUnit: z.enum(["KG", "LITER"]),
 });
@@ -64,6 +70,10 @@ export const catalogProductSchema = z
     description: z.string().max(L.description, max(L.description)),
     active: z.boolean(),
     agricultural: z.boolean(),
+    /** Nông sản — cây trồng / giống chọn trước, lọc nông hộ → vườn theo nó */
+    productionSubjectId: z.string(),
+    productionSubjectName: z.string(),
+    baseUnit: z.enum(["KG", "LITER"]),
     certifications: z.array(z.string()).max(L.certifications, `Tối đa ${L.certifications} chứng nhận`),
     /** No input yet — carried through so PUT (full overwrite) keeps existing tags */
     tags: z.array(z.string()),
@@ -76,9 +86,15 @@ export const catalogProductSchema = z
     storageInstructions: z.string().max(L.storageInstructions, max(L.storageInstructions)),
     media: z.array(mediaSchema).min(1, "Cần ít nhất 1 ảnh sản phẩm").max(L.media, `Tối đa ${L.media} ảnh`),
     supplySources: z.array(supplySourceSchema).max(L.supplySources, `Tối đa ${L.supplySources} nguồn`),
+    /** Bán theo đơn vị tính */
+    sellByUnit: z.boolean(),
+    sellingUnit: z.union([z.literal(""), z.enum(Object.keys(SELL_UNIT_LABEL) as [SellUnit, ...SellUnit[]])]),
+    unitPrice: optionalPrice,
+    unitCompareAtPrice: optionalPrice,
+    /** Bán theo quy cách */
+    sellByPackage: z.boolean(),
     variants: z
       .array(variantSchema)
-      .min(1, "Cần ít nhất 1 quy cách")
       .max(L.variants, `Tối đa ${L.variants} quy cách`)
       .refine((vs) => {
         const skus = vs.map((v) => v.sku.trim().toUpperCase()).filter(Boolean);
@@ -93,14 +109,28 @@ export const catalogProductSchema = z
         message: "Nhập cả số và đơn vị hạn sử dụng",
       });
     }
-    if (!v.agricultural) return;
-    if (!v.supplySources.length) {
-      ctx.addIssue({ code: "custom", path: ["supplySources"], message: "Cần liên kết ít nhất 1 vườn" });
-      return;
+    if (!v.sellByUnit && !v.sellByPackage) {
+      ctx.addIssue({ code: "custom", path: ["sellByUnit"], message: "Chọn ít nhất 1 hình thức bán: đơn vị tính hoặc quy cách" });
     }
-    const pairs = v.supplySources.map((s) => `${s.productionZoneId}:${s.productionSubjectId}`);
-    if (new Set(pairs).size !== pairs.length) {
-      ctx.addIssue({ code: "custom", path: ["supplySources"], message: "Mỗi cặp vườn + cây trồng chỉ chọn một lần" });
+    if (v.sellByUnit) {
+      if (!v.sellingUnit) ctx.addIssue({ code: "custom", path: ["sellingUnit"], message: "Vui lòng chọn đơn vị tính" });
+      else if (v.agricultural && !AGRI_SELL_UNITS.includes(v.sellingUnit))
+        ctx.addIssue({ code: "custom", path: ["sellingUnit"], message: "Nông sản chỉ bán theo kg hoặc lít" });
+      if (v.unitPrice == null) ctx.addIssue({ code: "custom", path: ["unitPrice"], message: "Vui lòng nhập giá" });
+      else if (v.unitCompareAtPrice != null && v.unitCompareAtPrice <= v.unitPrice)
+        ctx.addIssue({ code: "custom", path: ["unitCompareAtPrice"], message: "Giá gốc phải lớn hơn giá bán" });
+    }
+    if (v.sellByPackage && !v.variants.length) {
+      ctx.addIssue({ code: "custom", path: ["variants"], message: "Cần ít nhất 1 quy cách" });
+    }
+    if (!v.agricultural) return;
+    if (!v.productionSubjectId) {
+      ctx.addIssue({ code: "custom", path: ["productionSubjectId"], message: "Vui lòng chọn cây trồng / giống" });
+    }
+    // Liên kết vườn là optional
+    const zones = v.supplySources.map((s) => s.productionZoneId);
+    if (new Set(zones).size !== zones.length) {
+      ctx.addIssue({ code: "custom", path: ["supplySources"], message: "Mỗi vườn chỉ chọn một lần" });
     }
   });
 
@@ -114,6 +144,7 @@ export const EMPTY_CATALOG_VARIANT: CatalogVariantFormValues = {
   sku: "",
   price: "",
   compareAtPrice: "",
+  unitQuantity: "",
 };
 
 export const EMPTY_SUPPLY_SOURCE: SupplySourceFormValues = {
@@ -134,6 +165,9 @@ export const EMPTY_CATALOG_PRODUCT: CatalogProductFormValues = {
   description: "",
   active: true,
   agricultural: false,
+  productionSubjectId: "",
+  productionSubjectName: "",
+  baseUnit: "KG",
   certifications: [],
   tags: [],
   shelfLifeValue: "",
@@ -142,6 +176,11 @@ export const EMPTY_CATALOG_PRODUCT: CatalogProductFormValues = {
   storageInstructions: "",
   media: [],
   supplySources: [],
+  sellByUnit: false,
+  sellingUnit: "",
+  unitPrice: "",
+  unitCompareAtPrice: "",
+  sellByPackage: true,
   variants: [EMPTY_CATALOG_VARIANT],
 };
 
@@ -153,6 +192,10 @@ export const catalogProductToFormValues = (p: CatalogProduct): CatalogProductFor
   description: p.description ?? "",
   active: p.status === "ACTIVE",
   agricultural: p.agricultural,
+  // Fallback to the first source for products saved before the product-level crop existed
+  productionSubjectId: String(p.productionSubject?.id ?? p.supplySources[0]?.productionSubject.id ?? ""),
+  productionSubjectName: p.productionSubject?.name ?? p.supplySources[0]?.productionSubject.name ?? "",
+  baseUnit: p.baseUnit ?? p.supplySources[0]?.baseUnit ?? "KG",
   certifications: p.certifications,
   tags: p.tags,
   shelfLifeValue: p.shelfLifeValue ? String(p.shelfLifeValue) : "",
@@ -169,13 +212,24 @@ export const catalogProductToFormValues = (p: CatalogProduct): CatalogProductFor
     subjectName: s.productionSubject.name ?? "",
     baseUnit: s.baseUnit,
   })),
-  variants: p.variants.map((v) => ({
-    id: String(v.id),
-    title: v.title,
-    sku: v.sku,
-    price: String(v.price),
-    compareAtPrice: v.compareAtPrice != null ? String(v.compareAtPrice) : "",
-  })),
+  sellByUnit: !!p.sellingUnit,
+  sellingUnit: p.sellingUnit && p.sellingUnit in SELL_UNIT_LABEL ? (p.sellingUnit as SellUnit) : "",
+  unitPrice: p.unitPrice != null ? String(p.unitPrice) : "",
+  unitCompareAtPrice: p.unitCompareAtPrice != null ? String(p.unitCompareAtPrice) : "",
+  // Legacy products (no sellingUnit) always sold by quy cách
+  sellByPackage: p.variants.length > 0 || !p.sellingUnit,
+  variants: (p.variants.length ? p.variants : p.sellingUnit ? [] : [null]).map((v) =>
+    v
+      ? {
+          id: String(v.id),
+          title: v.title,
+          sku: v.sku,
+          price: String(v.price),
+          compareAtPrice: v.compareAtPrice != null ? String(v.compareAtPrice) : "",
+          unitQuantity: v.unitQuantity != null ? String(v.unitQuantity) : "",
+        }
+      : EMPTY_CATALOG_VARIANT,
+  ),
 });
 
 /** Empty → null so the backend applies its defaults (code / handle / sku generated or kept) */
@@ -188,6 +242,8 @@ export const catalogFormValuesToInput = (values: CatalogProductFormValues): Cata
     description: v.description.trim() || null,
     categoryId: Number(v.categoryId),
     agricultural: v.agricultural,
+    productionSubjectId: v.agricultural ? Number(v.productionSubjectId) : null,
+    baseUnit: v.agricultural ? v.baseUnit : null,
     status: v.active ? "ACTIVE" : "INACTIVE",
     tags: v.tags,
     certifications: v.certifications,
@@ -200,16 +256,24 @@ export const catalogFormValuesToInput = (values: CatalogProductFormValues): Cata
     supplySources: v.agricultural
       ? v.supplySources.map((s) => ({
           productionZoneId: Number(s.productionZoneId),
-          productionSubjectId: Number(s.productionSubjectId),
-          baseUnit: s.baseUnit,
+          // Crop & unit come from the product level
+          productionSubjectId: Number(v.productionSubjectId),
+          baseUnit: v.baseUnit,
         }))
       : [],
-    variants: v.variants.map((x) => ({
-      ...(x.id && { id: Number(x.id) }),
-      title: x.title,
-      sku: x.sku || null,
-      price: x.price,
-      compareAtPrice: x.compareAtPrice ?? null,
-    })),
+    sellingUnit: v.sellByUnit ? v.sellingUnit || null : null,
+    unitPrice: v.sellByUnit ? (v.unitPrice ?? null) : null,
+    unitCompareAtPrice: v.sellByUnit ? (v.unitCompareAtPrice ?? null) : null,
+    variants: v.sellByPackage
+      ? v.variants.map((x) => ({
+          ...(x.id && { id: Number(x.id) }),
+          title: x.title,
+          sku: x.sku || null,
+          price: x.price,
+          compareAtPrice: x.compareAtPrice ?? null,
+          // Quy đổi only meaningful when also sold by đơn vị
+          unitQuantity: v.sellByUnit && x.unitQuantity ? Number(x.unitQuantity) : null,
+        }))
+      : [],
   };
 };

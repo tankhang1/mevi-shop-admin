@@ -37,6 +37,8 @@ export interface ProductVariantInput {
   sku?: string | null;
   price: number;
   compareAtPrice?: number | null;
+  /** Quy đổi: 1 quy cách = unitQuantity × sellingUnit (vd bao 5kg = 5). null = không quy đổi, tồn kho riêng */
+  unitQuantity?: number | null;
 }
 
 export interface CatalogProductInput {
@@ -46,6 +48,9 @@ export interface CatalogProductInput {
   description?: string | null;
   categoryId: number;
   agricultural?: boolean;
+  /** Nông sản: cây trồng / giống + đơn vị tính cơ bản, chọn ở cấp sản phẩm */
+  productionSubjectId?: number | null;
+  baseUnit?: BaseUnit | null;
   status: ProductStatus;
   tags?: string[];
   certifications?: string[];
@@ -55,6 +60,11 @@ export interface CatalogProductInput {
   storageCondition?: StorageCondition | null;
   storageInstructions?: string | null;
   supplySources?: SupplySourceInput[];
+  /** Bán theo đơn vị tính — null khi không bán theo đơn vị */
+  sellingUnit?: string | null;
+  unitPrice?: number | null;
+  unitCompareAtPrice?: number | null;
+  /** Bán theo quy cách — rỗng khi chỉ bán theo đơn vị */
   variants: ProductVariantInput[];
 }
 

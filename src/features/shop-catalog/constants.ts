@@ -44,6 +44,30 @@ export const STORAGE_CONDITION_LABEL = {
 export const BASE_UNIT_LABEL = { KG: "Kilogram (kg)", LITER: "Lít (lit)" } as const;
 export const BASE_UNIT_SHORT = { KG: "kg", LITER: "lít" } as const;
 
+/** Selling unit ("Đơn vị tính"). Nông sản chỉ được chọn KG / LITER */
+export const SELL_UNIT_LABEL = {
+  KG: "Kilogram (kg)",
+  LITER: "Lít (lit)",
+  GRAM: "Gram (g)",
+  ML: "Mililit (ml)",
+  PIECE: "Cái / Quả",
+  BOX: "Hộp",
+  BAG: "Túi",
+  BOTTLE: "Chai",
+} as const;
+export const SELL_UNIT_SHORT = {
+  KG: "kg",
+  LITER: "lít",
+  GRAM: "g",
+  ML: "ml",
+  PIECE: "cái",
+  BOX: "hộp",
+  BAG: "túi",
+  BOTTLE: "chai",
+} as const;
+export type SellUnit = keyof typeof SELL_UNIT_LABEL;
+export const AGRI_SELL_UNITS: SellUnit[] = ["KG", "LITER"];
+
 /** Quick picks for the free-text `certifications` list */
 export const CERTIFICATION_SUGGESTIONS = ["VietGAP", "GlobalGAP", "Hữu cơ", "OCOP 3 sao", "OCOP 4 sao", "OCOP 5 sao", "HACCP", "ISO 22000"];
 

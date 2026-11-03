@@ -74,6 +74,8 @@ export const API_ENDPOINTS = {
       /** Farm pickers for supply sources */
       farmZoneGroups: "/api/admin/farm/production-zones/groups",
       farmZones: "/api/admin/farm/production-zones",
+      /** Cây trồng / giống cây trồng picker (TODO: confirm with BE) */
+      farmSubjects: "/api/admin/farm/production-subjects",
       /** POST multipart `file` ?format=JPEG|WEBP */
       productPhotos: "/api/storage/product-photos",
     },
