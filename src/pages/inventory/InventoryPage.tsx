@@ -30,14 +30,16 @@ import { MockBadge } from "@/components/common/MockBadge";
 import { StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
 import { useAccess } from "@/features/auth";
-import { useInventoryStats } from "@/features/inventory";
 import {
   type InventoryRow,
   STOCK_STATUS_STYLE,
   type StockStatus,
   useCatalogInventory,
+  useInventorySummary,
+  SELL_UNIT_SHORT,
   useCategories,
   useStockMovementCounts,
+  stockItemLabel,
 } from "@/features/shop-catalog";
 import { useTableParams } from "@/hooks/useTableParams";
 import { cleanFilters, fromSpringPage, toSpringPageParams } from "@/lib/pagination";
@@ -49,14 +51,15 @@ import { InventoryMobileCard } from "./components/InventoryMobileCard";
 import { StockReceiptDialog } from "./components/StockReceiptDialog";
 import { SupplyRequestsTable } from "./components/SupplyRequestsTable";
 
-const nf = new Intl.NumberFormat("vi-VN");
+const nf = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 });
 
 /** Row target for the per-row dialogs */
-type RowRef = { productId: number; variantId: number };
+/** variantId null = đơn vị tính row */
+type RowRef = { productId: number; variantId: number | null };
 
-const rowKey = (r: InventoryRow) => `${r.product.id}:${r.variant.id}`;
+const rowKey = (r: InventoryRow) => `${r.product.id}:${r.variant?.id ?? "unit"}`;
 
-/** "Hàng tồn" — GET /inventory (§2.9), one row per quy cách */
+/** "Hàng tồn" — GET /inventory (§2.9), one row per quy cách + one đơn vị tính row per product with baseUnit */
 function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAlert: (r: RowRef) => void }) {
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
@@ -75,7 +78,12 @@ function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAl
   );
   // DataTable needs a unique `id` per row; a product has several quy cách
   const rows = data && { ...data, content: data.content.map((r) => ({ ...r, id: rowKey(r) })) };
-  const ref = (r: InventoryRow): RowRef => ({ productId: r.product.id, variantId: r.variant.id });
+  // Quy cách rows don't carry the unit; take it from the product's đơn vị tính row on this page
+  const unitOf = (r: InventoryRow) => {
+    const u = data?.content.find((x) => x.unit && x.product.id === r.product.id)?.unit?.unit;
+    return u ? SELL_UNIT_SHORT[u] : "đv";
+  };
+  const ref = (r: InventoryRow): RowRef => ({ productId: r.product.id, variantId: r.variant?.id ?? null });
 
   const filters: TableFilterDef[] = [
     {
@@ -109,11 +117,17 @@ function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAl
     },
     {
       key: "variant",
-      label: "Quy cách",
+      label: "Quy cách / ĐVT",
       render: (_, r) => (
         <div className="whitespace-nowrap">
-          <div className="font-medium">{r.variant.title}</div>
-          <div className="font-mono text-xs text-muted-foreground">{r.variant.sku}</div>
+          <div className="flex items-center gap-1.5 font-medium">
+            {stockItemLabel(r)}
+            {r.unit && <span className="rounded bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">ĐVT</span>}
+            {r.variant?.unitQuantity != null && (
+              <span className="text-xs font-normal text-muted-foreground">= {nf.format(r.variant.unitQuantity)} {unitOf(r)}</span>
+            )}
+          </div>
+          <div className="font-mono text-xs text-muted-foreground">{r.variant?.sku ?? r.unit?.sku}</div>
         </div>
       ),
     },
@@ -128,6 +142,10 @@ function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAl
           <span className="ml-1.5 text-xs text-muted-foreground">
             {r.lowStockThreshold != null ? `/ cảnh báo ≤ ${nf.format(r.lowStockThreshold)}` : "/ chưa đặt cảnh báo"}
           </span>
+          {/* Quy cách có quy đổi: can still sell from the đơn vị tính stock */}
+          {r.variant && r.variant.availableQuantity !== r.inventoryQuantity && (
+            <div className="text-xs text-emerald-700">Khả dụng {nf.format(r.variant.availableQuantity)} (gồm quy đổi)</div>
+          )}
         </div>
       ),
     },
@@ -170,12 +188,11 @@ function StockTable({ onAdjust, onAlert }: { onAdjust: (r: RowRef) => void; onAl
 }
 
 export default function InventoryPage() {
-  // "Approved today" has no API yet — still mock
-  const { data: stats } = useInventoryStats();
+  const { data: summary } = useInventorySummary();
+  // Tab badge only — FARM phiếu chờ duyệt
   const { data: farmCounts } = useStockMovementCounts({ source: "FARM" });
-  // Counts = totalElements of size-1 inventory calls (rows are quy cách, not products)
-  const { data: low } = useCatalogInventory({ stockStatus: "LOW_STOCK", size: 1 });
-  const { data: out } = useCatalogInventory({ stockStatus: "OUT_OF_STOCK", size: 1 });
+  // Quy cách + đơn vị tính rows
+  const sum = (k: "lowStock" | "outOfStock") => (summary ? nf.format(summary.variants[k] + summary.units[k]) : "—");
   const { isShopAdmin, isRoot } = useAccess();
   const canReviewSupply = isShopAdmin || isRoot;
   const [picking, setPicking] = useState(false);
@@ -193,19 +210,25 @@ export default function InventoryPage() {
   // Row 1: hàng tồn alerts; row 2: đề xuất cung ứng from nông hộ
   const statRows: { title: string; short: string; value: string | number; icon: typeof Clock; tone: string; mock?: boolean }[][] = [
     [
-      { title: "Quy cách sắp hết hàng", short: "Sắp hết", value: low ? nf.format(low.totalElements) : "—", icon: AlertTriangle, tone: "text-amber-600" },
-      { title: "Quy cách đã hết hàng", short: "Hết hàng", value: out ? nf.format(out.totalElements) : "—", icon: PackageX, tone: "text-destructive" },
+      { title: "Hàng sắp hết", short: "Sắp hết", value: sum("lowStock"), icon: AlertTriangle, tone: "text-amber-600" },
+      { title: "Hàng đã hết", short: "Hết hàng", value: sum("outOfStock"), icon: PackageX, tone: "text-destructive" },
     ],
     [
       {
-        title: "Tổng đơn đã duyệt",
+        title: "Phiếu đã duyệt",
         short: "Đã duyệt",
-        value: farmCounts ? nf.format(farmCounts.approved) : "—",
+        value: summary ? nf.format(summary.movements.approved) : "—",
         icon: ClipboardCheck,
         tone: "text-primary",
       },
-      { title: "Đơn duyệt trong ngày", short: "Hôm nay", value: stats?.approvedToday ?? "—", icon: CalendarCheck, tone: "text-emerald-600", mock: true },
-      { title: "Đơn chờ duyệt", short: "Chờ duyệt", value: farmCounts?.pending ?? "—", icon: Clock, tone: "text-sky-600" },
+      {
+        title: "Phiếu duyệt trong ngày",
+        short: "Hôm nay",
+        value: summary ? nf.format(summary.movements.approvedToday) : "—",
+        icon: CalendarCheck,
+        tone: "text-emerald-600",
+      },
+      { title: "Phiếu chờ duyệt", short: "Chờ duyệt", value: summary ? nf.format(summary.movements.pending) : "—", icon: Clock, tone: "text-sky-600" },
     ],
   ];
 

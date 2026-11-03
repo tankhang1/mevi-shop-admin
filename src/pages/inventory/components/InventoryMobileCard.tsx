@@ -2,9 +2,9 @@ import { ArrowDownToLine, BellRing, ExternalLink, History } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
-import { type InventoryRow, STOCK_STATUS_STYLE } from "@/features/shop-catalog";
+import { type InventoryRow, STOCK_STATUS_STYLE, stockItemLabel } from "@/features/shop-catalog";
 
-const nf = new Intl.NumberFormat("vi-VN");
+const nf = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 });
 
 const STOCK_TONE = {
   IN_STOCK: "text-foreground",
@@ -33,7 +33,7 @@ export function InventoryMobileCard({
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold">{r.product.title}</h3>
           <p className="truncate text-[11px] text-muted-foreground">
-            <span className="font-medium text-foreground">{r.variant.title}</span> · <span className="font-mono">{r.variant.sku}</span>
+            <span className="font-medium text-foreground">{stockItemLabel(r)}</span> · <span className="font-mono">{r.variant?.sku ?? r.unit?.sku}</span>
           </p>
           {r.category && <p className="mt-1 truncate text-[11px] text-muted-foreground">{r.category.name}</p>}
         </div>
@@ -41,6 +41,9 @@ export function InventoryMobileCard({
           <div className={cn("text-xl font-bold leading-none tabular-nums", STOCK_TONE[r.stockStatus])}>{nf.format(r.inventoryQuantity)}</div>
           {r.lowStockThreshold != null && (
             <div className="mt-1 text-[10px] text-muted-foreground">cảnh báo ≤ {nf.format(r.lowStockThreshold)}</div>
+          )}
+          {r.variant && r.variant.availableQuantity !== r.inventoryQuantity && (
+            <div className="mt-0.5 text-[10px] text-emerald-700">khả dụng {nf.format(r.variant.availableQuantity)}</div>
           )}
           <div className="mt-1.5">
             <StatusPill {...STOCK_STATUS_STYLE[r.stockStatus]} />

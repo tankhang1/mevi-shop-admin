@@ -9,6 +9,7 @@ import {
   type CatalogProduct,
   type CatalogProductFormValues,
   applyFieldErrors,
+  productFieldAlias,
   catalogFormValuesToInput,
   catalogProductSchema,
   catalogProductToFormValues,
@@ -18,6 +19,7 @@ import {
 } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { ProductStepperForm } from "./components/form/ProductStepperForm";
+import { errorStepsHint } from "./components/form/error-steps";
 
 export default function ProductEditPage() {
   const params = useParams<{ id: string }>();
@@ -47,11 +49,11 @@ function EditForm({ product }: { product: CatalogProduct }) {
       toast({ title: "Đã cập nhật sản phẩm", description: values.title });
       navigate(detailHref);
     } catch (e) {
-      const n = applyFieldErrors(e, form.setError);
+      const n = applyFieldErrors(e, form.setError, productFieldAlias(values.sellByUnit));
       toast({
         variant: "destructive",
         title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Không thể lưu",
-        description: n ? "Kiểm tra lại các trường được đánh dấu." : getErrorMessage(e),
+        description: n ? errorStepsHint(form.formState.errors) : getErrorMessage(e),
       });
     }
   };

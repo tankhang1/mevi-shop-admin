@@ -63,6 +63,8 @@ export const API_ENDPOINTS = {
       },
       /** GET — one row per variant */
       inventory: "/api/admin/shop/inventory",
+      /** GET — stock counts (quy cách + đơn vị tính) and movement counts */
+      inventorySummary: "/api/admin/shop/inventory/summary",
       stockMovements: {
         base: "/api/admin/shop/stock-movements",
         statusCounts: "/api/admin/shop/stock-movements/status-counts",
@@ -74,8 +76,10 @@ export const API_ENDPOINTS = {
       /** Farm pickers for supply sources */
       farmZoneGroups: "/api/admin/farm/production-zones/groups",
       farmZones: "/api/admin/farm/production-zones",
-      /** Cây trồng / giống cây trồng picker (TODO: confirm with BE) */
-      farmSubjects: "/api/admin/farm/production-subjects",
+      /** Cây trồng picker — ?domainCode=CROP&keyword= */
+      farmSubjects: "/api/foundation/production/subjects",
+      /** Giống picker — ?domainCode=CROP&subjectId= */
+      farmSubjectVariants: "/api/foundation/production/subject-variants",
       /** POST multipart `file` ?format=JPEG|WEBP */
       productPhotos: "/api/storage/product-photos",
     },

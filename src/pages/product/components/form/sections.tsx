@@ -23,7 +23,6 @@ import {
 } from "@/components/form";
 import {
   AGRI_SELL_UNITS,
-  BASE_UNIT_LABEL,
   SELL_UNIT_LABEL,
   SELL_UNIT_SHORT,
   type SellUnit,
@@ -38,6 +37,7 @@ import {
   productPhotoApi,
   toProductMedia,
   useCategories,
+  useFarmSubjectVariants,
   useFarmSubjects,
   useFarmZoneGroups,
   useFarmZones,
@@ -50,7 +50,6 @@ type F = CatalogProductFormValues;
 const toOptions = <K extends string>(labels: Record<K, string>) =>
   (Object.keys(labels) as K[]).map((value) => ({ label: labels[value], value }));
 
-const BASE_UNIT_OPTIONS = toOptions(BASE_UNIT_LABEL);
 const SELL_UNIT_OPTIONS = toOptions(SELL_UNIT_LABEL);
 const AGRI_SELL_UNIT_OPTIONS = SELL_UNIT_OPTIONS.filter((o) => AGRI_SELL_UNITS.includes(o.value));
 const SHELF_LIFE_UNIT_OPTIONS = toOptions(SHELF_LIFE_UNIT_LABEL);
@@ -361,10 +360,8 @@ export function VariantsSection() {
   const toggleUnit = () => {
     const next = !sellByUnit;
     setValue("sellByUnit", next, { shouldDirty: true });
-    // Nông sản: prefill đơn vị from the first supply source's base unit
-    if (next && !getValues("sellingUnit") && agricultural) {
-      setValue("sellingUnit", getValues("baseUnit") ?? "KG", { shouldDirty: true });
-    }
+    // Nông sản: default to kg
+    if (next && !getValues("sellingUnit") && agricultural) setValue("sellingUnit", "KG", { shouldDirty: true });
     void trigger("sellByUnit");
   };
   const togglePackage = () => {
@@ -409,7 +406,7 @@ export function VariantsSection() {
               <Scale className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold">Đơn vị tính</span>
             </div>
-            <div className="grid items-start gap-3 sm:grid-cols-3">
+            <div className="grid items-start gap-3 sm:grid-cols-2">
               <SelectField<F>
                 name="sellingUnit"
                 label="Đơn vị"
@@ -417,6 +414,7 @@ export function VariantsSection() {
                 options={agricultural ? AGRI_SELL_UNIT_OPTIONS : SELL_UNIT_OPTIONS}
                 placeholder="Chọn đơn vị"
               />
+              <TextField<F> name="unitSku" label="SKU đơn vị tính" placeholder="Tự sinh nếu để trống" />
               <TextField<F> name="unitPrice" label={`Giá bán / ${unitShort}`} required type="number" suffix="VND" />
               <TextField<F> name="unitCompareAtPrice" label="Giá gốc" type="number" suffix="VND" placeholder="Không bắt buộc" />
             </div>
@@ -564,35 +562,60 @@ function VariantPreview() {
   );
 }
 
-/** Nông sản: cây trồng / giống + đơn vị tính cơ bản — chọn trước, lọc nông hộ & vườn theo nó */
+/** Nông sản: Cây trồng (bắt buộc) + Giống (tùy chọn) — chọn trước, lọc nông hộ & vườn theo nó */
 function CropFields() {
   const { control, setValue, getValues } = useFormContext<F>();
   const [keyword, setKeyword] = useState("");
-  const name = useWatch({ control, name: "productionSubjectName" });
-  const id = useWatch({ control, name: "productionSubjectId" });
+  const [name, id, variantId] = useWatch({
+    control,
+    name: ["productionSubjectName", "productionSubjectId", "productionSubjectVariantId"],
+  });
   const { data, isFetching } = useFarmSubjects({ keyword: keyword || undefined, size: 20 });
   const options = (data?.content ?? []).map((s) => ({ label: s.name, value: String(s.id) }));
+  const { data: variants, isFetching: loadingVariants } = useFarmSubjectVariants(id ? Number(id) : undefined);
+  const variantOptions = [
+    { label: "Không giới hạn giống", value: "" },
+    ...(variants?.content ?? []).map((g) => ({ label: g.name, value: String(g.id) })),
+  ];
+  // Linked vườn were checked against the old Cây trồng / Giống — drop them
+  const clearSources = () => {
+    if (getValues("supplySources").length) setValue("supplySources", [], { shouldDirty: true });
+  };
 
   return (
     <div className="contents">
       <AsyncComboboxField<F>
         name="productionSubjectId"
-        label="Cây trồng / giống cây trồng"
+        label="Cây trồng"
         required
         options={options}
         loading={isFetching}
         onSearch={setKeyword}
         selectedLabel={name || (id ? `Cây trồng #${id}` : undefined)}
         placeholder="Chọn cây trồng"
-        searchPlaceholder="Tìm cây trồng, giống..."
+        searchPlaceholder="Tìm cây trồng..."
         emptyText="Không tìm thấy cây trồng"
         onChange={(v, option) => {
           setValue("productionSubjectName", option?.label ?? "", { shouldDirty: true });
-          // Linked vườn belong to the old crop — drop them
-          if (v !== id && getValues("supplySources").length) setValue("supplySources", [], { shouldDirty: true });
+          if (v === id) return;
+          setValue("productionSubjectVariantId", "", { shouldDirty: true });
+          setValue("productionSubjectVariantName", "", { shouldDirty: true });
+          clearSources();
         }}
       />
-      <SelectField<F> name="baseUnit" label="Đơn vị tính" required options={BASE_UNIT_OPTIONS} />
+      <ComboboxField<F>
+        name="productionSubjectVariantId"
+        label="Giống"
+        options={variantOptions}
+        disabled={!id}
+        placeholder={!id ? "Chọn cây trồng trước" : loadingVariants ? "Đang tải..." : "Không giới hạn giống"}
+        searchPlaceholder="Tìm giống..."
+        emptyText="Cây trồng chưa có giống"
+        onChange={(v) => {
+          setValue("productionSubjectVariantName", variantOptions.find((o) => o.value === v && v)?.label ?? "", { shouldDirty: true });
+          if (v !== variantId) clearSources();
+        }}
+      />
     </div>
   );
 }
@@ -603,15 +626,21 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
   const source = useWatch({ control, name: `supplySources.${index}` });
   // Nông hộ search runs on the API (`keyword`), not on the loaded page
   const [groupKeyword, setGroupKeyword] = useState("");
-  const [subjectId, subjectName] = useWatch({ control, name: ["productionSubjectId", "productionSubjectName"] });
+  const [subjectId, subjectVariantId] = useWatch({ control, name: ["productionSubjectId", "productionSubjectVariantId"] });
   const subject = subjectId ? Number(subjectId) : undefined;
+  const subjectVariant = subjectVariantId ? Number(subjectVariantId) : undefined;
   // Only nông hộ / vườn growing the product's cây trồng
   const { data: groups, isFetching: loadingGroups } = useFarmZoneGroups({
     keyword: groupKeyword || undefined,
     productionSubjectId: subject,
+    productionSubjectVariantId: subjectVariant,
     size: 20,
   });
-  const { data: zonesPage } = useFarmZones(source?.workspaceId ? Number(source.workspaceId) : undefined, subject);
+  const { data: zonesPage } = useFarmZones(
+    source?.workspaceId ? Number(source.workspaceId) : undefined,
+    subject,
+    subjectVariant,
+  );
   // Client-side guard in case the API ignores the filter
   const zones = (zonesPage?.content ?? []).filter((z) => !subject || z.subjects.some((s) => s.id === subject));
 
@@ -669,8 +698,6 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
           emptyText="Không có vườn phù hợp"
           onChange={(v) => {
             set("zoneName", zones.find((z) => String(z.id) === v)?.name ?? "");
-            set("productionSubjectId", subjectId);
-            set("subjectName", subjectName);
             void trigger(`supplySources.${index}.productionZoneId`);
           }}
         />
@@ -683,7 +710,7 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
 export function SuppliersSection() {
   const { control } = useFormContext<F>();
   const { fields, append, remove } = useFieldArray({ control, name: "supplySources" });
-  const [subjectName, baseUnit] = useWatch({ control, name: ["productionSubjectName", "baseUnit"] });
+  const [subjectName, variantName] = useWatch({ control, name: ["productionSubjectName", "productionSubjectVariantName"] });
 
   return (
     <div className="space-y-6">
@@ -694,7 +721,7 @@ export function SuppliersSection() {
         <div className="space-y-1">
           <h4 className="text-sm font-semibold text-primary">Nguồn cung nông sản</h4>
           <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Không bắt buộc. Chỉ hiển thị nông hộ / vườn đang canh tác cây trồng đã chọn ở bước 1. Nông hộ có
+            Không bắt buộc. Chỉ hiển thị nông hộ / vườn đang canh tác cây trồng (và giống, nếu có) đã chọn ở bước 1. Nông hộ có
             vườn trong danh sách mới đề xuất nhập hàng được cho sản phẩm này.
           </p>
         </div>
@@ -708,7 +735,7 @@ export function SuppliersSection() {
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
                 <Sprout className="h-3 w-3" /> {subjectName || "Chưa chọn cây trồng"}
               </span>
-              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium">{BASE_UNIT_LABEL[baseUnit ?? "KG"]}</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium">Giống: {variantName || "không giới hạn"}</span>
               <span className="text-muted-foreground">· Tối đa {PRODUCT_LIMITS.supplySources} nguồn</span>
             </div>
           </div>
@@ -756,14 +783,21 @@ export function ReviewSection() {
     supplySources: (v.supplySources ?? []).map((s) => ({
       productionZone: { id: Number(s.productionZoneId), code: null, name: s.zoneName || null },
       workspace: { id: Number(s.workspaceId), name: s.workspaceName || null },
-      productionSubject: { id: Number(s.productionSubjectId), name: s.subjectName || null },
-      baseUnit: s.baseUnit,
     })),
+    productionSubject: v.agricultural && v.productionSubjectId ? { id: Number(v.productionSubjectId), name: v.productionSubjectName || null } : null,
+    productionSubjectVariant: v.agricultural && v.productionSubjectVariantId
+      ? { id: Number(v.productionSubjectVariantId), name: v.productionSubjectVariantName || null }
+      : null,
+    baseUnit: v.sellByUnit ? (v.sellingUnit as SellUnit) || null : null,
+    unitSku: v.sellByUnit ? v.unitSku || null : null,
+    unitPrice: v.sellByUnit ? toPrice(v.unitPrice) || null : null,
+    unitCompareAtPrice: v.sellByUnit ? toPrice(v.unitCompareAtPrice) || null : null,
     variants: (v.variants ?? []).map((x) => ({
       title: x.title,
       sku: x.sku,
       price: toPrice(x.price),
       compareAtPrice: toPrice(x.compareAtPrice) || null,
+      unitQuantity: v.sellByUnit && x.unitQuantity ? Number(x.unitQuantity) : null,
     })),
   };
   return <ProductInfo product={product} />;

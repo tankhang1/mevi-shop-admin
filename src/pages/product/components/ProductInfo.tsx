@@ -4,8 +4,8 @@ import { ShieldCheck, Sprout } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import {
-  BASE_UNIT_SHORT,
   type CatalogProduct,
+  SELL_UNIT_SHORT,
   SHELF_LIFE_UNIT_LABEL,
   STORAGE_CONDITION_LABEL,
 } from "@/features/shop-catalog";
@@ -25,10 +25,19 @@ export type ProductView = Pick<
   | "storageInstructions"
   | "description"
   | "supplySources"
+  | "productionSubject"
+  | "productionSubjectVariant"
+  | "baseUnit"
+  | "unitSku"
+  | "unitPrice"
+  | "unitCompareAtPrice"
 > & {
   category: { name: string } | null;
-  variants: (Pick<CatalogProduct["variants"][number], "title" | "sku" | "price" | "compareAtPrice"> & {
+  /** Saved product only */
+  unitInventoryQuantity?: number | null;
+  variants: (Pick<CatalogProduct["variants"][number], "title" | "sku" | "price" | "compareAtPrice" | "unitQuantity"> & {
     inventoryQuantity?: number;
+    availableQuantity?: number;
   })[];
 };
 
@@ -60,9 +69,14 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function ProductInfo({ product: p }: { product: ProductView }) {
   const images = p.media.map((m) => m.url);
   const [active, setActive] = useState(0);
-  const first = p.variants[0];
+  const unit = p.baseUnit ? SELL_UNIT_SHORT[p.baseUnit] : null;
+  // Headline price: đơn vị tính first, else the first quy cách
+  const first =
+    unit && p.unitPrice != null
+      ? { price: p.unitPrice, compareAtPrice: p.unitCompareAtPrice, suffix: ` / ${unit}` }
+      : p.variants[0] && { ...p.variants[0], suffix: "" };
   const discount = first ? discountOf(first.price, first.compareAtPrice) : 0;
-  const showStock = p.variants.some((v) => v.inventoryQuantity !== undefined);
+  const showStock = p.variants.some((v) => v.inventoryQuantity !== undefined) || p.unitInventoryQuantity != null;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
@@ -105,7 +119,10 @@ export function ProductInfo({ product: p }: { product: ProductView }) {
           <h2 className="mt-2 text-xl font-semibold leading-snug sm:text-2xl">{p.title || "Chưa đặt tên"}</h2>
           {first && (
             <div className="mt-2 flex flex-wrap items-baseline gap-2">
-              <span className="text-2xl font-bold tabular-nums text-primary">{formatVnd(first.price)}</span>
+              <span className="text-2xl font-bold tabular-nums text-primary">
+                {formatVnd(first.price)}
+                <span className="text-sm font-medium text-muted-foreground">{first.suffix}</span>
+              </span>
               {discount > 0 && (
                 <>
                   <span className="text-sm text-muted-foreground line-through tabular-nums">{formatVnd(first.compareAtPrice!)}</span>
@@ -126,24 +143,59 @@ export function ProductInfo({ product: p }: { product: ProductView }) {
         </section>
 
         {/* Quy cách & giá */}
-        <Section title="Quy cách & giá" aside={<span className="text-xs text-muted-foreground">{p.variants.length} quy cách</span>}>
+        <Section
+          title="Hình thức bán & giá"
+          aside={
+            <span className="text-xs text-muted-foreground">
+              {[unit && `Đơn vị tính (${unit})`, p.variants.length && `${p.variants.length} quy cách`].filter(Boolean).join(" · ")}
+            </span>
+          }
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">Quy cách</th>
+                  <th className="py-2 pr-3 font-medium">Hình thức</th>
                   <th className="py-2 pr-3 font-medium">SKU</th>
                   <th className="py-2 pr-3 text-right font-medium">Giá bán</th>
                   <th className="py-2 pr-3 text-right font-medium">Giá gốc</th>
-                  {showStock && <th className="py-2 text-right font-medium">Tồn kho</th>}
+                  {showStock && <th className="py-2 pr-3 text-right font-medium">Tồn kho</th>}
+                  {showStock && <th className="py-2 text-right font-medium">Khả dụng</th>}
                 </tr>
               </thead>
               <tbody>
+                {unit && (
+                  <tr className="border-b bg-primary/[0.03]">
+                    <td className="py-2.5 pr-3 font-medium">Theo đơn vị tính ({unit})</td>
+                    <td className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">{p.unitSku || "Tự sinh"}</td>
+                    <td className="whitespace-nowrap py-2.5 pr-3 text-right font-semibold tabular-nums">
+                      {p.unitPrice != null ? `${formatVnd(p.unitPrice)} / ${unit}` : <span className="text-destructive">Chưa có giá</span>}
+                    </td>
+                    <td className="whitespace-nowrap py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
+                      {p.unitPrice != null && discountOf(p.unitPrice, p.unitCompareAtPrice) > 0 ? (
+                        <span className="line-through">{formatVnd(p.unitCompareAtPrice!)}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    {showStock && (
+                      <td className="py-2.5 pr-3 text-right tabular-nums">
+                        {p.unitInventoryQuantity != null ? `${p.unitInventoryQuantity} ${unit}` : "—"}
+                      </td>
+                    )}
+                    {showStock && <td className="py-2.5 text-right tabular-nums text-muted-foreground">—</td>}
+                  </tr>
+                )}
                 {p.variants.map((x, i) => {
                   const d = discountOf(x.price, x.compareAtPrice);
                   return (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="py-2.5 pr-3 font-medium">{x.title || `Quy cách ${i + 1}`}</td>
+                      <td className="py-2.5 pr-3 font-medium">
+                        {x.title || `Quy cách ${i + 1}`}
+                        {unit && x.unitQuantity != null && (
+                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">= {x.unitQuantity} {unit}</span>
+                        )}
+                      </td>
                       <td className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">{x.sku || "Tự sinh"}</td>
                       <td className="whitespace-nowrap py-2.5 pr-3 text-right font-semibold tabular-nums">
                         {formatVnd(x.price)}
@@ -152,7 +204,10 @@ export function ProductInfo({ product: p }: { product: ProductView }) {
                       <td className="whitespace-nowrap py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
                         {d > 0 ? <span className="line-through">{formatVnd(x.compareAtPrice!)}</span> : "—"}
                       </td>
-                      {showStock && <td className="py-2.5 text-right tabular-nums">{x.inventoryQuantity ?? "—"}</td>}
+                      {showStock && <td className="py-2.5 pr-3 text-right tabular-nums">{x.inventoryQuantity ?? "—"}</td>}
+                      {showStock && (
+                        <td className="py-2.5 text-right font-medium tabular-nums">{x.availableQuantity ?? x.inventoryQuantity ?? "—"}</td>
+                      )}
                     </tr>
                   );
                 })}
@@ -169,6 +224,8 @@ export function ProductInfo({ product: p }: { product: ProductView }) {
             </Field>
             <Field label="Điều kiện bảo quản">{p.storageCondition && STORAGE_CONDITION_LABEL[p.storageCondition]}</Field>
             <Field label="Hướng dẫn bảo quản">{p.storageInstructions}</Field>
+            {p.agricultural && <Field label="Cây trồng">{p.productionSubject?.name ?? (p.productionSubject && "Đã xoá")}</Field>}
+            {p.agricultural && <Field label="Giống">{p.productionSubjectVariant ? (p.productionSubjectVariant.name ?? "Đã xoá") : "Không giới hạn"}</Field>}
           </dl>
         </Section>
 
@@ -190,15 +247,14 @@ export function ProductInfo({ product: p }: { product: ProductView }) {
                         )}
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
-                        {s.workspace.name ?? "—"} · {s.productionSubject.name ?? "—"}
+                        {s.workspace.name ?? "—"}
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">Đơn vị: {BASE_UNIT_SHORT[s.baseUnit]}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-destructive">Chưa liên kết vườn nông hộ nào.</p>
+              <p className="text-sm text-muted-foreground">Chưa liên kết vườn nông hộ nào (không bắt buộc).</p>
             )}
           </Section>
         )}

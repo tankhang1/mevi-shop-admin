@@ -1,3 +1,4 @@
+import type { BaseUnit } from "./types/enums";
 /** `a-z0-9-`, no leading/trailing `-`, no `--` (category + product handle) */
 export const HANDLE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -41,8 +42,8 @@ export const STORAGE_CONDITION_LABEL = {
   FROZEN: "Đông lạnh",
 } as const;
 
+/** Nông sản units only (KG / LITER) */
 export const BASE_UNIT_LABEL = { KG: "Kilogram (kg)", LITER: "Lít (lit)" } as const;
-export const BASE_UNIT_SHORT = { KG: "kg", LITER: "lít" } as const;
 
 /** Selling unit ("Đơn vị tính"). Nông sản chỉ được chọn KG / LITER */
 export const SELL_UNIT_LABEL = {
@@ -52,8 +53,9 @@ export const SELL_UNIT_LABEL = {
   ML: "Mililit (ml)",
   PIECE: "Cái / Quả",
   BOX: "Hộp",
-  BAG: "Túi",
   BOTTLE: "Chai",
+  PACK: "Gói",
+  BAG: "Túi",
 } as const;
 export const SELL_UNIT_SHORT = {
   KG: "kg",
@@ -62,10 +64,13 @@ export const SELL_UNIT_SHORT = {
   ML: "ml",
   PIECE: "cái",
   BOX: "hộp",
-  BAG: "túi",
   BOTTLE: "chai",
-} as const;
-export type SellUnit = keyof typeof SELL_UNIT_LABEL;
+  PACK: "gói",
+  BAG: "túi",
+} as const satisfies Record<BaseUnit, string>;
+/** Short label for any `baseUnit` (BE table) */
+export const BASE_UNIT_SHORT = SELL_UNIT_SHORT;
+export type SellUnit = BaseUnit;
 export const AGRI_SELL_UNITS: SellUnit[] = ["KG", "LITER"];
 
 /** Quick picks for the free-text `certifications` list */

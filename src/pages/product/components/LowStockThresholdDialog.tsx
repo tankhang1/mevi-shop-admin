@@ -13,6 +13,7 @@ import {
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import {
   type CatalogProduct,
+  SELL_UNIT_SHORT,
   STOCK_LIMITS,
   fieldErrorMessage,
   getFieldErrors,
@@ -22,7 +23,8 @@ import {
 } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 
-const nf = new Intl.NumberFormat("vi-VN");
+const nf = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 });
+const UNIT = "unit";
 
 /** "Cảnh báo hàng tồn" (§2.6): per quy cách threshold, empty = no warning. `productId` null = closed */
 export function LowStockThresholdDialog({
@@ -31,8 +33,8 @@ export function LowStockThresholdDialog({
   onOpenChange,
 }: {
   productId: number | null;
-  /** Highlight one quy cách (e.g. opened from an inventory row) */
-  focusVariantId?: number;
+  /** Highlight one row (e.g. opened from an inventory row); null = đơn vị tính */
+  focusVariantId?: number | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const { data: product, isLoading } = useCatalogProduct(productId ?? undefined);
@@ -59,28 +61,59 @@ function Body({
   onDone,
 }: {
   product: CatalogProduct;
-  focusVariantId?: number;
+  focusVariantId?: number | null;
   save: ReturnType<typeof useSetLowStockThresholds>;
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const [values, setValues] = useState<Record<number, string>>(() =>
-    Object.fromEntries(product.variants.map((v) => [v.id, v.lowStockThreshold != null ? String(v.lowStockThreshold) : ""])),
+  // Đơn vị tính row first (variantId null, decimals allowed), then quy cách
+  const rows = [
+    ...(product.baseUnit
+      ? [
+          {
+            key: UNIT,
+            variantId: null,
+            title: `Đơn vị tính (${SELL_UNIT_SHORT[product.baseUnit]})`,
+            stock: product.unitInventoryQuantity ?? 0,
+            threshold: product.unitLowStockThreshold,
+            decimal: true,
+          },
+        ]
+      : []),
+    ...product.variants.map((v) => ({
+      key: String(v.id),
+      variantId: v.id as number | null,
+      title: v.title,
+      stock: v.inventoryQuantity,
+      threshold: v.lowStockThreshold ?? null,
+      decimal: false,
+    })),
+  ];
+  const focusKey = focusVariantId === null ? UNIT : focusVariantId != null ? String(focusVariantId) : undefined;
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(rows.map((r) => [r.key, r.threshold != null ? String(r.threshold) : ""])),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = async () => {
-    const thresholds = product.variants.map((v) => {
-      const raw = values[v.id]?.trim();
-      return { variantId: v.id, threshold: raw ? Number(raw) : null };
+    const thresholds = rows.map((r) => {
+      const raw = values[r.key]?.trim();
+      return { variantId: r.variantId, threshold: raw ? Number(raw) : null, raw, decimal: r.decimal };
     });
-    if (thresholds.some((t) => t.threshold != null && (!Number.isInteger(t.threshold) || t.threshold < 0 || t.threshold > STOCK_LIMITS.quantity))) {
-      toast({ variant: "destructive", title: "Ngưỡng phải là số nguyên từ 0 đến 100.000.000" });
+    const bad = thresholds.some(
+      (t) =>
+        t.threshold != null &&
+        (t.threshold < 0 ||
+          t.threshold > STOCK_LIMITS.quantity ||
+          (t.decimal ? !/^\d+(\.\d{1,3})?$/.test(t.raw!) : !Number.isInteger(t.threshold))),
+    );
+    if (bad) {
+      toast({ variant: "destructive", title: "Ngưỡng từ 0 đến 100.000.000 — quy cách là số nguyên, đơn vị tính tối đa 3 số lẻ" });
       return;
     }
     setErrors({});
     try {
-      await save.mutateAsync({ id: product.id, thresholds });
+      await save.mutateAsync({ id: product.id, thresholds: thresholds.map(({ variantId, threshold }) => ({ variantId, threshold })) });
       toast({ title: "Đã lưu cảnh báo hàng tồn", description: product.title });
       onDone();
     } catch (e) {
@@ -101,27 +134,28 @@ function Body({
       </DialogHeader>
       <div>
         <p className="truncate text-sm font-medium">{product.title}</p>
-        <p className="text-sm text-muted-foreground">Quy cách “Sắp hết” khi tồn kho ≤ ngưỡng. Để trống = không cảnh báo.</p>
+        <p className="text-sm text-muted-foreground">“Sắp hết” khi tồn kho riêng ≤ ngưỡng. Để trống = không cảnh báo.</p>
       </div>
       <div className="space-y-3">
-        {product.variants.map((v, i) => (
+        {rows.map((r, i) => (
           <div
-            key={v.id}
-            className={`grid grid-cols-[minmax(0,1fr)_140px] items-center gap-3 rounded-lg px-2 py-1.5 ${v.id === focusVariantId ? "bg-primary/5 ring-1 ring-primary/30" : ""}`}
+            key={r.key}
+            className={`grid grid-cols-[minmax(0,1fr)_140px] items-center gap-3 rounded-lg px-2 py-1.5 ${r.key === focusKey ? "bg-primary/5 ring-1 ring-primary/30" : ""}`}
           >
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{v.title}</div>
-              <div className="text-xs text-muted-foreground">Tồn {nf.format(v.inventoryQuantity)}</div>
+              <div className="truncate text-sm font-medium">{r.title}</div>
+              <div className="text-xs text-muted-foreground">Tồn {nf.format(r.stock)}</div>
             </div>
             <div>
               <Input
                 type="number"
                 min={0}
+                step={r.decimal ? "0.001" : "1"}
                 placeholder="Không cảnh báo"
-                value={values[v.id] ?? ""}
+                value={values[r.key] ?? ""}
                 disabled={save.isPending}
-                autoFocus={v.id === focusVariantId}
-                onChange={(e) => setValues((s) => ({ ...s, [v.id]: e.target.value }))}
+                autoFocus={r.key === focusKey}
+                onChange={(e) => setValues((s) => ({ ...s, [r.key]: e.target.value }))}
               />
               {errors[`thresholds.${i}.threshold`] && <p className="mt-1 text-xs text-destructive">{errors[`thresholds.${i}.threshold`]}</p>}
             </div>

@@ -10,3 +10,10 @@ export function useCatalogInventory(params: InventoryRowListParams = {}) {
     placeholderData: keepPreviousData,
   });
 }
+
+export function useInventorySummary() {
+  return useQuery({
+    queryKey: [...catalogKeys.stock(), "inventory-summary"],
+    queryFn: () => catalogInventoryApi.summary(),
+  });
+}

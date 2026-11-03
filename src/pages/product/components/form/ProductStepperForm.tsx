@@ -6,6 +6,7 @@ import { BasicInfoSection, ImagesSection, ReviewSection, SuppliersSection, Varia
 
 type F = CatalogProductFormValues;
 
+
 interface Props {
   /** Owned by the page so it can map backend `fieldErrors` back onto fields */
   form: UseFormReturn<F>;
@@ -32,7 +33,7 @@ export function ProductStepperForm({ form, ...props }: Props) {
         "active",
         "agricultural",
         "productionSubjectId",
-        "baseUnit",
+        "productionSubjectVariantId",
         "shelfLifeValue",
         "shelfLifeUnit",
         "storageCondition",
@@ -63,7 +64,7 @@ export function ProductStepperForm({ form, ...props }: Props) {
       id: "variants",
       title: "Hình thức bán & giá",
       description: "Đơn vị tính, quy cách, giá",
-      fields: ["sellByUnit", "sellingUnit", "unitPrice", "unitCompareAtPrice", "sellByPackage", "variants"],
+      fields: ["sellByUnit", "sellingUnit", "unitSku", "unitPrice", "unitCompareAtPrice", "sellByPackage", "variants"],
       content: <VariantsSection />,
     },
     {

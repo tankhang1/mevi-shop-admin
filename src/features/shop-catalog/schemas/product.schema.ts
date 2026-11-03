@@ -46,10 +46,6 @@ const supplySourceSchema = z.object({
   workspaceName: z.string(),
   productionZoneId: z.string().min(1, "Vui lòng chọn vườn"),
   zoneName: z.string(),
-  /** Mirrors the product-level crop; kept for display/back-compat */
-  productionSubjectId: z.string(),
-  subjectName: z.string(),
-  baseUnit: z.enum(["KG", "LITER"]),
 });
 
 export const catalogProductSchema = z
@@ -73,7 +69,9 @@ export const catalogProductSchema = z
     /** Nông sản — cây trồng / giống chọn trước, lọc nông hộ → vườn theo nó */
     productionSubjectId: z.string(),
     productionSubjectName: z.string(),
-    baseUnit: z.enum(["KG", "LITER"]),
+    /** Giống (optional) — "" = không giới hạn giống */
+    productionSubjectVariantId: z.string(),
+    productionSubjectVariantName: z.string(),
     certifications: z.array(z.string()).max(L.certifications, `Tối đa ${L.certifications} chứng nhận`),
     /** No input yet — carried through so PUT (full overwrite) keeps existing tags */
     tags: z.array(z.string()),
@@ -89,6 +87,11 @@ export const catalogProductSchema = z
     /** Bán theo đơn vị tính */
     sellByUnit: z.boolean(),
     sellingUnit: z.union([z.literal(""), z.enum(Object.keys(SELL_UNIT_LABEL) as [SellUnit, ...SellUnit[]])]),
+    unitSku: z
+      .string()
+      .trim()
+      .max(L.sku, max(L.sku))
+      .refine((v) => !v || CODE_PATTERN.test(v), "Chỉ gồm chữ, số và - _ ."),
     unitPrice: optionalPrice,
     unitCompareAtPrice: optionalPrice,
     /** Bán theo quy cách */
@@ -152,9 +155,6 @@ export const EMPTY_SUPPLY_SOURCE: SupplySourceFormValues = {
   workspaceName: "",
   productionZoneId: "",
   zoneName: "",
-  productionSubjectId: "",
-  subjectName: "",
-  baseUnit: "KG",
 };
 
 export const EMPTY_CATALOG_PRODUCT: CatalogProductFormValues = {
@@ -167,7 +167,8 @@ export const EMPTY_CATALOG_PRODUCT: CatalogProductFormValues = {
   agricultural: false,
   productionSubjectId: "",
   productionSubjectName: "",
-  baseUnit: "KG",
+  productionSubjectVariantId: "",
+  productionSubjectVariantName: "",
   certifications: [],
   tags: [],
   shelfLifeValue: "",
@@ -178,6 +179,7 @@ export const EMPTY_CATALOG_PRODUCT: CatalogProductFormValues = {
   supplySources: [],
   sellByUnit: false,
   sellingUnit: "",
+  unitSku: "",
   unitPrice: "",
   unitCompareAtPrice: "",
   sellByPackage: true,
@@ -192,10 +194,10 @@ export const catalogProductToFormValues = (p: CatalogProduct): CatalogProductFor
   description: p.description ?? "",
   active: p.status === "ACTIVE",
   agricultural: p.agricultural,
-  // Fallback to the first source for products saved before the product-level crop existed
-  productionSubjectId: String(p.productionSubject?.id ?? p.supplySources[0]?.productionSubject.id ?? ""),
-  productionSubjectName: p.productionSubject?.name ?? p.supplySources[0]?.productionSubject.name ?? "",
-  baseUnit: p.baseUnit ?? p.supplySources[0]?.baseUnit ?? "KG",
+  productionSubjectId: p.productionSubject ? String(p.productionSubject.id) : "",
+  productionSubjectName: p.productionSubject?.name ?? "",
+  productionSubjectVariantId: p.productionSubjectVariant ? String(p.productionSubjectVariant.id) : "",
+  productionSubjectVariantName: p.productionSubjectVariant?.name ?? "",
   certifications: p.certifications,
   tags: p.tags,
   shelfLifeValue: p.shelfLifeValue ? String(p.shelfLifeValue) : "",
@@ -208,17 +210,15 @@ export const catalogProductToFormValues = (p: CatalogProduct): CatalogProductFor
     workspaceName: s.workspace.name ?? "",
     productionZoneId: String(s.productionZone.id),
     zoneName: s.productionZone.name ?? "",
-    productionSubjectId: String(s.productionSubject.id),
-    subjectName: s.productionSubject.name ?? "",
-    baseUnit: s.baseUnit,
   })),
-  sellByUnit: !!p.sellingUnit,
-  sellingUnit: p.sellingUnit && p.sellingUnit in SELL_UNIT_LABEL ? (p.sellingUnit as SellUnit) : "",
+  sellByUnit: !!p.baseUnit,
+  sellingUnit: p.baseUnit ?? "",
+  unitSku: p.unitSku ?? "",
   unitPrice: p.unitPrice != null ? String(p.unitPrice) : "",
   unitCompareAtPrice: p.unitCompareAtPrice != null ? String(p.unitCompareAtPrice) : "",
   // Legacy products (no sellingUnit) always sold by quy cách
-  sellByPackage: p.variants.length > 0 || !p.sellingUnit,
-  variants: (p.variants.length ? p.variants : p.sellingUnit ? [] : [null]).map((v) =>
+  sellByPackage: p.variants.length > 0 || !p.baseUnit,
+  variants: (p.variants.length ? p.variants : p.baseUnit ? [] : [null]).map((v) =>
     v
       ? {
           id: String(v.id),
@@ -243,7 +243,7 @@ export const catalogFormValuesToInput = (values: CatalogProductFormValues): Cata
     categoryId: Number(v.categoryId),
     agricultural: v.agricultural,
     productionSubjectId: v.agricultural ? Number(v.productionSubjectId) : null,
-    baseUnit: v.agricultural ? v.baseUnit : null,
+    productionSubjectVariantId: v.agricultural && v.productionSubjectVariantId ? Number(v.productionSubjectVariantId) : null,
     status: v.active ? "ACTIVE" : "INACTIVE",
     tags: v.tags,
     certifications: v.certifications,
@@ -256,12 +256,10 @@ export const catalogFormValuesToInput = (values: CatalogProductFormValues): Cata
     supplySources: v.agricultural
       ? v.supplySources.map((s) => ({
           productionZoneId: Number(s.productionZoneId),
-          // Crop & unit come from the product level
-          productionSubjectId: Number(v.productionSubjectId),
-          baseUnit: v.baseUnit,
         }))
       : [],
-    sellingUnit: v.sellByUnit ? v.sellingUnit || null : null,
+    baseUnit: v.sellByUnit ? v.sellingUnit || null : null,
+    unitSku: v.sellByUnit ? v.unitSku || null : null,
     unitPrice: v.sellByUnit ? (v.unitPrice ?? null) : null,
     unitCompareAtPrice: v.sellByUnit ? (v.unitCompareAtPrice ?? null) : null,
     variants: v.sellByPackage

@@ -9,6 +9,8 @@ import {
   type StockMovementStatus,
   type StockMovementType,
   useCatalogStockMovements,
+  stockItemLabel,
+  SELL_UNIT_SHORT,
 } from "@/features/shop-catalog";
 import { useTableParams } from "@/hooks/useTableParams";
 import { cleanFilters, fromSpringPage, toSpringPageParams } from "@/lib/pagination";
@@ -101,8 +103,8 @@ export function CatalogStockMovementTable({ productId, type }: { productId?: num
       label: "Quy cách",
       render: (_, m) => (
         <div className="whitespace-nowrap text-sm">
-          {m.variant.title}
-          {m.variant.id == null && <span className="ml-1 text-xs text-muted-foreground">(đã xoá)</span>}
+          {stockItemLabel(m)}
+          {m.variant && m.variant.id == null && <span className="ml-1 text-xs text-muted-foreground">(đã xoá)</span>}
         </div>
       ),
     },
@@ -133,6 +135,7 @@ export function CatalogStockMovementTable({ productId, type }: { productId?: num
           )}
         >
           {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+          {m.baseUnit && <span className="ml-0.5 text-xs font-normal">{SELL_UNIT_SHORT[m.baseUnit]}</span>}
         </span>
       ),
     },

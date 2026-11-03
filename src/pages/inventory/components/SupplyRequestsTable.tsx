@@ -18,6 +18,8 @@ import {
   useCatalogStockMovements,
   useRejectStockMovement,
   useStockMovementCounts,
+  stockItemLabel,
+  stockPerLabel,
 } from "@/features/shop-catalog";
 import { useTableParams } from "@/hooks/useTableParams";
 import { getErrorMessage } from "@/lib/api-error";
@@ -115,7 +117,10 @@ export function SupplyRequestsTable() {
               </>
             )}
           </div>
-          <div className="text-xs text-muted-foreground">Quy cách: {m.variant.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {m.variant ? "Quy cách: " : ""}
+            {stockItemLabel(m)}
+          </div>
         </div>
       ),
     },
@@ -127,7 +132,7 @@ export function SupplyRequestsTable() {
           <div className="whitespace-nowrap font-medium text-foreground">{m.productionZone?.name ?? "—"}</div>
           <div className="whitespace-nowrap text-xs text-muted-foreground">
             {m.workspace?.name ?? "—"}
-            {m.unitCost != null && <span className="ml-1">· {formatVnd(m.unitCost)} / {m.variant.title}</span>}
+            {m.unitCost != null && <span className="ml-1">· {formatVnd(m.unitCost)} / {stockPerLabel(m)}</span>}
           </div>
         </div>
       ),
@@ -139,7 +144,7 @@ export function SupplyRequestsTable() {
       render: (_, m) => (
         <div className="whitespace-nowrap">
           <span className="text-base font-bold tabular-nums text-emerald-700">+{m.quantity}</span>
-          <span className="ml-1 text-xs font-medium text-muted-foreground">{m.variant.title}</span>
+          <span className="ml-1 text-xs font-medium text-muted-foreground">{stockPerLabel(m)}</span>
         </div>
       ),
     },
@@ -220,7 +225,7 @@ export function SupplyRequestsTable() {
                 <span className="font-mono text-xs font-bold text-primary">{m.code}</span>
                 <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">{m.product.title}</p>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  {m.variant.title}
+                  {stockItemLabel(m)}
                   {m.productionSubject?.name && ` · ${m.productionSubject.name}`}
                 </div>
               </div>
@@ -274,7 +279,7 @@ export function SupplyRequestsTable() {
         rowActions={actions}
       />
 
-      <ApproveMovementDialog movement={approving} onOpenChange={(o) => !o && setApproving(null)} />
+      <ApproveMovementDialog movement={approving} onOpenChange={(o) => !o && setApproving(null)} onReject={setRejecting} />
 
       <ReasonDialog
         open={!!rejecting}

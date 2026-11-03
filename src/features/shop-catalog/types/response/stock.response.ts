@@ -1,20 +1,22 @@
 import type { UserRef } from "@/types/api";
-import type { StockMovementChannel, StockMovementSource, StockMovementStatus, StockMovementType } from "../enums";
+import type { BaseUnit, StockMovementChannel, StockMovementSource, StockMovementStatus, StockMovementType } from "../enums";
 
 export interface StockMovement {
   id: number;
   /** PTK-yyMMdd-HHmmssSSS */
   code: string;
   product: { id: number; code: string; title: string };
-  /** `id` is null when the variant was deleted */
-  variant: { id: number | null; title: string; sku: string };
+  /** null for phiếu theo đơn vị tính; `id` null when the variant was deleted */
+  variant: { id: number | null; title: string; sku: string } | null;
+  /** Unit at creation for phiếu theo đơn vị tính; null for quy cách */
+  baseUnit: BaseUnit | null;
   type: StockMovementType;
   source: StockMovementSource | null;
   channel: StockMovementChannel;
   productionZone: { id: number; name: string } | null;
   workspace: { id: number; name: string } | null;
   productionSubject: { id: number; name: string } | null;
-  /** Signed */
+  /** Signed; may be fractional for đơn vị tính */
   quantity: number;
   unitCost: number | null;
   note: string | null;

@@ -8,6 +8,7 @@ import {
   type CatalogProductFormValues,
   EMPTY_CATALOG_PRODUCT,
   applyFieldErrors,
+  productFieldAlias,
   catalogFormValuesToInput,
   catalogProductSchema,
   isStorefrontSyncError,
@@ -15,6 +16,7 @@ import {
 } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { ProductStepperForm } from "./components/form/ProductStepperForm";
+import { errorStepsHint } from "./components/form/error-steps";
 
 export default function ProductCreatePage() {
   const [, navigate] = useLocation();
@@ -32,11 +34,11 @@ export default function ProductCreatePage() {
       toast({ title: "Đã tạo sản phẩm", description: created.title });
       navigate(ROUTES.productDetail(String(created.id)));
     } catch (e) {
-      const n = applyFieldErrors(e, form.setError);
+      const n = applyFieldErrors(e, form.setError, productFieldAlias(values.sellByUnit));
       toast({
         variant: "destructive",
         title: isStorefrontSyncError(e) ? "Chưa cập nhật được trang shop, vui lòng thử lại" : "Không thể lưu",
-        description: n ? "Kiểm tra lại các trường được đánh dấu." : getErrorMessage(e),
+        description: n ? errorStepsHint(form.formState.errors) : getErrorMessage(e),
       });
     }
   };

@@ -11,6 +11,12 @@ export interface FarmSubject {
   name: string;
 }
 
+/** Giống of a Cây trồng */
+export interface FarmSubjectVariant {
+  id: number;
+  name: string;
+}
+
 export interface FarmZone {
   id: number;
   code: string;

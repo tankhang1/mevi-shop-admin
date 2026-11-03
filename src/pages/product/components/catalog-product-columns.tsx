@@ -2,7 +2,9 @@ import { AlertTriangle } from "lucide-react";
 import type { Column, TableFilterDef } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { StatusPill } from "@/components/common/ui-bits";
-import type { CatalogProductListItem, ProductCategory, ProductStatus } from "@/features/shop-catalog";
+import { type CatalogProductListItem, type ProductCategory, type ProductStatus, SELL_UNIT_SHORT } from "@/features/shop-catalog";
+
+const UNIT_NF = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 });
 import { formatVnd } from "@/lib/format";
 import { CatalogStatusToggle } from "./CatalogStatusToggle";
 
@@ -54,11 +56,22 @@ export const catalogProductColumns: Column<CatalogProductListItem>[] = [
     key: "totalInventory",
     label: "Tồn kho",
     render: (_, p) => (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
-        {p.totalInventory}
-        {p.lowStock && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-label="Sắp hết" />}
-        <span className="text-xs text-muted-foreground">· {p.variantCount} quy cách</span>
-      </span>
+      <div className="whitespace-nowrap tabular-nums">
+        <span className="inline-flex items-center gap-1">
+          {p.variantCount > 0 && (
+            <>
+              {p.totalInventory}
+              <span className="text-xs text-muted-foreground">· {p.variantCount} quy cách</span>
+            </>
+          )}
+          {p.lowStock && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-label="Sắp hết" />}
+        </span>
+        {p.baseUnit && (
+          <div className="text-xs text-muted-foreground">
+            ĐVT: <span className="font-medium text-foreground">{UNIT_NF.format(p.unitInventoryQuantity ?? 0)}</span> {SELL_UNIT_SHORT[p.baseUnit]}
+          </div>
+        )}
+      </div>
     ),
   },
   {

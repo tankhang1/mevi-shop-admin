@@ -21,8 +21,8 @@ import {
 import placeholder from "@/assets/images/image-placeholder.webp";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import {
-  BASE_UNIT_SHORT,
   type CatalogProduct,
+  SELL_UNIT_SHORT,
   STOCK_LIMITS,
   fieldErrorMessage,
   getFieldErrors,
@@ -39,8 +39,8 @@ export type StockDialogMode = "MEVI" | "FARM" | "ADJUSTMENT";
 interface Props {
   /** Product to stock; null = closed */
   productId: number | null;
-  /** Preselect a quy cách (e.g. from an inventory row) */
-  variantId?: number;
+  /** Preselect a quy cách (e.g. from an inventory row); null = đơn vị tính */
+  variantId?: number | null;
   mode?: StockDialogMode;
   onOpenChange: (open: boolean) => void;
 }
@@ -70,7 +70,39 @@ export function StockReceiptDialog({ productId, variantId, mode, onOpenChange }:
   );
 }
 
-const sourceKey = (s: CatalogProduct["supplySources"][number]) => `${s.productionZone.id}:${s.productionSubject.id}`;
+const sourceKey = (s: CatalogProduct["supplySources"][number]) => String(s.productionZone.id);
+
+/** Select value of the đơn vị tính option */
+const UNIT = "unit";
+
+/** What a phiếu targets: one quy cách, or the product's đơn vị tính */
+interface StockItem {
+  key: string;
+  variantId: number | null;
+  title: string;
+  stock: number;
+  /** đơn vị tính allows 3 decimals; quy cách must be integers */
+  decimal: boolean;
+}
+
+const stockItems = (p: CatalogProduct): StockItem[] => [
+  ...(p.baseUnit
+    ? [
+        {
+          key: UNIT,
+          variantId: null,
+          title: `Đơn vị tính (${SELL_UNIT_SHORT[p.baseUnit]})`,
+          stock: p.unitInventoryQuantity ?? 0,
+          decimal: true,
+        },
+      ]
+    : []),
+  ...p.variants.map((x) => ({ key: String(x.id), variantId: x.id, title: x.title, stock: x.inventoryQuantity, decimal: false })),
+];
+
+const DECIMAL_3 = /^-?\d+(\.\d{1,3})?$/;
+/** Avoid 0.1 + 0.2 noise in the "after" preview */
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 function Body({
   product: p,
@@ -79,7 +111,7 @@ function Body({
   onDone,
 }: {
   product: CatalogProduct;
-  variantId?: number;
+  variantId?: number | null;
   initialMode?: StockDialogMode;
   onDone: () => void;
 }) {
@@ -89,24 +121,28 @@ function Body({
   const canFarm = p.agricultural && p.supplySources.length > 0;
 
   const [mode, setMode] = useState<StockDialogMode>(initialMode === "FARM" && !canFarm ? "MEVI" : (initialMode ?? "MEVI"));
-  const [variant, setVariant] = useState(String(variantId ?? p.variants[0]?.id ?? ""));
+  const items = stockItems(p);
+  const [variant, setVariant] = useState(
+    variantId === null ? UNIT : String(variantId ?? p.variants[0]?.id ?? (p.baseUnit ? UNIT : "")),
+  );
   const [source, setSource] = useState(p.supplySources[0] ? sourceKey(p.supplySources[0]) : "");
   const [qty, setQty] = useState("");
   const [unitCost, setUnitCost] = useState("");
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const v = p.variants.find((x) => String(x.id) === variant);
+  const v = items.find((x) => x.key === variant);
   const s = p.supplySources.find((x) => sourceKey(x) === source);
   const isAdjust = mode === "ADJUSTMENT";
   const n = Number(qty);
   const cost = Number(unitCost);
   const max = STOCK_LIMITS.quantity;
 
-  const qtyValid = qty !== "" && Number.isInteger(n) && (isAdjust ? n !== 0 && Math.abs(n) <= max : n >= 1 && n <= max);
+  const qtyShapeOk = v?.decimal ? DECIMAL_3.test(qty) : Number.isInteger(n);
+  const qtyValid = qty !== "" && qtyShapeOk && (isAdjust ? n !== 0 && Math.abs(n) <= max : n > 0 && n <= max);
   const costValid = isAdjust || (unitCost !== "" && Number.isInteger(cost) && cost >= 0);
   const valid = !!v && qtyValid && costValid && (mode !== "FARM" || !!s) && (!isAdjust || !!note.trim());
-  const after = v ? v.inventoryQuantity + (qtyValid ? n : 0) : 0;
+  const after = v ? round3(v.stock + (qtyValid ? n : 0)) : 0;
   const pending = receipt.isPending || adjust.isPending;
 
   const onSave = async () => {
@@ -114,15 +150,15 @@ function Body({
     setErrors({});
     try {
       if (isAdjust) {
-        await adjust.mutateAsync({ productId: p.id, data: { variantId: v.id, quantity: n, note: note.trim() } });
-        toast({ title: "Đã điều chỉnh tồn kho", description: `${p.title} · ${v.title}: ${v.inventoryQuantity} → ${after}` });
+        await adjust.mutateAsync({ productId: p.id, data: { variantId: v.variantId, quantity: n, note: note.trim() } });
+        toast({ title: "Đã điều chỉnh tồn kho", description: `${p.title} · ${v.title}: ${v.stock} → ${after}` });
       } else {
         await receipt.mutateAsync({
           productId: p.id,
           data: {
-            variantId: v.id,
+            variantId: v.variantId,
             source: mode,
-            ...(mode === "FARM" && s && { productionZoneId: s.productionZone.id, productionSubjectId: s.productionSubject.id }),
+            ...(mode === "FARM" && s && { productionZoneId: s.productionZone.id }),
             quantity: n,
             unitCost: cost,
             note: note.trim() || null,
@@ -189,7 +225,7 @@ function Body({
 
         {mode === "FARM" && (
           <div className="space-y-1.5">
-            <Label>Nông hộ · Vườn · Cây trồng</Label>
+            <Label>Nông hộ · Vườn</Label>
             <Select value={source} onValueChange={setSource}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn nguồn cung" />
@@ -197,28 +233,26 @@ function Body({
               <SelectContent>
                 {p.supplySources.map((x) => (
                   <SelectItem key={sourceKey(x)} value={sourceKey(x)}>
-                    {x.workspace.name ?? "—"} · {x.productionZone.name ?? `Vườn #${x.productionZone.id} (đã xoá)`} ·{" "}
-                    {x.productionSubject.name ?? "—"} ({BASE_UNIT_SHORT[x.baseUnit]})
+                    {x.workspace.name ?? "—"} · {x.productionZone.name ?? `Vườn #${x.productionZone.id} (đã xoá)`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {err("productionZoneId")}
-            {err("productionSubjectId")}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label>Quy cách</Label>
+            <Label>{p.baseUnit ? "Đơn vị tính / quy cách" : "Quy cách"}</Label>
             <Select value={variant} onValueChange={setVariant}>
               <SelectTrigger>
-                <SelectValue placeholder="Chọn quy cách" />
+                <SelectValue placeholder="Chọn" />
               </SelectTrigger>
               <SelectContent>
-                {p.variants.map((x) => (
-                  <SelectItem key={x.id} value={String(x.id)}>
-                    {x.title} (tồn {x.inventoryQuantity})
+                {items.map((x) => (
+                  <SelectItem key={x.key} value={x.key}>
+                    {x.title} (tồn {x.stock})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -230,11 +264,12 @@ function Body({
             <Input
               id="qty"
               type="number"
-              inputMode="numeric"
-              min={isAdjust ? undefined : 1}
+              inputMode={v?.decimal ? "decimal" : "numeric"}
+              step={v?.decimal ? "0.001" : "1"}
+              min={isAdjust ? undefined : 0}
               value={qty}
               onChange={(e) => setQty(e.target.value)}
-              placeholder={isAdjust ? "VD: -2 hoặc 5" : "VD: 20"}
+              placeholder={v?.decimal ? (isAdjust ? "VD: -1.5" : "VD: 12.5") : isAdjust ? "VD: -2 hoặc 5" : "VD: 20"}
               autoFocus
             />
             {err("quantity")}
@@ -244,7 +279,7 @@ function Body({
         {!isAdjust && (
           <div className="space-y-1.5">
             <Label htmlFor="unitCost">
-              Giá nhập / {v?.title ?? "quy cách"}
+              Giá nhập / {v ? (v.variantId === null && p.baseUnit ? SELL_UNIT_SHORT[p.baseUnit] : v.title) : "quy cách"}
               {mode === "FARM" && <span className="ml-1 text-xs font-normal text-muted-foreground">(đề xuất, chốt khi duyệt)</span>}
             </Label>
             <div className="relative">
@@ -266,11 +301,11 @@ function Body({
         {v && qtyValid && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm">
             <span className="flex items-center gap-1.5 text-muted-foreground">
-              Tồn {v.title} {v.inventoryQuantity} <ArrowRight className="h-3.5 w-3.5" />
+              Tồn {v.title} {v.stock} <ArrowRight className="h-3.5 w-3.5" />
               <span className={cn("font-semibold", after < 0 ? "text-destructive" : "text-foreground")}>{after}</span>
               {mode === "FARM" && <span className="text-xs">(sau khi duyệt)</span>}
             </span>
-            {!isAdjust && costValid && <span className="font-semibold tabular-nums">Thành tiền {formatVnd(n * cost)}</span>}
+            {!isAdjust && costValid && <span className="font-semibold tabular-nums">Thành tiền {formatVnd(Math.round(n * cost))}</span>}
           </div>
         )}
 
