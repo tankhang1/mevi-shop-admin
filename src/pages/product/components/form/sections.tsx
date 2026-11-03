@@ -574,7 +574,7 @@ function CropFields() {
   const options = (data?.content ?? []).map((s) => ({ label: s.name, value: String(s.id) }));
 
   return (
-    <div className="grid gap-4 rounded-xl border border-primary/20 bg-primary/[0.03] p-3 sm:col-span-2 sm:grid-cols-2">
+    <div className="contents">
       <AsyncComboboxField<F>
         name="productionSubjectId"
         label="Cây trồng / giống cây trồng"
@@ -683,6 +683,7 @@ function SupplySourceRow({ index, onRemove }: { index: number; onRemove: () => v
 export function SuppliersSection() {
   const { control } = useFormContext<F>();
   const { fields, append, remove } = useFieldArray({ control, name: "supplySources" });
+  const [subjectName, baseUnit] = useWatch({ control, name: ["productionSubjectName", "baseUnit"] });
 
   return (
     <div className="space-y-6">
@@ -703,7 +704,13 @@ export function SuppliersSection() {
         <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-semibold">Vườn canh tác liên kết</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Tối đa {PRODUCT_LIMITS.supplySources} nguồn</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+                <Sprout className="h-3 w-3" /> {subjectName || "Chưa chọn cây trồng"}
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium">{BASE_UNIT_LABEL[baseUnit ?? "KG"]}</span>
+              <span className="text-muted-foreground">· Tối đa {PRODUCT_LIMITS.supplySources} nguồn</span>
+            </div>
           </div>
           <Button
             type="button"
