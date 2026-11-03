@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
+import { Filter } from "lucide-react";
 import {
   type Column,
+  Button,
   DataTable,
   Select,
   SelectContent,
@@ -11,6 +13,7 @@ import {
   useIsMobile,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { usePageActions } from "@/app/layouts/page-header.store";
 import {
   ORDER_STATUS,
   ORDER_STATUSES,
@@ -47,12 +50,16 @@ export default function OrderListPage() {
   // ?productId=&status=completed&from=&to=&agencyId= from a report's product row
   const urlParams = new URLSearchParams(search);
   const fromUrl = Object.fromEntries(
-    (Object.keys(EMPTY_ORDER_FILTERS) as (keyof OrderFilters)[]).flatMap((k) => {
-      const v = urlParams.get(k);
-      return v ? [[k, v]] : [];
-    }),
+    (Object.keys(EMPTY_ORDER_FILTERS) as (keyof OrderFilters)[]).flatMap(
+      (k) => {
+        const v = urlParams.get(k);
+        return v ? [[k, v]] : [];
+      },
+    ),
   ) as Partial<OrderFilters>;
-  const table = useTableParams<OrderFilters & { shopId: string; agencyId: string }>({
+  const table = useTableParams<
+    OrderFilters & { shopId: string; agencyId: string }
+  >({
     ...EMPTY_ORDER_FILTERS,
     ...fromUrl,
     shopId: urlParams.get("shopId") ?? shopFilter.initialShopId,
@@ -128,8 +135,14 @@ export default function OrderListPage() {
       render: (_, o) =>
         o.trackingCode ? (
           <div className="text-sm">
-            <div className="whitespace-nowrap font-mono font-medium">{o.trackingCode}</div>
-            {o.carrier && <div className="whitespace-nowrap text-xs text-muted-foreground">{o.carrier}</div>}
+            <div className="whitespace-nowrap font-mono font-medium">
+              {o.trackingCode}
+            </div>
+            {o.carrier && (
+              <div className="whitespace-nowrap text-xs text-muted-foreground">
+                {o.carrier}
+              </div>
+            )}
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
@@ -142,10 +155,16 @@ export default function OrderListPage() {
         o.teamName ? (
           <div className="text-sm">
             <div className="whitespace-nowrap">{o.teamName}</div>
-            {o.assigneeName && <div className="text-xs text-muted-foreground">{o.assigneeName}</div>}
+            {o.assigneeName && (
+              <div className="text-xs text-muted-foreground">
+                {o.assigneeName}
+              </div>
+            )}
           </div>
         ) : (
-          <span className="whitespace-nowrap text-xs text-amber-700">Chưa phân</span>
+          <span className="whitespace-nowrap text-xs text-amber-700">
+            Chưa phân
+          </span>
         ),
     },
     {
@@ -194,6 +213,34 @@ export default function OrderListPage() {
   // Opened from "Xem đơn của nhóm" on the dispatch team page
   const fromTeam = new URLSearchParams(search).has("teamId");
 
+  const activeFilterCount =
+    countActive(table.state.filters) +
+    (shopFilter.filter &&
+    table.state.filters.shopId &&
+    table.state.filters.shopId !== "all"
+      ? 1
+      : 0);
+
+  usePageActions(
+    () => (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setFilterOpen(true)}
+        className="gap-1.5"
+      >
+        <Filter className="h-4 w-4" />
+        <span>Bộ lọc</span>
+        {activeFilterCount > 0 && (
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+            {activeFilterCount}
+          </span>
+        )}
+      </Button>
+    ),
+    [activeFilterCount],
+  );
+
   return (
     <>
       {fromTeam && (
@@ -212,12 +259,6 @@ export default function OrderListPage() {
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
-        // The toolbar's "Bộ lọc" opens our own sheet instead of the default dropdown
-        onFilterClick={() => setFilterOpen(true)}
-        filterCount={
-          countActive(table.state.filters) +
-          (shopFilter.filter && table.state.filters.shopId && table.state.filters.shopId !== "all" ? 1 : 0)
-        }
         columnToggleable={!isMobile}
         downloadable={!isMobile}
         searchPlaceholder="Tìm theo mã đơn, mã vận đơn, khách hàng, người nhận, SĐT..."

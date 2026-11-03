@@ -24,6 +24,7 @@ interface BaseProps<T extends FieldValues> {
   required?: boolean;
   description?: ReactNode;
   className?: string;
+  disabled?: boolean;
 }
 
 function Label({ label, required }: { label: string; required?: boolean }) {
@@ -41,6 +42,7 @@ export function TextField<T extends FieldValues>({
   required,
   description,
   className,
+  disabled,
   type = "text",
   placeholder,
   suffix,
@@ -58,6 +60,7 @@ export function TextField<T extends FieldValues>({
               <Input
                 type={type}
                 placeholder={placeholder}
+                disabled={disabled}
                 {...field}
                 value={field.value ?? ""}
                 className={suffix ? "pr-20! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : undefined}
@@ -84,6 +87,7 @@ export function TextareaField<T extends FieldValues>({
   required,
   description,
   className,
+  disabled,
   rows = 4,
   placeholder,
 }: BaseProps<T> & { rows?: number; placeholder?: string }) {
@@ -96,7 +100,13 @@ export function TextareaField<T extends FieldValues>({
         <FormItem className={className}>
           <Label label={label} required={required} />
           <FormControl>
-            <Textarea rows={rows} placeholder={placeholder} {...field} value={field.value ?? ""} />
+            <Textarea
+              rows={rows}
+              placeholder={placeholder}
+              disabled={disabled}
+              {...field}
+              value={field.value ?? ""}
+            />
           </FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
@@ -112,6 +122,7 @@ export function SelectField<T extends FieldValues>({
   required,
   description,
   className,
+  disabled,
   options,
   placeholder = "Chọn...",
 }: BaseProps<T> & { options: { label: string; value: string }[]; placeholder?: string }) {
@@ -123,7 +134,7 @@ export function SelectField<T extends FieldValues>({
       render={({ field }) => (
         <FormItem className={className}>
           <Label label={label} required={required} />
-          <Select value={field.value ?? ""} onValueChange={field.onChange}>
+          <Select value={field.value ?? ""} onValueChange={field.onChange} disabled={disabled}>
             <FormControl>
               <SelectTrigger>
                 <SelectValue placeholder={placeholder} />
@@ -202,6 +213,7 @@ export function SwitchField<T extends FieldValues>({
   label,
   description,
   className,
+  disabled,
 }: Omit<BaseProps<T>, "required">) {
   const { control } = useFormContext<T>();
   return (
@@ -216,7 +228,7 @@ export function SwitchField<T extends FieldValues>({
               {description && <FormDescription className="text-xs">{description}</FormDescription>}
             </div>
             <FormControl>
-              <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+              <Switch checked={!!field.value} onCheckedChange={field.onChange} disabled={disabled} />
             </FormControl>
           </div>
           <FormMessage />

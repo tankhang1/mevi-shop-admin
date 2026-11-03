@@ -15,7 +15,9 @@ export function ImageUploadField<T extends FieldValues>({
   hint,
   aspect = "square",
   upload,
+  onFileChange,
   maxBytes = MAX,
+  disabled,
 }: {
   name: FieldPath<T>;
   label: string;
@@ -23,12 +25,16 @@ export function ImageUploadField<T extends FieldValues>({
   aspect?: "square" | "cover";
   /** Uploads the file and resolves to the URL stored in the field */
   upload?: (file: File) => Promise<string>;
+  /** Callback triggered when a file is selected or removed in deferred mode */
+  onFileChange?: (file: File | null) => void;
   maxBytes?: number;
+  disabled?: boolean;
 }) {
   const { control } = useFormContext<T>();
   const { toast } = useToast();
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const isDisabled = uploading || disabled;
 
   return (
     <FormField
@@ -41,6 +47,13 @@ export function ImageUploadField<T extends FieldValues>({
             toast({ variant: "destructive", title: "Định dạng không hỗ trợ", description: "Chỉ nhận JPEG, PNG, WebP" });
           } else if (file.size > maxBytes) {
             toast({ variant: "destructive", title: "Ảnh quá lớn", description: `Tối đa ${Math.round(maxBytes / 1024 / 1024)} MB` });
+          } else if (onFileChange) {
+            if (typeof field.value === "string" && field.value.startsWith("blob:")) {
+              URL.revokeObjectURL(field.value);
+            }
+            const previewUrl = URL.createObjectURL(file);
+            field.onChange(previewUrl);
+            onFileChange(file);
           } else if (upload) {
             setUploading(true);
             try {
@@ -55,6 +68,14 @@ export function ImageUploadField<T extends FieldValues>({
           }
           if (ref.current) ref.current.value = "";
         };
+
+        const handleRemove = () => {
+          if (typeof field.value === "string" && field.value.startsWith("blob:")) {
+            URL.revokeObjectURL(field.value);
+          }
+          field.onChange("");
+          onFileChange?.(null);
+        };
         return (
           <FormItem>
             <FormLabel>{label}</FormLabel>
@@ -62,10 +83,11 @@ export function ImageUploadField<T extends FieldValues>({
               <button
                 type="button"
                 onClick={() => ref.current?.click()}
-                disabled={uploading}
+                disabled={isDisabled}
                 className={cn(
                   "group relative shrink-0 overflow-hidden border-2 border-dashed bg-muted/50 text-muted-foreground transition-colors hover:border-primary",
                   aspect === "cover" ? "aspect-[16/5] w-full max-w-xl rounded-xl" : "h-20 w-20 rounded-2xl",
+                  isDisabled && "pointer-events-none opacity-60",
                 )}
               >
                 {uploading ? (
@@ -79,7 +101,7 @@ export function ImageUploadField<T extends FieldValues>({
                     <ImagePlus className="h-5 w-5" /> Tải ảnh
                   </span>
                 )}
-                {field.value && (
+                {field.value && !isDisabled && (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Đổi ảnh
                   </span>
@@ -88,18 +110,18 @@ export function ImageUploadField<T extends FieldValues>({
               <div className="space-y-2 text-xs text-muted-foreground">
                 {hint && <p>{hint}</p>}
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => ref.current?.click()}>
+                  <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={() => ref.current?.click()}>
                     <ImagePlus className="mr-1.5 h-4 w-4" /> {field.value ? "Đổi ảnh" : "Chọn ảnh"}
                   </Button>
                   {field.value && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange("")}>
+                    <Button type="button" variant="ghost" size="sm" disabled={isDisabled} onClick={handleRemove}>
                       <Trash2 className="mr-1.5 h-4 w-4" /> Gỡ
                     </Button>
                   )}
                 </div>
               </div>
             </div>
-            <input ref={ref} type="file" accept={TYPES.join(",")} hidden onChange={(e) => void pick(e.target.files?.[0])} />
+            <input ref={ref} type="file" accept={TYPES.join(",")} hidden disabled={isDisabled} onChange={(e) => void pick(e.target.files?.[0])} />
             <FormMessage />
           </FormItem>
         );

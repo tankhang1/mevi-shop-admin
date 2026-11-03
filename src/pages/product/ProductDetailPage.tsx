@@ -15,6 +15,7 @@ import { BackLink } from "@/components/common/BackLink";
 import { MockBadge } from "@/components/common/MockBadge";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
+import { useAccess } from "@/features/auth";
 import { isStorefrontSyncError, useCatalogProduct, useDeleteCatalogProduct } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
@@ -30,13 +31,14 @@ export default function ProductDetailPage() {
   const id = Number(params.id) || undefined;
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isRoot } = useAccess();
   const { data: product, isLoading, isError } = useCatalogProduct(id);
   const del = useDeleteCatalogProduct();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   usePageActions(
     () =>
-      product && (
+      product && isRoot ? (
         <>
           <Button variant="outline" className="px-2.5 sm:px-4" onClick={() => setConfirmOpen(true)} aria-label="Xoá">
             <Trash2 className="h-4 w-4 text-destructive sm:mr-1.5" />
@@ -49,8 +51,8 @@ export default function ProductDetailPage() {
             </Link>
           </Button>
         </>
-      ),
-    [product?.id],
+      ) : null,
+    [product?.id, isRoot],
   );
 
   if (isLoading) return <LoadingBlock />;
@@ -83,9 +85,11 @@ export default function ProductDetailPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <BackLink to={ROUTES.products} label="Danh mục sản phẩm" />
-        <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          Tạm ngưng kinh doanh <CatalogStatusToggle product={product} />
-        </label>
+        {isRoot && (
+          <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            Tạm ngưng kinh doanh <CatalogStatusToggle product={product} />
+          </label>
+        )}
         <span className="text-xs text-muted-foreground">
           Tạo lúc {formatDate(product.createdAt)} · Cập nhật {formatDate(product.updatedAt)}
         </span>

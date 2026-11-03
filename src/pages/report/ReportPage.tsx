@@ -11,7 +11,11 @@ import {
   StatsCard,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
+import {
+  EmptyBlock,
+  LoadingBlock,
+  StatusPill,
+} from "@/components/common/ui-bits";
 import { AGENCY_KIND } from "@/features/agency";
 import {
   type RevenueGroupBy,
@@ -74,21 +78,43 @@ export default function ReportPage() {
   const isAgency = groupBy === "agency";
   // Hooks above run for every route; bail out only after them
   // Shop admin's own sales overview; root has the per-dimension reports instead
-  if (kind === "sales") return isRoot ? <Redirect to={ROUTES.report("agency")} replace /> : <ShopSalesReport />;
+  if (kind === "sales")
+    return isRoot ? (
+      <Redirect to={ROUTES.report("agency")} replace />
+    ) : (
+      <ShopSalesReport />
+    );
   if (!view) return <Redirect to={ROUTES.report("agency")} replace />;
   // A shop is itself a đại lý / CTV — its own figures live on "Doanh thu của tôi"
-  if (!isRoot && groupBy === "agency") return <Redirect to={ROUTES.report("sales")} replace />;
+  if (!isRoot && (groupBy === "agency" || groupBy === "farm"))
+    return <Redirect to={ROUTES.report("sales")} replace />;
 
-  const openAgency = (r: RevenueRow) => r.id !== "none" && navigate(ROUTES.agencyReport(r.id));
+  const openAgency = (r: RevenueRow) =>
+    r.id !== "none" && navigate(ROUTES.agencyReport(r.id));
   // Product / group rows → order list pre-filtered to the completed orders behind that figure
-  const orderFilterKey = groupBy === "product" ? "productId" : groupBy === "group" ? "productGroupId" : null;
+  const orderFilterKey =
+    groupBy === "product"
+      ? "productId"
+      : groupBy === "group"
+        ? "productGroupId"
+        : null;
   const openOrders = (r: RevenueRow) => {
     if (!orderFilterKey || r.id === "none") return;
-    const q = new URLSearchParams({ [orderFilterKey]: r.id, status: "completed", from: filters.from, to: filters.to });
-    if (shopFilter.isRoot && filters.shopId !== "all") q.set("shopId", filters.shopId);
+    const q = new URLSearchParams({
+      [orderFilterKey]: r.id,
+      status: "completed",
+      from: filters.from,
+      to: filters.to,
+    });
+    if (shopFilter.isRoot && filters.shopId !== "all")
+      q.set("shopId", filters.shopId);
     navigate(`${ROUTES.orders}?${q}`);
   };
-  const openRow = isAgency ? openAgency : orderFilterKey ? openOrders : undefined;
+  const openRow = isAgency
+    ? openAgency
+    : orderFilterKey
+      ? openOrders
+      : undefined;
 
   const columns: Column<RevenueRow>[] = [
     {
@@ -105,7 +131,12 @@ export default function ReportPage() {
             }
           >
             {r.label}
-            {r.kind && <StatusPill {...AGENCY_KIND[r.kind]} className={`ml-2 align-middle ${AGENCY_KIND[r.kind].className}`} />}
+            {r.kind && (
+              <StatusPill
+                {...AGENCY_KIND[r.kind]}
+                className={`ml-2 align-middle ${AGENCY_KIND[r.kind].className}`}
+              />
+            )}
           </div>
           {r.sub && (
             <div className="text-xs text-muted-foreground">{r.sub}</div>
@@ -167,11 +198,27 @@ export default function ReportPage() {
 
   const statItems = data
     ? [
-        { title: "Doanh thu", value: formatVnd(data.totals.revenue), icon: Banknote },
-        { title: "Đơn hoàn tất", value: nf.format(data.totals.orders), icon: ShoppingBag },
-        { title: "Sản phẩm đã bán", value: nf.format(data.totals.units), icon: Package },
+        {
+          title: "Doanh thu",
+          value: formatVnd(data.totals.revenue),
+          icon: Banknote,
+        },
+        {
+          title: "Đơn hoàn tất",
+          value: nf.format(data.totals.orders),
+          icon: ShoppingBag,
+        },
+        {
+          title: "Sản phẩm đã bán",
+          value: nf.format(data.totals.units),
+          icon: Package,
+        },
         isAgency
-          ? { title: "Hoa hồng phát sinh", value: formatVnd(data.totals.commission ?? 0), icon: HandCoins }
+          ? {
+              title: "Hoa hồng phát sinh",
+              value: formatVnd(data.totals.commission ?? 0),
+              icon: HandCoins,
+            }
           : {
               title: `Số ${view.entity.toLowerCase()} có doanh thu`,
               value: data.rows.filter((r) => r.id !== "none").length,
@@ -201,13 +248,20 @@ export default function ReportPage() {
                   <it.icon className="h-3.5 w-3.5 text-primary" />
                   <span className="truncate">{it.title}</span>
                 </div>
-                <div className="mt-1 truncate text-base font-bold tabular-nums">{it.value}</div>
+                <div className="mt-1 truncate text-base font-bold tabular-nums">
+                  {it.value}
+                </div>
               </div>
             ))}
           </div>
           <div className="hidden gap-4 md:grid! md:grid-cols-2 xl:grid-cols-4">
             {statItems.map((it) => (
-              <StatsCard key={it.title} title={it.title} value={it.value} icon={it.icon} />
+              <StatsCard
+                key={it.title}
+                title={it.title}
+                value={it.value}
+                icon={it.icon}
+              />
             ))}
           </div>
 
@@ -253,7 +307,11 @@ export default function ReportPage() {
                     <RevenueMobileCard
                       row={r}
                       showCommission={isAgency}
-                      onClick={openRow && r.id !== "none" ? () => openRow(r) : undefined}
+                      onClick={
+                        openRow && r.id !== "none"
+                          ? () => openRow(r)
+                          : undefined
+                      }
                     />
                   )}
                   columnToggleable={!isMobile}
