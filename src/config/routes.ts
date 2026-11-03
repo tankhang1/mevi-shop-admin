@@ -33,6 +33,8 @@ export const ROUTES = {
   reviews: "/admin/reviews",
   /** Shop admin: their own storefront settings */
   myShop: "/admin/my-shop",
+  /** Root: partner contact requests from public landing form */
+  partnerContactRequests: "/admin/partner-contact-requests",
   /** Root: every seller shop */
   shops: "/admin/shops",
   shopDetail: (id: string) => `/admin/shops/${id}`,

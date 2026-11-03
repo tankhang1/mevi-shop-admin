@@ -1,18 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DataTableProps } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import type { ListParams, Paginated } from "@/types/api";
 
 /**
  * Server-side paging/search/filter state for eco-shared-ui DataTable.
  * `params` goes to the list hook; `bind(result)` spreads into <DataTable>.
+ * Automatically debounces `keyword` so API is not spammed on each keystroke.
  */
-export function useTableParams<F extends Record<string, string>>(initialFilters = {} as F, initialSize = 10) {
+export function useTableParams<F extends Record<string, string>>(
+  initialFilters = {} as F,
+  initialSize = 10,
+  debounceMs = 350,
+) {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(initialSize);
   const [keyword, setKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [filters, setFilters] = useState<F>(initialFilters);
 
-  const params: ListParams & F = { page, size, keyword: keyword || undefined, ...filters };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword.trim());
+    }, debounceMs);
+    return () => clearTimeout(timer);
+  }, [keyword, debounceMs]);
+
+  const params: ListParams & F = {
+    page,
+    size,
+    keyword: debouncedKeyword || undefined,
+    ...filters,
+  };
 
   function bind<T>(result: Paginated<T> | undefined, loading: boolean) {
     return {
@@ -43,8 +61,14 @@ export function useTableParams<F extends Record<string, string>>(initialFilters 
     setPage(1);
     setSize(nextSize);
     setKeyword("");
+    setDebouncedKeyword("");
     setFilters(initialFilters);
   };
 
-  return { params, bind, reset, state: { page, size, keyword, filters } };
+  return {
+    params,
+    bind,
+    reset,
+    state: { page, size, keyword, debouncedKeyword, filters },
+  };
 }

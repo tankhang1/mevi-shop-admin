@@ -130,6 +130,26 @@ export const API_ENDPOINTS = {
       /** PATCH { teamId, assigneeId } */
       assign: (id: string) => `/api/admin/shop/orders/${id}/assign`,
     },
+    /** Yêu cầu liên hệ hợp tác (BE notice 2026-10-28) */
+    partnerContactRequests: {
+      base: "/api/admin/shop/partner-contact-requests",
+      detail: (id: number | string) => `/api/admin/shop/partner-contact-requests/${id}`,
+      status: (id: number | string) => `/api/admin/shop/partner-contact-requests/${id}/status`,
+    },
+    /** Hồ sơ đối tác & Gian hàng (BE notice 2026-10-28) */
+    partnerProfiles: {
+      base: "/api/admin/shop/partner-profiles",
+      detail: (id: number | string) => `/api/admin/shop/partner-profiles/${id}`,
+      partnerType: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/partner-type`,
+      suspension: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/suspension`,
+      verification: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/verification`,
+      sync: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/sync`,
+      syncAll: "/api/admin/shop/partner-profiles/sync",
+    },
+    users: {
+      /** POST — Cấp tài khoản đối tác */
+      shopPartners: "/api/admin/users/shop-partners",
+    },
     shops: {
       base: "/api/admin/shop/shops",
       detail: (id: string) => `/api/admin/shop/shops/${id}`,
@@ -149,5 +169,20 @@ export const API_ENDPOINTS = {
       /** POST { orderIds } — marks those payable commissions as paid */
       payout: (id: string) => `/api/admin/shop/agencies/${id}/commissions/payout`,
     },
+  },
+  shop: {
+    profile: {
+      base: "/api/shop/profile",
+      products: "/api/shop/profile/products",
+      productOrder: "/api/shop/profile/products/order",
+      productVisibility: (productId: number | string) => `/api/shop/profile/products/${productId}/visibility`,
+      productDelete: (productId: number | string) => `/api/shop/profile/products/${productId}`,
+    },
+    catalog: {
+      products: "/api/shop/catalog/products",
+    },
+  },
+  storage: {
+    storefrontPhotos: "/api/storage/storefront-photos",
   },
 } as const;

@@ -22,6 +22,7 @@ import { reviewHandlers } from "./handlers/review.handlers";
 import { staffHandlers } from "./handlers/staff.handlers";
 import { shopHandlers } from "./handlers/shop.handlers";
 import { env } from "@/config/env";
+import { getAccessToken } from "@/features/auth/store/auth.store";
 import { HttpError, type MockHandler } from "./utils";
 
 const handlers: MockHandler[] = [
@@ -65,6 +66,12 @@ export const mockAdapter: AxiosAdapter = async (
 ) => {
   const method = (config.method ?? "get").toUpperCase();
   const path = new URL(config.url ?? "", "http://mock").pathname;
+
+  const token = getAccessToken();
+  const isMockToken = token?.startsWith("mock:");
+  if (!isMockToken && (path === "/auth/me" || path.startsWith("/api/center/workspaces"))) {
+    return realAdapter(config);
+  }
 
   for (const h of handlers) {
     if (h.method !== method) continue;

@@ -32,7 +32,8 @@ export const db: {
   shops: Shop[];
   reviews: Review[];
 } = {
-    shops: [
+  shops: [
+
       {
         id: "s1",
         slug: "dac-san-mien-tay",

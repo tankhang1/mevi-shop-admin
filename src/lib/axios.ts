@@ -44,6 +44,28 @@ function attachInterceptors(client: AxiosInstance) {
   client.interceptors.request.use((config) => {
     const token = getAccessToken();
     if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
+
+    if (!config.headers["X-Workspace-Id"]) {
+      const stored =
+        (typeof window !== "undefined" &&
+          (window.sessionStorage?.getItem("admin_selected_workspace") ||
+            window.localStorage?.getItem("admin_selected_workspace"))) ||
+        null;
+      if (stored) {
+        let wsId = stored.trim();
+        try {
+          const parsed = JSON.parse(wsId);
+          if (parsed && typeof parsed === "object" && parsed.id) {
+            wsId = String(parsed.id);
+          }
+        } catch {
+          // plain string ID
+        }
+        if (wsId) {
+          config.headers["X-Workspace-Id"] = wsId;
+        }
+      }
+    }
     return config;
   });
 

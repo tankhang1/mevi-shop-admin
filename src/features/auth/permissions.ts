@@ -1,19 +1,41 @@
 import { useCurrentUser } from "./hooks/use-current-user";
-import { SHOP_ADMIN_ROLE, SHOP_STAFF_ROLE, isRootRole } from "./roles";
+import {
+  isRootRole,
+  isShopAgentRole,
+  isShopRole,
+  isStaffRole,
+} from "./roles";
 
-export { ROOT_ROLES, SHOP_ADMIN_ROLE, isRootRole } from "./roles";
+export {
+  ROOT_ROLES,
+  SHOP_ADMIN_ROLE,
+  SHOP_AGENT_ROLE,
+  SHOP_ROLES,
+  SHOP_STAFF_ROLE,
+  SHOP_STAFF_ROLES,
+  isRootRole,
+  isShopAgentRole,
+  isShopRole,
+  isStaffRole,
+} from "./roles";
 
 /** UI-only role flags; the backend enforces the scope from the token */
 export function useAccess() {
   const { roles, isLoading } = useCurrentUser();
   const isRoot = isRootRole(roles);
+  const isShopAgent = isShopAgentRole(roles);
+  const isStaff = !isRoot && !isShopAgent && isStaffRole(roles);
+
   return {
     isLoading,
+    /** Platform admin (MEVI_SUPER_ADMIN, MEVI_ADMIN, MEVI_SHOP_ADMIN) */
     isRoot,
-    /** Seller account scoped to a single shop (root wins if a user has both) */
-    isShopAdmin: !isRoot && roles.includes(SHOP_ADMIN_ROLE),
+    /** Shop Partner / Agent (MEVI_SHOP_AGENT) */
+    isShopAgent,
+    /** Seller / Partner account scoped to their own shop (alias for isShopAgent or non-root shop) */
+    isShopAdmin: isShopAgent || (!isRoot && isShopRole(roles)),
     /** Order-processing employee — only their assigned orders, can't reassign */
-    isStaff: !isRoot && !roles.includes(SHOP_ADMIN_ROLE) && roles.includes(SHOP_STAFF_ROLE),
+    isStaff,
     roles,
   };
 }

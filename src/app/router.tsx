@@ -10,20 +10,42 @@ const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const ProfilePage = lazy(() => import("@/pages/account/ProfilePage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const ProductListPage = lazy(() => import("@/pages/product/ProductListPage"));
-const ProductCreatePage = lazy(() => import("@/pages/product/ProductCreatePage"));
-const ProductDetailPage = lazy(() => import("@/pages/product/ProductDetailPage"));
+const ProductCreatePage = lazy(
+  () => import("@/pages/product/ProductCreatePage"),
+);
+const ProductDetailPage = lazy(
+  () => import("@/pages/product/ProductDetailPage"),
+);
 const ProductEditPage = lazy(() => import("@/pages/product/ProductEditPage"));
-const FarmRegistrationPage = lazy(() => import("@/pages/farm-registration/FarmRegistrationPage"));
-const ProductApprovalPage = lazy(() => import("@/pages/product/ProductApprovalPage"));
-const ProductGroupListPage = lazy(() => import("@/pages/product-group/ProductGroupListPage"));
-const ProductGroupDetailPage = lazy(() => import("@/pages/product-group/ProductGroupDetailPage"));
+const FarmRegistrationPage = lazy(
+  () => import("@/pages/farm-registration/FarmRegistrationPage"),
+);
+const ProductApprovalPage = lazy(
+  () => import("@/pages/product/ProductApprovalPage"),
+);
+const ProductGroupListPage = lazy(
+  () => import("@/pages/product-group/ProductGroupListPage"),
+);
+const ProductGroupDetailPage = lazy(
+  () => import("@/pages/product-group/ProductGroupDetailPage"),
+);
 const InventoryPage = lazy(() => import("@/pages/inventory/InventoryPage"));
-const InventoryHistoryPage = lazy(() => import("@/pages/inventory/InventoryHistoryPage"));
-const CustomerListPage = lazy(() => import("@/pages/customer/CustomerListPage"));
-const CustomerDetailPage = lazy(() => import("@/pages/customer/CustomerDetailPage"));
+const InventoryHistoryPage = lazy(
+  () => import("@/pages/inventory/InventoryHistoryPage"),
+);
+const CustomerListPage = lazy(
+  () => import("@/pages/customer/CustomerListPage"),
+);
+const CustomerDetailPage = lazy(
+  () => import("@/pages/customer/CustomerDetailPage"),
+);
 const OrderDetailPage = lazy(() => import("@/pages/order/OrderDetailPage"));
-const DispatchTeamListPage = lazy(() => import("@/pages/dispatch-team/DispatchTeamListPage"));
-const DispatchTeamFormPage = lazy(() => import("@/pages/dispatch-team/DispatchTeamFormPage"));
+const DispatchTeamListPage = lazy(
+  () => import("@/pages/dispatch-team/DispatchTeamListPage"),
+);
+const DispatchTeamFormPage = lazy(
+  () => import("@/pages/dispatch-team/DispatchTeamFormPage"),
+);
 const OrderListPage = lazy(() => import("@/pages/order/OrderListPage"));
 const AgencyListPage = lazy(() => import("@/pages/agency/AgencyListPage"));
 const AgencyDetailPage = lazy(() => import("@/pages/agency/AgencyDetailPage"));
@@ -34,6 +56,9 @@ const AgencyReportPage = lazy(() => import("@/pages/report/AgencyReportPage"));
 const MyShopPage = lazy(() => import("@/pages/shop/MyShopPage"));
 const ShopListPage = lazy(() => import("@/pages/shop/ShopListPage"));
 const ShopDetailPage = lazy(() => import("@/pages/shop/ShopDetailPage"));
+const PartnerContactListPage = lazy(
+  () => import("@/pages/partner/PartnerContactListPage"),
+);
 
 /** Mevi staff only — backend also answers 403 for shop admins */
 const rootOnly = (Page: ComponentType) =>
@@ -45,7 +70,22 @@ const rootOnly = (Page: ComponentType) =>
     );
   };
 const ApprovalRoute = rootOnly(ProductApprovalPage);
+const FarmRegistrationRoute = rootOnly(FarmRegistrationPage);
+const ProductCreateRoute = rootOnly(ProductCreatePage);
+const ProductEditRoute = rootOnly(ProductEditPage);
+const ProductGroupListRoute = rootOnly(ProductGroupListPage);
+const ProductGroupDetailRoute = rootOnly(ProductGroupDetailPage);
+const InventoryRoute = rootOnly(InventoryPage);
+const InventoryHistoryRoute = rootOnly(InventoryHistoryPage);
+const DispatchTeamListRoute = rootOnly(DispatchTeamListPage);
 const DispatchTeamFormRoute = rootOnly(DispatchTeamFormPage);
+const StaffListRoute = rootOnly(StaffListPage);
+const ShopListRoute = rootOnly(ShopListPage);
+const ShopDetailRoute = rootOnly(ShopDetailPage);
+const AgencyListRoute = rootOnly(AgencyListPage);
+const AgencyDetailRoute = rootOnly(AgencyDetailPage);
+const AgencyReportRoute = rootOnly(AgencyReportPage);
+const PartnerContactListRoute = rootOnly(PartnerContactListPage);
 
 /** Staff work from their order queue; the dashboard shows shop-wide numbers they shouldn't see */
 function DashboardRoute() {
@@ -53,9 +93,16 @@ function DashboardRoute() {
   if (isLoading) return <LoadingBlock />;
   return isStaff ? <Redirect to={ROUTES.orders} replace /> : <DashboardPage />;
 }
-const AgencyListRoute = rootOnly(AgencyListPage);
-const AgencyDetailRoute = rootOnly(AgencyDetailPage);
-const AgencyReportRoute = rootOnly(AgencyReportPage);
+
+function ReportsIndexRoute() {
+  const { isRoot } = useAccess();
+  return (
+    <Redirect
+      to={isRoot ? ROUTES.report("agency") : ROUTES.report("sales")}
+      replace
+    />
+  );
+}
 
 function ProtectedRoutes() {
   return (
@@ -66,34 +113,78 @@ function ProtectedRoutes() {
             <Route path={ROUTES.dashboard} component={DashboardRoute} />
             {/* Static segments before productDetail(":id") */}
             <Route path={ROUTES.productApproval} component={ApprovalRoute} />
-            <Route path={ROUTES.productCreate} component={ProductCreatePage} />
-            <Route path={ROUTES.productEdit(":id")} component={ProductEditPage} />
-            <Route path={ROUTES.productDetail(":id")} component={ProductDetailPage} />
+            <Route path={ROUTES.productCreate} component={ProductCreateRoute} />
+            <Route
+              path={ROUTES.productEdit(":id")}
+              component={ProductEditRoute}
+            />
+            <Route
+              path={ROUTES.productDetail(":id")}
+              component={ProductDetailPage}
+            />
             <Route path={ROUTES.products} component={ProductListPage} />
-            <Route path={ROUTES.farmRegistrations} component={FarmRegistrationPage} />
-            <Route path={ROUTES.productGroupDetail(":id")} component={ProductGroupDetailPage} />
-            <Route path={ROUTES.productGroups} component={ProductGroupListPage} />
-            <Route path={ROUTES.inventoryHistory(":productId")} component={InventoryHistoryPage} />
-            <Route path={ROUTES.inventory} component={InventoryPage} />
-            <Route path={ROUTES.customerDetail(":id")} component={CustomerDetailPage} />
+            <Route
+              path={ROUTES.farmRegistrations}
+              component={FarmRegistrationRoute}
+            />
+            <Route
+              path={ROUTES.productGroupDetail(":id")}
+              component={ProductGroupDetailRoute}
+            />
+            <Route
+              path={ROUTES.productGroups}
+              component={ProductGroupListRoute}
+            />
+            <Route
+              path={ROUTES.inventoryHistory(":productId")}
+              component={InventoryHistoryRoute}
+            />
+            <Route path={ROUTES.inventory} component={InventoryRoute} />
+            <Route
+              path={ROUTES.customerDetail(":id")}
+              component={CustomerDetailPage}
+            />
             <Route path={ROUTES.customers} component={CustomerListPage} />
-            <Route path={ROUTES.orderDetail(":id")} component={OrderDetailPage} />
-            <Route path={ROUTES.dispatchTeams} component={DispatchTeamListPage} />
-            <Route path={ROUTES.dispatchTeamCreate} component={DispatchTeamFormRoute} />
-            <Route path={ROUTES.dispatchTeamEdit(":id")} component={DispatchTeamFormRoute} />
+            <Route
+              path={ROUTES.orderDetail(":id")}
+              component={OrderDetailPage}
+            />
+            <Route
+              path={ROUTES.dispatchTeams}
+              component={DispatchTeamListRoute}
+            />
+            <Route
+              path={ROUTES.dispatchTeamCreate}
+              component={DispatchTeamFormRoute}
+            />
+            <Route
+              path={ROUTES.dispatchTeamEdit(":id")}
+              component={DispatchTeamFormRoute}
+            />
             <Route path={ROUTES.orders} component={OrderListPage} />
-            <Route path={ROUTES.agencyDetail(":id")} component={AgencyDetailRoute} />
+            <Route
+              path={ROUTES.agencyDetail(":id")}
+              component={AgencyDetailRoute}
+            />
             <Route path={ROUTES.agencies} component={AgencyListRoute} />
+            <Route
+              path={ROUTES.partnerContactRequests}
+              component={PartnerContactListRoute}
+            />
             <Route path={ROUTES.reviews} component={ReviewListPage} />
-            <Route path={ROUTES.agencyReport(":id")} component={AgencyReportRoute} />
+            <Route
+              path={ROUTES.agencyReport(":id")}
+              component={AgencyReportRoute}
+            />
             <Route path={`${ROUTES.reports}/:kind`} component={ReportPage} />
-            <Route path={ROUTES.reports}>
-              <Redirect to={ROUTES.report("agency")} replace />
-            </Route>
-            <Route path={ROUTES.staff} component={StaffListPage} />
+            <Route path={ROUTES.reports} component={ReportsIndexRoute} />
+            <Route path={ROUTES.staff} component={StaffListRoute} />
             <Route path={ROUTES.myShop} component={MyShopPage} />
-            <Route path={ROUTES.shopDetail(":id")} component={ShopDetailPage} />
-            <Route path={ROUTES.shops} component={ShopListPage} />
+            <Route
+              path={ROUTES.shopDetail(":id")}
+              component={ShopDetailRoute}
+            />
+            <Route path={ROUTES.shops} component={ShopListRoute} />
             <Route path={ROUTES.profile} component={ProfilePage} />
             <Route>
               <Redirect to={ROUTES.dashboard} replace />
@@ -110,7 +201,11 @@ export function AppRouter() {
     <Suspense fallback={<LoadingBlock />}>
       <Switch>
         <Route path={ROUTES.login}>
-          {getAccessToken() ? <Redirect to={ROUTES.dashboard} replace /> : <LoginPage />}
+          {getAccessToken() ? (
+            <Redirect to={ROUTES.dashboard} replace />
+          ) : (
+            <LoginPage />
+          )}
         </Route>
         <Route component={ProtectedRoutes} />
       </Switch>
