@@ -175,16 +175,11 @@ function PartnerContactList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">
-            Yêu cầu liên hệ hợp tác
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Danh sách người quan tâm gửi thông tin liên hệ làm Cộng tác viên / Đại
-            lý Mevi Shop
-          </p>
-        </div>
+      <div className="-mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between md:-mt-5">
+        <p className="text-sm text-muted-foreground">
+          Danh sách người quan tâm gửi thông tin liên hệ làm Cộng tác viên / Đại
+          lý Mevi Shop
+        </p>
         <Button
           onClick={() => {
             setSelectedRequest(undefined);

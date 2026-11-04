@@ -39,6 +39,7 @@ function titleFor(path: string) {
   if (path === ROUTES.report("group")) return "Doanh thu theo nhóm sản phẩm";
   if (path === ROUTES.report("farm")) return "Doanh thu theo nông hộ";
   if (path === ROUTES.staff) return "Nhân viên điều phối";
+  if (path === ROUTES.partnerContactRequests) return "Yêu cầu hợp tác";
   if (path === ROUTES.myShop) return "Thông tin gian hàng";
   if (path === ROUTES.shops) return "Gian hàng";
   if (path.startsWith(ROUTES.shops)) return "Chi tiết gian hàng";

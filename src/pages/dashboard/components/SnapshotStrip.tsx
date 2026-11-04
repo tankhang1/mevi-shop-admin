@@ -1,6 +1,7 @@
 import type { ElementType } from "react";
 import { Link } from "wouter";
-import { Building2, ChevronRight, ClipboardCheck, Inbox, MessageSquareText, Star } from "lucide-react";
+// Tạm ẩn thẻ đánh giá: bỏ comment MessageSquareText, Star khi hiện lại
+import { Building2, ChevronRight, ClipboardCheck, Inbox /*, MessageSquareText, Star */ } from "lucide-react";
 import { Card } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { MockBadge } from "@/components/common/MockBadge";
 import { ROUTES } from "@/config/routes";
@@ -18,32 +19,38 @@ export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary
       href: isRoot ? ROUTES.productApproval : ROUTES.products,
       highlight: isRoot && snapshot.pendingProducts > 0,
     },
-    {
-      label: "Đánh giá chưa trả lời",
-      value: String(snapshot.unrepliedReviews),
-      icon: MessageSquareText,
-      href: ROUTES.reviews,
-      highlight: snapshot.unrepliedReviews > 0,
-      mock: true,
-    },
-    isRoot
-      ? {
-          label: "Gian hàng · Đại lý hoạt động",
-          value: `${snapshot.shopCount ?? 0} · ${snapshot.activeAgencies ?? 0}/${snapshot.agencyCount ?? 0}`,
-          icon: Building2,
-          href: ROUTES.shops,
-        }
-      : {
-          label: "Điểm đánh giá trung bình",
-          value: snapshot.averageRating ? `${snapshot.averageRating.toFixed(1)} ★` : "—",
-          icon: Star,
-          href: ROUTES.reviews,
-          mock: true,
-        },
+    // Tạm ẩn
+    // {
+    //   label: "Đánh giá chưa trả lời",
+    //   value: String(snapshot.unrepliedReviews),
+    //   icon: MessageSquareText,
+    //   href: ROUTES.reviews,
+    //   highlight: snapshot.unrepliedReviews > 0,
+    //   mock: true,
+    // },
+    ...(isRoot
+      ? [
+          {
+            label: "Gian hàng · Đại lý hoạt động",
+            value: `${snapshot.shopCount ?? 0} · ${snapshot.activeAgencies ?? 0}/${snapshot.agencyCount ?? 0}`,
+            icon: Building2,
+            href: ROUTES.shops,
+          },
+        ]
+      : [
+          // Tạm ẩn
+          // {
+          //   label: "Điểm đánh giá trung bình",
+          //   value: snapshot.averageRating ? `${snapshot.averageRating.toFixed(1)} ★` : "—",
+          //   icon: Star,
+          //   href: ROUTES.reviews,
+          //   mock: true,
+          // },
+        ]),
   ];
 
   return (
-    <Card className="grid gap-px overflow-hidden bg-border max-lg:grid-cols-2 lg:grid-cols-4">
+    <Card className={`grid gap-px overflow-hidden bg-border grid-cols-2 max-lg:[&>:last-child:nth-child(odd)]:col-span-2 ${items.length === 3 ? "lg:grid-cols-3" : ""}`}>
       {items.map((i) => (
         <Link
           key={i.label}

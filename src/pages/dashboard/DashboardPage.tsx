@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Ban, Receipt, ShoppingCart, Wallet } from "lucide-react";
+import { /* Ban, Receipt, */ ShoppingCart, Wallet } from "lucide-react";
 import {
   DataTable,
   Select,
@@ -95,9 +95,10 @@ export default function DashboardPage() {
           <ReportShortcuts />
         </>
       ) : (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <KpiCard label="Doanh thu" metric={data.kpis.revenue} format={formatVnd} icon={Wallet} rangeLabel={rangeLabel} />
         <KpiCard label="Đơn hàng" metric={data.kpis.orders} format={String} icon={ShoppingCart} rangeLabel={rangeLabel} />
+        {/* Tạm ẩn (khi hiện lại đổi grid về xl:grid-cols-4)
         <KpiCard
           label="Giá trị đơn trung bình"
           metric={data.kpis.avgOrderValue}
@@ -113,6 +114,7 @@ export default function DashboardPage() {
           inverse
           rangeLabel={rangeLabel}
         />
+        */}
       </div>
       )}
 

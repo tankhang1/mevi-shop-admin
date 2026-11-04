@@ -212,13 +212,10 @@ function PartnerList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Quản lý Đối tác</h1>
-          <p className="text-sm text-muted-foreground">
-            Danh sách Cộng tác viên (CTV) và Đại lý bán hàng trong hệ sinh thái Mevi Shop
-          </p>
-        </div>
+      <div className="-mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between md:-mt-5">
+        <p className="text-sm text-muted-foreground">
+          Danh sách Cộng tác viên (CTV) và Đại lý bán hàng trong hệ sinh thái Mevi Shop
+        </p>
         <Button onClick={() => setCreateAccountOpen(true)}>
           <UserPlus className="mr-1.5 h-4 w-4" />
           Cấp tài khoản đối tác
