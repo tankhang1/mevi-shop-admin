@@ -127,7 +127,7 @@ function PartnerContactDetailForm({
             <SelectValue placeholder="Chọn trạng thái" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="NEW">Mới</SelectItem>
+            <SelectItem value="NEW">Chờ liên hệ</SelectItem>
             <SelectItem value="CONTACTED">Đã liên hệ</SelectItem>
             <SelectItem value="ACCOUNT_CREATED">Đã cấp tài khoản</SelectItem>
             <SelectItem value="REJECTED">Không hợp tác</SelectItem>

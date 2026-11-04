@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
   Label,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
@@ -22,6 +21,7 @@ import {
 } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatVnd } from "@/lib/format";
+import { CurrencyInput } from "@/components/common/CurrencyInput";
 import { movementSourceLabel } from "./movement-format";
 
 /** Duyệt phiếu nhập từ nông hộ (§2.5.3) — optionally lock in a different unit cost */
@@ -60,13 +60,15 @@ function Body({
   const { toast } = useToast();
   /** 409: product changed Cây trồng / đơn vị tính, or vườn left the supply sources */
   const [blocked, setBlocked] = useState(false);
-  const [unitCost, setUnitCost] = useState(m.unitCost != null ? String(m.unitCost) : "");
-  const cost = Number(unitCost);
-  const costValid = unitCost === "" || (Number.isInteger(cost) && cost >= 0);
+  const [unitCost, setUnitCost] = useState<number | undefined>(
+    m.unitCost != null ? m.unitCost : undefined,
+  );
+  const cost = unitCost ?? 0;
+  const costValid = unitCost === undefined || cost >= 0;
 
   const onConfirm = async () => {
     try {
-      const changed = unitCost !== "" && cost !== m.unitCost;
+      const changed = unitCost !== undefined && cost !== m.unitCost;
       await approve.mutateAsync({ id: m.id, data: changed ? { unitCost: cost } : {} });
       toast({ title: "Đã duyệt phiếu nhập", description: `${m.product.title} · ${stockItemLabel(m)}: +${m.quantity}` });
       onDone();
@@ -113,15 +115,13 @@ function Body({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="approve-cost">Giá nhập chốt / {stockPerLabel(m)}</Label>
-        <Input
+        <CurrencyInput
           id="approve-cost"
-          type="number"
-          min={0}
-          inputMode="numeric"
           value={unitCost}
-          onChange={(e) => setUnitCost(e.target.value)}
+          onChange={setUnitCost}
           disabled={approve.isPending}
           placeholder="Để trống = giữ giá đề xuất"
+          suffix="₫"
         />
         {!costValid && <p className="text-xs text-destructive">Giá phải là số nguyên ≥ 0</p>}
       </div>

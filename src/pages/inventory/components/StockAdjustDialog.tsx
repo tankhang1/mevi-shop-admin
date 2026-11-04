@@ -24,6 +24,7 @@ import { type InventoryItem, useAdjustStock } from "@/features/inventory";
 import { useFarms } from "@/features/farm";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatVnd } from "@/lib/format";
+import { CurrencyInput } from "@/components/common/CurrencyInput";
 
 interface Props {
   item: InventoryItem | null;
@@ -99,12 +100,12 @@ function ImportBody({
   const [farmId, setFarmId] = useState(
     suppliers[0]?.farmId ?? item.farmId ?? "",
   );
-  const [importPrice, setImportPrice] = useState(
+  const [importPrice, setImportPrice] = useState<number | undefined>(
     isAgri && sources[0]?.importPrice
-      ? String(sources[0].importPrice)
+      ? sources[0].importPrice
       : suppliers[0]?.importPrice
-        ? String(suppliers[0].importPrice)
-        : "",
+        ? suppliers[0].importPrice
+        : undefined,
   );
   const [qty, setQty] = useState("");
   const [note, setNote] = useState("");
@@ -120,7 +121,7 @@ function ImportBody({
     setRegionId(id);
     const found = sources.find((s) => s.regionId === id);
     if (found?.importPrice) {
-      setImportPrice(String(found.importPrice));
+      setImportPrice(found.importPrice);
     }
   };
 
@@ -136,13 +137,13 @@ function ImportBody({
   const pickFarm = (id: string) => {
     setFarmId(id);
     const known = suppliers.find((s) => s.farmId === id)?.importPrice;
-    if (known) setImportPrice(String(known));
+    if (known) setImportPrice(known);
   };
 
   const n = Number(qty);
-  const price = Number(importPrice);
+  const price = importPrice ?? 0;
   const qtyValid = qty !== "" && Number.isInteger(n) && n > 0;
-  const priceValid = importPrice !== "" && Number.isInteger(price) && price > 0;
+  const priceValid = importPrice !== undefined && price > 0;
   const farmValid = isAgri ? !!regionId : source === "mevi" || !!farmId;
   const valid = qtyValid && priceValid && farmValid && (isAgri || !!variant);
 
@@ -262,20 +263,13 @@ function ImportBody({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="importPrice">Giá nhập / {baseUnit}</Label>
-                <div className="relative">
-                  <Input
-                    id="importPrice"
-                    type="number"
-                    min={1}
-                    inputMode="numeric"
-                    value={importPrice}
-                    onChange={(e) => setImportPrice(e.target.value)}
-                    className="pr-12! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-                    VND
-                  </span>
-                </div>
+                <CurrencyInput
+                  id="importPrice"
+                  value={importPrice}
+                  onChange={setImportPrice}
+                  placeholder="VD: 45.000"
+                  suffix="₫"
+                />
               </div>
             </div>
           </>
@@ -359,20 +353,13 @@ function ImportBody({
 
             <div className="space-y-1.5">
               <Label htmlFor="importPrice">Giá nhập / {variant}</Label>
-              <div className="relative">
-                <Input
-                  id="importPrice"
-                  type="number"
-                  min={1}
-                  inputMode="numeric"
-                  value={importPrice}
-                  onChange={(e) => setImportPrice(e.target.value)}
-                  className="pr-20! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-sm text-muted-foreground">
-                  VND
-                </span>
-              </div>
+              <CurrencyInput
+                id="importPrice"
+                value={importPrice}
+                onChange={setImportPrice}
+                placeholder="VD: 45.000"
+                suffix="₫"
+              />
             </div>
           </>
         )}

@@ -17,6 +17,7 @@ import {
   Switch,
   Textarea,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { CurrencyInput } from "@/components/common/CurrencyInput";
 
 interface BaseProps<T extends FieldValues> {
   name: FieldPath<T>;
@@ -72,6 +73,42 @@ export function TextField<T extends FieldValues>({
                 </span>
               )}
             </div>
+          </FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+export function CurrencyField<T extends FieldValues>({
+  name,
+  label,
+  required,
+  description,
+  className,
+  disabled,
+  placeholder = "0",
+  suffix = "₫",
+}: BaseProps<T> & { placeholder?: string; suffix?: ReactNode }) {
+  const { control } = useFormContext<T>();
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <Label label={label} required={required} />
+          <FormControl>
+            <CurrencyInput
+              placeholder={placeholder}
+              disabled={disabled}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              suffix={suffix}
+            />
           </FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />

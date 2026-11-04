@@ -19,6 +19,7 @@ import {
 import { useProductGroups } from "@/features/product-group";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatVnd } from "@/lib/format";
+import { CurrencyInput } from "@/components/common/CurrencyInput";
 
 interface Props {
   registration: FarmRegistration | null;
@@ -56,12 +57,12 @@ function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
   const approve = useApproveRegistration();
   const { data: groups } = useProductGroups({ size: 100, shopId: r.shopId });
   const [sku, setSku] = useState(() => skuFrom(r.name));
-  const [price, setPrice] = useState(String(r.proposedPrice));
-  const [salePrice, setSalePrice] = useState("");
+  const [price, setPrice] = useState<number | undefined>(r.proposedPrice);
+  const [salePrice, setSalePrice] = useState<number | undefined>(undefined);
   const [groupIds, setGroupIds] = useState<string[]>([]);
 
-  const p = Number(price);
-  const sp = salePrice ? Number(salePrice) : null;
+  const p = price ?? 0;
+  const sp = salePrice ?? null;
   const error = !sku.trim()
     ? "Vui lòng nhập mã sản phẩm"
     : !(p > 0)
@@ -144,22 +145,21 @@ function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
           <Label htmlFor="ap-price">
             Giá bán<span className="text-destructive"> *</span>
           </Label>
-          <Input
+          <CurrencyInput
             id="ap-price"
-            type="number"
-            min={0}
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={setPrice}
+            suffix="₫"
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ap-sale">Giá KM</Label>
-          <Input
+          <CurrencyInput
             id="ap-sale"
-            type="number"
-            min={0}
             value={salePrice}
-            onChange={(e) => setSalePrice(e.target.value)}
+            onChange={setSalePrice}
+            placeholder="Không bắt buộc"
+            suffix="₫"
           />
         </div>
       </div>

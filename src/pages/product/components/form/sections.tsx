@@ -16,6 +16,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import {
   AsyncComboboxField,
   ComboboxField,
+  CurrencyField,
   SelectField,
   SwitchField,
   TextField,
@@ -415,8 +416,8 @@ export function VariantsSection() {
                 placeholder="Chọn đơn vị"
               />
               <TextField<F> name="unitSku" label="SKU đơn vị tính" placeholder="Tự sinh nếu để trống" />
-              <TextField<F> name="unitPrice" label={`Giá bán / ${unitShort}`} required type="number" suffix="VND" />
-              <TextField<F> name="unitCompareAtPrice" label="Giá gốc" type="number" suffix="VND" placeholder="Không bắt buộc" />
+              <CurrencyField<F> name="unitPrice" label={`Giá bán / ${unitShort}`} required suffix="₫" />
+              <CurrencyField<F> name="unitCompareAtPrice" label="Giá gốc" suffix="₫" placeholder="Không bắt buộc" />
             </div>
           </div>
         )}
@@ -444,12 +445,11 @@ export function VariantsSection() {
                 <div className="grid items-start gap-3 sm:grid-cols-2">
                   <TextField<F> name={`variants.${i}.title`} label="Tên quy cách" required placeholder="VD: Bao 5kg" />
                   <TextField<F> name={`variants.${i}.sku`} label="SKU" placeholder="Tự sinh nếu để trống" />
-                  <TextField<F> name={`variants.${i}.price`} label="Giá bán" required type="number" suffix="VND" />
-                  <TextField<F>
+                  <CurrencyField<F> name={`variants.${i}.price`} label="Giá bán" required suffix="₫" />
+                  <CurrencyField<F>
                     name={`variants.${i}.compareAtPrice`}
                     label="Giá gốc"
-                    type="number"
-                    suffix="VND"
+                    suffix="₫"
                     placeholder="Không bắt buộc"
                   />
                   {sellByUnit && (

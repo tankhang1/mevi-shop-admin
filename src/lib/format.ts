@@ -19,3 +19,26 @@ export const formatCompactVnd = (n: number) => {
 
 export const formatPercent = (ratio: number, digits = 1) =>
   new Intl.NumberFormat("vi-VN", { style: "percent", maximumFractionDigits: digits }).format(ratio);
+
+/** Format integer digits with "." thousand separators (e.g. 100000 → "100.000") */
+export function formatVndDigits(
+  val: number | string | undefined | null,
+): string {
+  if (val === undefined || val === null || val === "") return "";
+  const num =
+    typeof val === "number"
+      ? val
+      : Number(String(val).replace(/\D/g, ""));
+  if (isNaN(num)) return "";
+  return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(
+    num,
+  );
+}
+
+/** Parse string with thousand separators into integer number */
+export function parseVndDigits(val: string): number | undefined {
+  const digits = val.replace(/\D/g, "");
+  if (!digits) return undefined;
+  const num = Number(digits);
+  return isNaN(num) ? undefined : num;
+}

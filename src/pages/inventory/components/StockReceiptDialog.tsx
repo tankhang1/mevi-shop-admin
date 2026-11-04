@@ -33,6 +33,7 @@ import {
 } from "@/features/shop-catalog";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatVnd } from "@/lib/format";
+import { CurrencyInput } from "@/components/common/CurrencyInput";
 
 export type StockDialogMode = "MEVI" | "FARM" | "ADJUSTMENT";
 
@@ -127,7 +128,7 @@ function Body({
   );
   const [source, setSource] = useState(p.supplySources[0] ? sourceKey(p.supplySources[0]) : "");
   const [qty, setQty] = useState("");
-  const [unitCost, setUnitCost] = useState("");
+  const [unitCost, setUnitCost] = useState<number | undefined>(undefined);
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -135,12 +136,12 @@ function Body({
   const s = p.supplySources.find((x) => sourceKey(x) === source);
   const isAdjust = mode === "ADJUSTMENT";
   const n = Number(qty);
-  const cost = Number(unitCost);
+  const cost = unitCost ?? 0;
   const max = STOCK_LIMITS.quantity;
 
   const qtyShapeOk = v?.decimal ? DECIMAL_3.test(qty) : Number.isInteger(n);
   const qtyValid = qty !== "" && qtyShapeOk && (isAdjust ? n !== 0 && Math.abs(n) <= max : n > 0 && n <= max);
-  const costValid = isAdjust || (unitCost !== "" && Number.isInteger(cost) && cost >= 0);
+  const costValid = isAdjust || (unitCost !== undefined && cost >= 0);
   const valid = !!v && qtyValid && costValid && (mode !== "FARM" || !!s) && (!isAdjust || !!note.trim());
   const after = v ? round3(v.stock + (qtyValid ? n : 0)) : 0;
   const pending = receipt.isPending || adjust.isPending;
@@ -282,18 +283,13 @@ function Body({
               Giá nhập / {v ? (v.variantId === null && p.baseUnit ? SELL_UNIT_SHORT[p.baseUnit] : v.title) : "quy cách"}
               {mode === "FARM" && <span className="ml-1 text-xs font-normal text-muted-foreground">(đề xuất, chốt khi duyệt)</span>}
             </Label>
-            <div className="relative">
-              <Input
-                id="unitCost"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={unitCost}
-                onChange={(e) => setUnitCost(e.target.value)}
-                className="pr-20! [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-sm text-muted-foreground">VND</span>
-            </div>
+            <CurrencyInput
+              id="unitCost"
+              value={unitCost}
+              onChange={setUnitCost}
+              placeholder="VD: 50.000"
+              suffix="₫"
+            />
             {err("unitCost")}
           </div>
         )}

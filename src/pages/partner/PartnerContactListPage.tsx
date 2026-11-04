@@ -43,7 +43,7 @@ const STATUS_MAP: Record<
     variant: "default" | "secondary" | "outline" | "destructive";
   }
 > = {
-  NEW: { label: "Mới", variant: "default" },
+  NEW: { label: "Chờ liên hệ", variant: "default" },
   CONTACTED: { label: "Đã liên hệ", variant: "secondary" },
   ACCOUNT_CREATED: { label: "Đã cấp tài khoản", variant: "outline" },
   REJECTED: { label: "Không hợp tác", variant: "destructive" },
