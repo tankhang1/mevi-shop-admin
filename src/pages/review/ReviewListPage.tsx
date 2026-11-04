@@ -18,23 +18,21 @@ import {
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
-import { useAccess } from "@/features/auth";
 import { RatingSummary } from "@/features/review/components/review-bits";
 import {
   type ReviewListParams,
-  summaryToStats,
   useReviewSummary,
   useReviews,
 } from "@/features/review";
-import { useShops } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatPercent } from "@/lib/format";
+import { fromSpringPage } from "@/lib/pagination";
 import { ReviewCard } from "./components/ReviewCard";
 import { ReviewMobileHeader } from "./components/ReviewMobileHeader";
 
-type Filters = Required<Pick<ReviewListParams, "rating" | "replied">> & {
-  shopId: string;
-};
+type Filters = Required<
+  Pick<ReviewListParams, "rating" | "replied" | "hidden">
+>;
 
 function FilterSelect({
   value,
@@ -66,16 +64,14 @@ function FilterSelect({
 }
 
 export default function ReviewListPage() {
-  const { isRoot } = useAccess();
   const isMobile = useIsMobile();
   const table = useTableParams<Filters>(
-    { rating: "all", replied: "all", shopId: "all" },
+    { rating: "all", replied: "all", hidden: "all" },
     10,
   );
-  const { data: page, isFetching } = useReviews(table.params);
-  const { data: summary } = useReviewSummary();
-  const stats = summary ? summaryToStats(summary) : undefined;
-  const { data: shops } = useShops({ size: 100 }, isRoot);
+  const { data, isFetching } = useReviews(table.params);
+  const page = fromSpringPage(data);
+  const { data: stats } = useReviewSummary();
   const bound = table.bind(page, isFetching);
 
   // Debounced search
@@ -95,6 +91,11 @@ export default function ReviewListPage() {
   );
   const current = page?.page ?? 1;
   const f = table.state.filters;
+  // Both filters, so the row count matches unrepliedCount (hidden reviews aren't counted)
+  const viewUnreplied = () => {
+    bound.onFilterChange("replied", "false");
+    bound.onFilterChange("hidden", "false");
+  };
 
   return (
     <div className="space-y-5">
@@ -103,8 +104,11 @@ export default function ReviewListPage() {
           stats={stats}
           replied={f.replied}
           rating={f.rating}
+          hidden={f.hidden}
           onReplied={(v) => bound.onFilterChange("replied", v)}
+          onViewUnreplied={viewUnreplied}
           onRating={(v) => bound.onFilterChange("rating", v)}
+          onHidden={(v) => bound.onFilterChange("hidden", v)}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -139,7 +143,7 @@ export default function ReviewListPage() {
                 variant="outline"
                 size="sm"
                 className="self-start"
-                onClick={() => bound.onFilterChange("replied", "no")}
+                onClick={viewUnreplied}
                 disabled={!stats?.unreplied}
               >
                 Xem đánh giá chưa trả lời
@@ -155,7 +159,7 @@ export default function ReviewListPage() {
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Tìm theo khách, nội dung, sản phẩm..."
+            placeholder="Tìm theo nội dung, tên hoặc mã sản phẩm..."
             className="pl-9!"
           />
         </div>
@@ -180,24 +184,21 @@ export default function ReviewListPage() {
               onChange={(v) => bound.onFilterChange("replied", v)}
               options={[
                 ["all", "Tất cả trạng thái"],
-                ["no", "Chưa trả lời"],
-                ["yes", "Đã trả lời"],
+                ["false", "Chưa trả lời"],
+                ["true", "Đã trả lời"],
+              ]}
+            />
+            <FilterSelect
+              className="max-sm:w-full sm:w-44"
+              value={f.hidden}
+              onChange={(v) => bound.onFilterChange("hidden", v)}
+              options={[
+                ["all", "Tất cả hiển thị"],
+                ["false", "Đang hiện"],
+                ["true", "Đang ẩn"],
               ]}
             />
           </>
-        )}
-        {isRoot && (
-          <FilterSelect
-            className="max-sm:w-full sm:w-52"
-            value={f.shopId}
-            onChange={(v) => bound.onFilterChange("shopId", v)}
-            options={[
-              ["all", "Tất cả gian hàng"],
-              ...(shops?.items ?? []).map(
-                (s) => [s.id, s.name] as [string, string],
-              ),
-            ]}
-          />
         )}
       </div>
 
@@ -216,7 +217,7 @@ export default function ReviewListPage() {
           }
         >
           {items.map((r) => (
-            <ReviewCard key={r.id} review={r} showShop={isRoot} />
+            <ReviewCard key={r.id} review={r} />
           ))}
         </div>
       )}

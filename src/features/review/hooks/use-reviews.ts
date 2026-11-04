@@ -6,15 +6,15 @@ import {
 } from "@tanstack/react-query";
 import { dashboardKeys } from "@/features/dashboard/hooks/use-dashboard";
 import { reviewApi } from "../api/review.api";
-import type { ReviewListParams } from "../types";
+import type { ReviewListParams, SetReviewVisibilityInput } from "../types";
 
 export const reviewKeys = {
   all: ["reviews"] as const,
   list: (params: ReviewListParams) =>
     [...reviewKeys.all, "list", params] as const,
-  stats: (productId?: string) =>
-    [...reviewKeys.all, "stats", productId ?? "all"] as const,
   summary: () => [...reviewKeys.all, "summary"] as const,
+  stats: (productId?: number) =>
+    [...reviewKeys.all, "stats", productId ?? "all"] as const,
 };
 
 export function useReviews(params: ReviewListParams = {}) {
@@ -28,14 +28,14 @@ export function useReviews(params: ReviewListParams = {}) {
 export function useReviewSummary() {
   return useQuery({
     queryKey: reviewKeys.summary(),
-    queryFn: () => reviewApi.summary(),
+    queryFn: reviewApi.summary,
   });
 }
 
-export function useReviewStats(productId?: string) {
+export function useReviewStats(productId?: number) {
   return useQuery({
     queryKey: reviewKeys.stats(productId),
-    queryFn: () => reviewApi.stats({ productId }),
+    queryFn: () => reviewApi.stats(productId),
   });
 }
 
@@ -48,20 +48,28 @@ function useInvalidateReviews() {
     ]);
 }
 
-export function useReplyReview() {
+export function useSaveReviewReply() {
   const invalidate = useInvalidateReviews();
   return useMutation({
-    mutationFn: ({ id, content }: { id: string; content: string }) =>
-      reviewApi.reply(id, content),
+    mutationFn: ({ id, content }: { id: number; content: string }) =>
+      reviewApi.saveReply(id, content),
     onSuccess: invalidate,
   });
 }
 
-export function useSetReviewHidden() {
+export function useDeleteReviewReply() {
   const invalidate = useInvalidateReviews();
   return useMutation({
-    mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) =>
-      reviewApi.setHidden(id, hidden),
+    mutationFn: (id: number) => reviewApi.deleteReply(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetReviewVisibility() {
+  const invalidate = useInvalidateReviews();
+  return useMutation({
+    mutationFn: ({ id, ...data }: SetReviewVisibilityInput & { id: number }) =>
+      reviewApi.setVisibility(id, data),
     onSuccess: invalidate,
   });
 }

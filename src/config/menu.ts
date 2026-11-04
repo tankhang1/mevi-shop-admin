@@ -2,7 +2,6 @@ import {
   Sprout,
   LayoutDashboard,
   Network,
-  MessageSquareText,
   Package,
   ShoppingCart,
   Building2,
@@ -67,13 +66,6 @@ export const shopMenu: AdminMenuSection[] = [
         icon: Warehouse,
         href: ROUTES.inventory,
         roles: [...ROOT],
-      },
-      {
-        id: "reviews",
-        label: "Đánh giá khách hàng",
-        icon: MessageSquareText,
-        href: ROUTES.reviews,
-        roles: [...ALL],
       },
     ],
   },
@@ -226,7 +218,7 @@ type MobileNavItem = (typeof SHOP_MOBILE_NAV_ITEMS)[number];
 const navByHref = (href: string) =>
   SHOP_MOBILE_NAV_ITEMS.find((i) => i.href === href);
 
-/** Bottom nav: root keeps the library default (with "Duyệt SP"); shop admins get Reviews + their shop instead */
+/** Bottom nav: root keeps the library default (with "Duyệt SP"); shop admins get their shop instead */
 export function mobileNavFor(
   isRoot: boolean,
   isStaff = false,
@@ -254,12 +246,6 @@ export function mobileNavFor(
       href: ROUTES.products,
       icon: Package,
       matchPrefixes: [ROUTES.products],
-    },
-    {
-      label: "Đánh giá",
-      href: ROUTES.reviews,
-      icon: MessageSquareText,
-      matchPrefixes: [ROUTES.reviews],
     },
     dashboard ?? {
       label: "Tổng quan",

@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { ArrowDownRight, ArrowUpRight, Ban, Minus, Receipt, ShoppingCart, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, /* Ban, */ Minus, /* Receipt, */ ShoppingCart, Wallet } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import type { DashboardSummary, Metric } from "@/features/dashboard";
 import { formatCompactVnd, formatPercent, formatVnd } from "@/lib/format";
@@ -53,10 +53,12 @@ export function MobileKpis({ kpis, rangeLabel }: { kpis: DashboardSummary["kpis"
           so với kỳ trước ({formatCompactVnd(kpis.revenue.previous)})
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid gap-2">
         <Tile label="Đơn hàng" value={String(kpis.orders.value)} metric={kpis.orders} icon={ShoppingCart} />
+        {/* Tạm ẩn (khi hiện lại đổi grid về grid-cols-3)
         <Tile label="TB / đơn" value={formatCompactVnd(kpis.avgOrderValue.value)} metric={kpis.avgOrderValue} icon={Receipt} />
         <Tile label="Tỷ lệ huỷ" value={formatPercent(kpis.cancelRate.value, 0)} metric={kpis.cancelRate} icon={Ban} inverse />
+        */}
       </div>
     </div>
   );

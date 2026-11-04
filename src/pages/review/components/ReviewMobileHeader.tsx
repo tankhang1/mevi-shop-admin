@@ -8,8 +8,11 @@ interface Props {
   stats?: ReviewStats;
   replied: string;
   rating: string;
+  hidden: string;
   onReplied: (v: string) => void;
+  onViewUnreplied: () => void;
   onRating: (v: string) => void;
+  onHidden: (v: string) => void;
 }
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -28,7 +31,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 /** Mobile: one compact summary card + chip filters instead of two big cards and stacked selects */
-export function ReviewMobileHeader({ stats, replied, rating, onReplied, onRating }: Props) {
+export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, onViewUnreplied, onRating, onHidden }: Props) {
   const max = Math.max(1, ...(stats?.distribution ?? [0]));
   const unreplied = stats?.unreplied ?? 0;
 
@@ -62,7 +65,7 @@ export function ReviewMobileHeader({ stats, replied, rating, onReplied, onRating
         {stats && stats.total > 0 && (
           <button
             type="button"
-            onClick={() => onReplied(replied === "no" ? "all" : "no")}
+            onClick={() => (replied === "false" ? onReplied("all") : onViewUnreplied())}
             disabled={!unreplied}
             className={cn(
               "mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm",
@@ -88,16 +91,19 @@ export function ReviewMobileHeader({ stats, replied, rating, onReplied, onRating
         <Chip active={replied === "all"} onClick={() => onReplied("all")}>
           Tất cả
         </Chip>
-        <Chip active={replied === "no"} onClick={() => onReplied("no")}>
+        <Chip active={replied === "false"} onClick={onViewUnreplied}>
           Chưa trả lời
           {!!unreplied && (
-            <span className={cn("rounded-full px-1.5 text-xs", replied === "no" ? "bg-white/25" : "bg-amber-100 text-amber-800")}>
+            <span className={cn("rounded-full px-1.5 text-xs", replied === "false" ? "bg-white/25" : "bg-amber-100 text-amber-800")}>
               {unreplied}
             </span>
           )}
         </Chip>
-        <Chip active={replied === "yes"} onClick={() => onReplied("yes")}>
+        <Chip active={replied === "true"} onClick={() => onReplied("true")}>
           Đã trả lời
+        </Chip>
+        <Chip active={hidden === "true"} onClick={() => onHidden(hidden === "true" ? "all" : "true")}>
+          Đang ẩn
         </Chip>
         <span className="w-px shrink-0 bg-border" />
         {["5", "4", "3", "2", "1"].map((s) => (

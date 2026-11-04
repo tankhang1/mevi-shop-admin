@@ -1,35 +1,65 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type {
-  Review,
-  ReviewStats,
-  ReviewSummary,
-} from "@/features/review/types";
+import type { Review, ReviewSummaryResponse } from "@/features/review/types";
+import type { SpringPage } from "@/types/api";
 import { db } from "../db";
-import { actor, assertOwns, scoped } from "../scope";
-import { HttpError, type MockHandler, paginate } from "../utils";
+import { assertOwns, scoped } from "../scope";
+import { HttpError, type MockHandler } from "../utils";
 
 const EP = API_ENDPOINTS.admin.reviews;
 
-const withShop = (r: Review): Review => ({
-  ...r,
-  shopName: db.shops.find((s) => s.id === r.shopId)?.name,
+type DbReview = (typeof db.reviews)[number];
+
+const toReview = (r: DbReview, idx: number): Review => ({
+  id: Number(r.id.replace(/\D/g, "")) || idx + 1,
+  product: {
+    id: Number(r.productId.replace(/\D/g, "")) || 1,
+    code: `SP-${r.productId}`,
+    title: r.productName,
+  },
+  reviewer: {
+    id: 100 + (Number(r.id.replace(/\D/g, "")) || idx + 1),
+    fullName: r.author,
+  },
+  rating: r.rating,
+  content: r.content,
+  tags: r.tags,
+  media: r.images.map((url) => ({ url, thumbnailUrl: url })),
+  verifiedPurchase: true,
+  helpfulCount: r.helpful,
+  reply: r.reply
+    ? {
+        content: r.reply.content,
+        repliedAt: r.reply.repliedAt,
+        repliedBy: { id: 1, fullName: "Lê Chủ Shop" },
+      }
+    : null,
+  hidden: r.hidden,
+  hiddenReason: r.hidden ? "Nội dung không phù hợp" : null,
+  hiddenAt: r.hidden ? r.createdAt : null,
+  createdAt: r.createdAt,
 });
-const findOwned = (id: string) =>
-  assertOwns(
-    db.reviews.find((r) => r.id === id),
-    "Không tìm thấy đánh giá",
+
+const findOwned = (id: string | number) => {
+  const strId = String(id);
+  const r = db.reviews.find(
+    (x, idx) =>
+      x.id === strId ||
+      String(Number(x.id.replace(/\D/g, "")) || idx + 1) === strId,
   );
+  return assertOwns(r, "Không tìm thấy đánh giá");
+};
 
 export const reviewHandlers: MockHandler[] = [
   {
     method: "GET",
     path: EP.base,
     handle: ({ query }) => {
-      const rows = scoped(db.reviews, query.shopId).filter((r) => {
+      const rows = scoped(db.reviews, query.shopId).filter((r, idx) => {
+        const review = toReview(r, idx);
         if (
           query.rating &&
           query.rating !== "all" &&
-          String(r.rating) !== String(query.rating)
+          String(review.rating) !== String(query.rating)
         ) {
           return false;
         }
@@ -38,33 +68,64 @@ export const reviewHandlers: MockHandler[] = [
             query.replied === true ||
             query.replied === "true" ||
             query.replied === "yes";
-          if (wantReplied !== !!r.reply) return false;
+          if (wantReplied !== !!review.reply) return false;
         }
         if (query.hidden !== undefined && query.hidden !== "all") {
           const wantHidden = query.hidden === true || query.hidden === "true";
-          if (wantHidden !== !!r.hidden) return false;
+          if (wantHidden !== !!review.hidden) return false;
         }
-        if (query.productId && r.productId !== query.productId) {
+        if (
+          query.productId &&
+          query.productId !== "all" &&
+          String(review.product.id) !== String(query.productId) &&
+          r.productId !== String(query.productId)
+        ) {
           return false;
+        }
+        if (query.keyword) {
+          const kw = String(query.keyword).trim().toLowerCase();
+          const text = `${review.reviewer.fullName ?? ""} ${review.content} ${review.product.title} ${review.product.code}`.toLowerCase();
+          if (!text.includes(kw)) return false;
         }
         return true;
       });
-      return {
-        data: paginate(
-          rows.map(withShop),
-          query,
-          (r) => `${r.author} ${r.content} ${r.productName}`,
-        ),
+
+      const items = rows.map(toReview);
+      const page = Number(query.page ?? 0);
+      const size = Number(query.size ?? 20);
+      const totalElements = items.length;
+      const totalPages = Math.max(1, Math.ceil(totalElements / size));
+      const content = items.slice(page * size, (page + 1) * size);
+
+      const springPage: SpringPage<Review> = {
+        content,
+        page,
+        size,
+        totalElements,
+        totalPages,
+        first: page === 0,
+        last: page >= totalPages - 1,
       };
+
+      return springPage;
     },
   },
   {
     method: "GET",
     path: EP.summary,
     handle: ({ query }) => {
-      const rows = scoped(db.reviews, query.shopId).filter(
-        (r) => !query.productId || r.productId === query.productId,
-      );
+      const rows = scoped(db.reviews, query.shopId).filter((r, idx) => {
+        const review = toReview(r, idx);
+        if (
+          query.productId &&
+          query.productId !== "all" &&
+          String(review.product.id) !== String(query.productId) &&
+          r.productId !== String(query.productId)
+        ) {
+          return false;
+        }
+        return true;
+      });
       const visible = rows.filter((r) => !r.hidden);
       const ratingCount = visible.length;
       const ratingAverage = ratingCount
@@ -79,36 +140,13 @@ export const reviewHandlers: MockHandler[] = [
         count: visible.filter((r) => r.rating === stars).length,
       }));
       const unrepliedCount = visible.filter((r) => !r.reply).length;
-      const summary: ReviewSummary = {
+      const summary: ReviewSummaryResponse = {
         ratingAverage,
         ratingCount,
         ratingDistribution,
         unrepliedCount,
       };
-      return { data: summary };
-    },
-  },
-  {
-    method: "GET",
-    path: EP.stats,
-    handle: ({ query }) => {
-      const rows = scoped(db.reviews, query.shopId).filter(
-        (r) => !query.productId || r.productId === query.productId,
-      );
-      const visible = rows.filter((r) => !r.hidden);
-      const distribution = [1, 2, 3, 4, 5].map(
-        (n) => visible.filter((r) => r.rating === n).length,
-      ) as ReviewStats["distribution"];
-      const stats: ReviewStats = {
-        total: visible.length,
-        average: visible.length
-          ? visible.reduce((t, r) => t + r.rating, 0) / visible.length
-          : 0,
-        distribution,
-        unreplied: visible.filter((r) => !r.reply).length,
-        hidden: rows.length - visible.length,
-      };
-      return { data: stats };
+      return summary;
     },
   },
   {
@@ -129,10 +167,10 @@ export const reviewHandlers: MockHandler[] = [
         ? {
             content,
             repliedAt: new Date().toISOString(),
-            by: actor().isRoot ? "mevi" : "shop",
+            by: "shop",
           }
         : null;
-      return { data: withShop(r) };
+      return toReview(r, 0);
     },
   },
   {
@@ -141,7 +179,7 @@ export const reviewHandlers: MockHandler[] = [
     handle: ({ params }: { params: Record<string, string> }) => {
       const r = findOwned(params.id);
       r.reply = null;
-      return { data: withShop(r) };
+      return toReview(r, 0);
     },
   },
   {
@@ -152,26 +190,11 @@ export const reviewHandlers: MockHandler[] = [
       body,
     }: {
       params: Record<string, string>;
-      body: { hidden: boolean };
+      body: { hidden: boolean; reason?: string };
     }) => {
       const r = findOwned(params.id);
       r.hidden = !!body.hidden;
-      return { data: withShop(r) };
-    },
-  },
-  {
-    method: "PATCH",
-    path: `${EP.base}/:id/visibility`,
-    handle: ({
-      params,
-      body,
-    }: {
-      params: Record<string, string>;
-      body: { hidden: boolean };
-    }) => {
-      const r = findOwned(params.id);
-      r.hidden = !!body.hidden;
-      return { data: withShop(r) };
+      return toReview(r, 0);
     },
   },
 ];

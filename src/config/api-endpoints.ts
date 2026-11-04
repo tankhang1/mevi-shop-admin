@@ -203,11 +203,14 @@ export const API_ENDPOINTS = {
       me: "/api/shop/profile",
     },
     reviews: {
+      /** GET ?productId&rating&hidden&replied&keyword&page&size */
       base: "/api/admin/shop/reviews",
-      stats: "/api/admin/shop/reviews/stats",
+      /** GET: whole-catalog figures for the reviews screen (no productId filter) */
       summary: "/api/admin/shop/reviews/summary",
-      reply: (id: string) => `/api/admin/shop/reviews/${id}/reply`,
-      visibility: (id: string) => `/api/admin/shop/reviews/${id}/visibility`,
+      /** PUT { content } · DELETE */
+      reply: (id: number) => `/api/admin/shop/reviews/${id}/reply`,
+      /** PUT { hidden, reason? } */
+      visibility: (id: number) => `/api/admin/shop/reviews/${id}/visibility`,
     },
     agencies: {
       base: "/api/admin/shop/agencies",

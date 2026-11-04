@@ -4,6 +4,10 @@ export const formatVnd = (n: number) =>
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
 
+/** ISO UTC → Vietnam time, whatever the browser's time zone */
+export const formatDateVN = (iso: string) =>
+  new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
+
 /** 1_250_000 → "1,25 tr" · 3_400_000_000 → "3,4 tỷ" — for axes and tight tiles */
 export const formatCompactVnd = (n: number) => {
   const fmt = (v: number) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: v < 10 ? 2 : 1 }).format(v);

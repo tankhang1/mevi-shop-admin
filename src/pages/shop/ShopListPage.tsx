@@ -203,12 +203,10 @@ function ShopList() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">Quản lý Gian hàng</h1>
-        <p className="text-sm text-muted-foreground">
-          Danh sách toàn bộ gian hàng của đối tác trên nền tảng Mevi Shop
-        </p>
-      </div>
+      {/* Kéo sát tiêu đề của layout */}
+      <p className="-mt-2 text-sm text-muted-foreground md:-mt-5">
+        Danh sách toàn bộ gian hàng của đối tác trên nền tảng Mevi Shop
+      </p>
 
       <DataTable
         {...table.bind(page, isFetching)}

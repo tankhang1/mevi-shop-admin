@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { CornerDownRight, Eye, EyeOff, Loader2, MessageSquareReply, Pencil, ThumbsUp } from "lucide-react";
+import { BadgeCheck, CornerDownRight, Eye, EyeOff, Loader2, MessageSquareReply, Package, Pencil, ThumbsUp } from "lucide-react";
 import { Button, Card, CardContent, Textarea, cn, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import placeholder from "@/assets/images/image-placeholder.webp";
+import { ReasonDialog } from "@/components/common/ReasonDialog";
 import { ROUTES } from "@/config/routes";
 import { Stars } from "@/features/review/components/review-bits";
-import { type Review, useReplyReview, useSetReviewHidden } from "@/features/review";
+import { type Review, useDeleteReviewReply, useSaveReviewReply, useSetReviewVisibility } from "@/features/review";
 import { getErrorMessage } from "@/lib/api-error";
-import { formatDate } from "@/lib/format";
+import { formatDateVN } from "@/lib/format";
 
 const QUICK_REPLIES = [
   "Cảm ơn anh/chị đã tin tưởng ủng hộ shop. Chúc anh/chị và gia đình nhiều sức khoẻ!",
@@ -15,33 +15,50 @@ const QUICK_REPLIES = [
 ];
 
 /** One review with inline reply editor and hide/show — reused on the product detail page */
-export function ReviewCard({ review: r, showProduct = true, showShop = false }: { review: Review; showProduct?: boolean; showShop?: boolean }) {
+export function ReviewCard({ review: r, showProduct = true }: { review: Review; showProduct?: boolean }) {
   const { toast } = useToast();
-  const reply = useReplyReview();
-  const visibility = useSetReviewHidden();
+  const saveReply = useSaveReviewReply();
+  const deleteReply = useDeleteReviewReply();
+  const visibility = useSetReviewVisibility();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const [hideOpen, setHideOpen] = useState(false);
+  const replyPending = saveReply.isPending || deleteReply.isPending;
+  const author = r.reviewer.fullName ?? "Khách hàng";
 
   const startEdit = () => {
     setText(r.reply?.content ?? "");
     setEditing(true);
   };
 
-  const save = async (content: string) => {
+  const save = async () => {
     try {
-      await reply.mutateAsync({ id: r.id, content });
-      toast({ title: content ? "Đã gửi phản hồi" : "Đã xoá phản hồi" });
+      await saveReply.mutateAsync({ id: r.id, content: text.trim() });
+      toast({ title: "Đã gửi phản hồi" });
       setEditing(false);
     } catch (e) {
       toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
     }
   };
 
-  const toggleHidden = () =>
+  const removeReply = async () => {
+    try {
+      await deleteReply.mutateAsync(r.id);
+      toast({ title: "Đã xoá phản hồi" });
+      setEditing(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
+    }
+  };
+
+  const setHidden = (hidden: boolean, reason?: string) =>
     visibility.mutate(
-      { id: r.id, hidden: !r.hidden },
+      { id: r.id, hidden, reason },
       {
-        onSuccess: () => toast({ title: r.hidden ? "Đã hiện lại đánh giá" : "Đã ẩn đánh giá khỏi cửa hàng" }),
+        onSuccess: () => {
+          setHideOpen(false);
+          toast({ title: hidden ? "Đã ẩn đánh giá khỏi cửa hàng" : "Đã hiện lại đánh giá" });
+        },
         onError: (e) => toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) }),
       },
     );
@@ -49,7 +66,7 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
   // Avatar tint follows the rating so bad reviews stand out while scrolling
   const tone =
     r.rating >= 4 ? "bg-emerald-100 text-emerald-800" : r.rating === 3 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700";
-  const initials = r.author
+  const initials = author
     .split(" ")
     .slice(-2)
     .map((w) => w[0])
@@ -64,13 +81,18 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
             {initials}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{r.author}</p>
+            <p className="truncate font-semibold">{author}</p>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
               <Stars value={r.rating} />
-              <span>{formatDate(r.createdAt)}</span>
-              {r.helpful > 0 && (
+              <span>{formatDateVN(r.createdAt)}</span>
+              {r.helpfulCount > 0 && (
                 <span className="inline-flex items-center gap-0.5">
-                  <ThumbsUp className="h-3 w-3" /> {r.helpful}
+                  <ThumbsUp className="h-3 w-3" /> {r.helpfulCount}
+                </span>
+              )}
+              {r.verifiedPurchase && (
+                <span className="inline-flex items-center gap-0.5 font-medium text-emerald-700">
+                  <BadgeCheck className="h-3 w-3" /> Đã mua hàng
                 </span>
               )}
             </div>
@@ -95,14 +117,21 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
             ))}
           </div>
         )}
-        {r.images.length > 0 && (
+        {r.media.length > 0 && (
           <div className="flex gap-2 overflow-x-auto">
-            {r.images.map((src) => (
-              <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0">
-                <img src={src} alt="Ảnh khách hàng" className="h-20 w-20 rounded-xl border object-cover" />
+            {r.media.map((m) => (
+              <a key={m.url} href={m.url} target="_blank" rel="noreferrer" className="shrink-0">
+                <img src={m.thumbnailUrl} alt="Ảnh khách hàng" className="h-20 w-20 rounded-xl border object-cover" />
               </a>
             ))}
           </div>
+        )}
+
+        {r.hidden && (
+          <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+            Lý do ẩn: {r.hiddenReason || "Không ghi lý do"}
+            {r.hiddenAt && ` · ${formatDateVN(r.hiddenAt)}`}
+          </p>
         )}
 
         {editing ? (
@@ -117,15 +146,15 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
             </div>
             <div className="flex justify-end gap-2">
               {r.reply && (
-                <Button variant="ghost" size="sm" className="mr-auto text-destructive" onClick={() => void save("")} disabled={reply.isPending}>
+                <Button variant="ghost" size="sm" className="mr-auto text-destructive" onClick={() => void removeReply()} disabled={replyPending}>
                   Xoá phản hồi
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
                 Huỷ
               </Button>
-              <Button size="sm" onClick={() => void save(text)} disabled={!text.trim() || reply.isPending}>
-                {reply.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Gửi phản hồi
+              <Button size="sm" onClick={() => void save()} disabled={!text.trim() || replyPending}>
+                {saveReply.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Gửi phản hồi
               </Button>
             </div>
           </div>
@@ -135,8 +164,8 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
               <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-emerald-800">
-                  {r.reply.by === "mevi" ? "Mevi" : "Phản hồi của shop"}
-                  <span className="font-normal text-emerald-700/80"> · {formatDate(r.reply.repliedAt)}</span>
+                  {r.reply.repliedBy.fullName ?? "Phản hồi của shop"}
+                  <span className="font-normal text-emerald-700/80"> · {formatDateVN(r.reply.repliedAt)}</span>
                 </p>
                 <p className="mt-0.5">{r.reply.content}</p>
               </div>
@@ -150,11 +179,10 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
 
       <div className="flex items-center gap-2 border-t bg-muted/30 px-4 py-2">
         {showProduct ? (
-          <Link href={ROUTES.productDetail(r.productId)} className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
-            <img src={r.productImage || placeholder} alt="" className="h-7 w-7 shrink-0 rounded-md border object-cover" />
+          <Link href={ROUTES.productDetail(String(r.product.id))} className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+            <Package className="h-4 w-4 shrink-0" />
             <span className="truncate">
-              {r.productName}
-              {showShop && r.shopName && ` · ${r.shopName}`}
+              {r.product.title} · {r.product.code}
             </span>
           </Link>
         ) : (
@@ -164,7 +192,7 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
           variant="ghost"
           size="sm"
           className="h-8 shrink-0 px-2 text-muted-foreground"
-          onClick={toggleHidden}
+          onClick={() => (r.hidden ? setHidden(false) : setHideOpen(true))}
           disabled={visibility.isPending}
           title={r.hidden ? "Hiện lại" : "Ẩn khỏi cửa hàng"}
         >
@@ -177,6 +205,18 @@ export function ReviewCard({ review: r, showProduct = true, showShop = false }: 
           </Button>
         )}
       </div>
+
+      <ReasonDialog
+        open={hideOpen}
+        onOpenChange={setHideOpen}
+        title="Ẩn đánh giá khỏi cửa hàng"
+        label="Lý do (chỉ admin thấy)"
+        confirmLabel="Ẩn đánh giá"
+        optional
+        maxLength={500}
+        loading={visibility.isPending}
+        onConfirm={(reason) => setHidden(true, reason || undefined)}
+      />
     </Card>
   );
 }

@@ -18,6 +18,9 @@ interface Props {
   label?: string;
   confirmLabel?: string;
   loading?: boolean;
+  /** Allows confirming with an empty reason */
+  optional?: boolean;
+  maxLength?: number;
   onConfirm: (reason: string) => void;
 }
 
@@ -38,6 +41,8 @@ function Body({
   label = "Lý do",
   confirmLabel = "Từ chối",
   loading,
+  optional,
+  maxLength,
   onConfirm,
 }: Props) {
   const [reason, setReason] = useState("");
@@ -49,11 +54,12 @@ function Body({
       <div className="space-y-1.5">
         <Label htmlFor="reason">
           {label}
-          <span className="text-destructive"> *</span>
+          {!optional && <span className="text-destructive"> *</span>}
         </Label>
         <Textarea
           id="reason"
           rows={3}
+          maxLength={maxLength}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           disabled={loading}
@@ -66,7 +72,7 @@ function Body({
         </Button>
         <Button
           variant="destructive"
-          disabled={!reason.trim() || loading}
+          disabled={(!optional && !reason.trim()) || loading}
           onClick={() => onConfirm(reason.trim())}
         >
           {loading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
