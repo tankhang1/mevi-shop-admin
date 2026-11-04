@@ -2,12 +2,19 @@ import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { realApiClient } from "@/lib/axios";
 import type { SpringPage } from "@/types/api";
 import type {
+  CreatePayoutInput,
   CreateShopPartnerUserInput,
+  GetPartnerReportParams,
   ListPartnerContactRequestsParams,
   ListPartnerProfilesParams,
+  PartnerCommissionPayout,
+  PartnerCommissionSummary,
   PartnerContactRequest,
+  PartnerOrderStats,
   PartnerProfile,
   PartnerProfileDetail,
+  PartnerReport,
+  UpdateCommissionRateInput,
   UpdateContactRequestStatusInput,
   UpdatePartnerSuspensionInput,
   UpdatePartnerTypeInput,
@@ -102,6 +109,62 @@ export const partnerApi = {
 
   syncPublicStorefront: async (id: number | string) => {
     const res = await realApiClient.post(PROFILE_EP.sync(id));
+    return res.data;
+  },
+
+  // ── Hoa hồng, Thống kê & Báo cáo đối tác (BE notice 2026-11-03 mục 13) ──
+  updateCommissionRate: async (
+    id: number | string,
+    input: UpdateCommissionRateInput,
+  ) => {
+    const res = await realApiClient.put<PartnerProfile>(
+      PROFILE_EP.commission(id),
+      input,
+    );
+    return res.data;
+  },
+
+  getOrderStats: async (id: number | string) => {
+    const res = await realApiClient.get<PartnerOrderStats>(
+      PROFILE_EP.orderStats(id),
+    );
+    return res.data;
+  },
+
+  getCommissionSummary: async (id: number | string) => {
+    const res = await realApiClient.get<PartnerCommissionSummary>(
+      PROFILE_EP.commissionSummary(id),
+    );
+    return res.data;
+  },
+
+  createCommissionPayout: async (
+    id: number | string,
+    input?: CreatePayoutInput,
+  ) => {
+    const res = await realApiClient.post<PartnerCommissionPayout>(
+      PROFILE_EP.commissionPayouts(id),
+      input ?? {},
+    );
+    return res.data;
+  },
+
+  getCommissionPayouts: async (
+    id: number | string,
+    params?: { page?: number; size?: number },
+  ) => {
+    const res = await realApiClient.get<SpringPage<PartnerCommissionPayout> | PartnerCommissionPayout[]>(
+      PROFILE_EP.commissionPayouts(id),
+      { params },
+    );
+    return res.data;
+  },
+
+  getReport: async (id: number | string, params?: GetPartnerReportParams) => {
+    const res = await realApiClient.get<PartnerReport>(
+      PROFILE_EP.report(id),
+      { params },
+    );
     return res.data;
   },
 };

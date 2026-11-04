@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import {
   Button,
   Dialog,
@@ -7,6 +8,8 @@ import {
   DialogTitle,
   Badge,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { Coins } from "lucide-react";
+import { ROUTES } from "@/config/routes";
 import { usePartnerProfileDetail } from "@/features/partner";
 import { formatDate } from "@/lib/format";
 import { LoadingBlock } from "@/components/common/ui-bits";
@@ -22,6 +25,7 @@ export function PartnerAccountDetailDialog({
   onOpenChange,
   partnerId,
 }: Props) {
+  const [, navigate] = useLocation();
   const { data, isLoading } = usePartnerProfileDetail(partnerId);
 
   return (
@@ -132,7 +136,20 @@ export function PartnerAccountDetailDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+          {partnerId ? (
+            <Button
+              type="button"
+              className="gap-1.5"
+              onClick={() => {
+                onOpenChange(false);
+                navigate(ROUTES.agencyDetail(String(partnerId)));
+              }}
+            >
+              <Coins className="h-4 w-4" />
+              Xem chi tiết & Hoa hồng
+            </Button>
+          ) : <div />}
           <Button
             type="button"
             variant="outline"

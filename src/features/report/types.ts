@@ -61,3 +61,54 @@ export interface RevenueReportParams {
   /** Root only */
   shopId?: string;
 }
+
+/** Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-03 mục 14) */
+export interface ProductRevenueReportItem {
+  product: {
+    id: number | string;
+    code: string;
+    title: string;
+    imageUrl?: string;
+  };
+  orderCount: number;
+  quantity: number;
+  revenue: number;
+  share: number;
+}
+
+export interface ProductRevenueReportTopItem {
+  product: {
+    id: number | string;
+    code: string;
+    title: string;
+    imageUrl?: string;
+  };
+  revenue: number[];
+}
+
+export interface ProductRevenueReportSeries {
+  period: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface ProductRevenueReport {
+  from: string;
+  to: string;
+  revenue: number;
+  deliveredOrders: number;
+  quantity: number;
+  productCount: number;
+  series: ProductRevenueReportSeries[];
+  products: ProductRevenueReportItem[];
+  topProducts: ProductRevenueReportTopItem[];
+}
+
+export interface ProductRevenueReportParams {
+  from?: string;
+  to?: string;
+  granularity?: "DAY" | "WEEK" | "MONTH";
+  source?: "REFERRAL" | "DIRECT" | "";
+  storefrontId?: number | string;
+  categoryId?: number | string;
+}

@@ -19,10 +19,11 @@ export const API_ENDPOINTS = {
       listing: (id: string) => `/api/admin/shop/products/${id}/listing`,
     },
     productGroups: {
-      base: "/api/admin/shop/product-groups",
-      detail: (id: string) => `/api/admin/shop/product-groups/${id}`,
-      /** PUT { productIds } — replaces the group's members */
-      products: (id: string) => `/api/admin/shop/product-groups/${id}/products`,
+      base: "/api/admin/shop/product-categories",
+      detail: (id: string | number) =>
+        `/api/admin/shop/product-categories/${id}`,
+      /** PUT { productIds, categoryId } — replaces the group's members */
+      products: () => "/api/admin/shop/products/category",
     },
     inventory: {
       base: "/api/admin/shop/inventory",
@@ -31,13 +32,17 @@ export const API_ENDPOINTS = {
       /** GET ?status=pending|approved|rejected|all&farmId=&productId= — nông hộ's supply requests (source=farm), `counts` per status */
       supplyRequests: "/api/admin/shop/inventory/supply-requests",
       /** POST { type, quantity, note } */
-      adjust: (productId: string) => `/api/admin/shop/inventory/${productId}/adjust`,
+      adjust: (productId: string) =>
+        `/api/admin/shop/inventory/${productId}/adjust`,
       /** POST — admin approves a pending farm stock change (adds the delta to current stock) */
-      approve: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/approve`,
+      approve: (movementId: string) =>
+        `/api/admin/shop/inventory/movements/${movementId}/approve`,
       /** POST { reason } */
-      reject: (movementId: string) => `/api/admin/shop/inventory/movements/${movementId}/reject`,
+      reject: (movementId: string) =>
+        `/api/admin/shop/inventory/movements/${movementId}/reject`,
       /** PATCH { lowStockThreshold?, variantThresholds? } */
-      threshold: (productId: string) => `/api/admin/shop/inventory/${productId}/threshold`,
+      threshold: (productId: string) =>
+        `/api/admin/shop/inventory/${productId}/threshold`,
     },
     /** Mevi shop catalog (BE notice 2026-10-28) — responses are NOT wrapped in `{ data }` */
     catalog: {
@@ -55,11 +60,14 @@ export const API_ENDPOINTS = {
         /** PUT { status } */
         status: (id: number) => `/api/admin/shop/products/${id}/status`,
         /** PUT { thresholds: [{ variantId, threshold }] } */
-        lowStockThresholds: (id: number) => `/api/admin/shop/products/${id}/low-stock-thresholds`,
+        lowStockThresholds: (id: number) =>
+          `/api/admin/shop/products/${id}/low-stock-thresholds`,
         /** POST — nhập hàng (MEVI / FARM) */
-        stockReceipts: (id: number) => `/api/admin/shop/products/${id}/stock-receipts`,
+        stockReceipts: (id: number) =>
+          `/api/admin/shop/products/${id}/stock-receipts`,
         /** POST — điều chỉnh tồn kho */
-        stockAdjustments: (id: number) => `/api/admin/shop/products/${id}/stock-adjustments`,
+        stockAdjustments: (id: number) =>
+          `/api/admin/shop/products/${id}/stock-adjustments`,
       },
       /** GET — one row per variant */
       inventory: "/api/admin/shop/inventory",
@@ -69,7 +77,8 @@ export const API_ENDPOINTS = {
         base: "/api/admin/shop/stock-movements",
         statusCounts: "/api/admin/shop/stock-movements/status-counts",
         /** POST { unitCost? } */
-        approve: (id: number) => `/api/admin/shop/stock-movements/${id}/approve`,
+        approve: (id: number) =>
+          `/api/admin/shop/stock-movements/${id}/approve`,
         /** POST { reason } */
         reject: (id: number) => `/api/admin/shop/stock-movements/${id}/reject`,
       },
@@ -89,16 +98,25 @@ export const API_ENDPOINTS = {
       detail: (id: string) => `/api/admin/shop/customers/${id}`,
     },
     staff: {
-      base: "/api/admin/shop/staff",
-      detail: (id: string) => `/api/admin/shop/staff/${id}`,
-      /** POST — sends the invitation again */
-      resendInvite: (id: string) => `/api/admin/shop/staff/${id}/resend-invite`,
+      /** GET — Danh sách nhân viên điều phối (BE notice 2026-11-03) */
+      base: "/api/admin/users/shop-staff",
+      /** PUT / DELETE — Gán / gỡ role MEVI_SHOP_STAFF */
+      detail: (id: string | number) => `/api/admin/users/shop-staff/${id}`,
+      /** PUT — Cập nhật thông tin tài khoản user */
+      user: (id: string | number) => `/api/admin/users/${id}`,
+      /** PUT — Đổi trạng thái active / inactive */
+      status: (id: string | number) => `/api/admin/users/${id}/status`,
+      /** Fallback cũ */
+      resendInvite: (id: string | number) =>
+        `/api/admin/shop/staff/${id}/resend-invite`,
     },
     dispatchTeams: {
-      base: "/api/admin/shop/dispatch-teams",
-      detail: (id: string) => `/api/admin/shop/dispatch-teams/${id}`,
-      /** POST — routes unassigned open orders to the team owning their product group, members in turn */
-      autoAssign: "/api/admin/shop/dispatch-teams/auto-assign",
+      /** GET / POST — Nhóm điều phối xử lý đơn (BE notice 2026-11-03) */
+      base: "/api/shop/dispatch-groups",
+      detail: (id: string | number) => `/api/shop/dispatch-groups/${id}`,
+      /** POST — Phân đơn còn tồn tự động */
+      assignOrders: "/api/shop/dispatch-groups/assign-orders",
+      autoAssign: "/api/shop/dispatch-groups/assign-orders",
     },
     /** Farmer households / cooperatives supplying products (synced from eco-farm workspaces) */
     farms: "/api/admin/shop/farms",
@@ -109,56 +127,85 @@ export const API_ENDPOINTS = {
     reports: {
       /** ?groupBy=agency|product|group|farm&from=YYYY-MM-DD&to=YYYY-MM-DD&category=&source=all|agency|direct */
       revenue: "/api/admin/shop/reports/revenue",
+      /** GET — Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-03 mục 14) */
+      products: "/api/admin/shop/reports/products",
     },
     farmRegistrations: {
       base: "/api/admin/shop/farm-registrations",
       stats: "/api/admin/shop/farm-registrations/stats",
       /** POST { sku, price, salePrice?, productGroupIds? } — creates the product */
-      approve: (id: string) => `/api/admin/shop/farm-registrations/${id}/approve`,
+      approve: (id: string) =>
+        `/api/admin/shop/farm-registrations/${id}/approve`,
       /** POST { reason } */
       reject: (id: string) => `/api/admin/shop/farm-registrations/${id}/reject`,
     },
     orders: {
-      base: "/api/admin/shop/orders",
-      detail: (id: string) => `/api/admin/shop/orders/${id}`,
-      /** PATCH { status, note? } — note is the cancel reason when cancelling */
-      status: (id: string) => `/api/admin/shop/orders/${id}/status`,
-      /** PATCH { internalNote } */
-      note: (id: string) => `/api/admin/shop/orders/${id}/note`,
-      /** PATCH { carrier, trackingCode } */
-      tracking: (id: string) => `/api/admin/shop/orders/${id}/tracking`,
-      /** PATCH { teamId, assigneeId } */
-      assign: (id: string) => `/api/admin/shop/orders/${id}/assign`,
+      /** GET — Danh sách đơn hàng xử lý (BE notice 2026-11-03) */
+      base: "/api/shop/orders",
+      /** GET — Số lượng đơn theo trạng thái (status-counts) */
+      statusCounts: "/api/shop/orders/status-counts",
+      /** GET — Chi tiết đơn hàng */
+      detail: (id: string | number) => `/api/shop/orders/${id}`,
+      /** PUT { status, reason? } — Cập nhật trạng thái đơn hàng */
+      status: (id: string | number) => `/api/shop/orders/${id}/status`,
+      /** PUT { dispatchGroupId, assigneeUserId, shippingCarrier, trackingCode, internalNote } — Cập nhật thông tin xử lý / điều phối */
+      processing: (id: string | number) => `/api/shop/orders/${id}/processing`,
+      /** Fallback / tương thích cũ */
+      note: (id: string | number) => `/api/shop/orders/${id}/processing`,
+      tracking: (id: string | number) => `/api/shop/orders/${id}/processing`,
+      assign: (id: string | number) => `/api/shop/orders/${id}/processing`,
     },
     /** Yêu cầu liên hệ hợp tác (BE notice 2026-10-28) */
     partnerContactRequests: {
       base: "/api/admin/shop/partner-contact-requests",
-      detail: (id: number | string) => `/api/admin/shop/partner-contact-requests/${id}`,
-      status: (id: number | string) => `/api/admin/shop/partner-contact-requests/${id}/status`,
+      detail: (id: number | string) =>
+        `/api/admin/shop/partner-contact-requests/${id}`,
+      status: (id: number | string) =>
+        `/api/admin/shop/partner-contact-requests/${id}/status`,
     },
-    /** Hồ sơ đối tác & Gian hàng (BE notice 2026-10-28) */
+    /** Hồ sơ đối tác & Gian hàng (BE notice 2026-10-28 & 2026-11-03) */
     partnerProfiles: {
       base: "/api/admin/shop/partner-profiles",
       detail: (id: number | string) => `/api/admin/shop/partner-profiles/${id}`,
-      partnerType: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/partner-type`,
-      suspension: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/suspension`,
-      verification: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/verification`,
-      sync: (id: number | string) => `/api/admin/shop/partner-profiles/${id}/sync`,
+      partnerType: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/partner-type`,
+      suspension: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/suspension`,
+      verification: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/verification`,
+      sync: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/sync`,
       syncAll: "/api/admin/shop/partner-profiles/sync",
+      /** PUT { commissionRate } — Đặt tỷ lệ hoa hồng đại lý/CTV */
+      commission: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/commission`,
+      /** GET — Thẻ số liệu đơn hàng & doanh thu */
+      orderStats: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/order-stats`,
+      /** GET — Tổng hợp hoa hồng */
+      commissionSummary: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/commission-summary`,
+      /** GET / POST — Chi trả hoa hồng & lịch sử chi trả */
+      commissionPayouts: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/commission-payouts`,
+      /** GET — Báo cáo doanh thu đại lý/CTV */
+      report: (id: number | string) =>
+        `/api/admin/shop/partner-profiles/${id}/report`,
     },
     users: {
       /** POST — Cấp tài khoản đối tác */
       shopPartners: "/api/admin/users/shop-partners",
     },
     shops: {
-      base: "/api/admin/shop/shops",
-      detail: (id: string) => `/api/admin/shop/shops/${id}`,
+      base: "/api/center/workspaces",
+      detail: (id: string | number) => `/api/admin/workspaces/${id}`,
       /** The signed-in shop admin's own shop */
-      me: "/api/admin/shop/my-shop",
+      me: "/api/shop/profile",
     },
     reviews: {
       base: "/api/admin/shop/reviews",
       stats: "/api/admin/shop/reviews/stats",
+      summary: "/api/admin/shop/reviews/summary",
       reply: (id: string) => `/api/admin/shop/reviews/${id}/reply`,
       visibility: (id: string) => `/api/admin/shop/reviews/${id}/visibility`,
     },
@@ -167,16 +214,24 @@ export const API_ENDPOINTS = {
       detail: (id: string) => `/api/admin/shop/agencies/${id}`,
       commissions: (id: string) => `/api/admin/shop/agencies/${id}/commissions`,
       /** POST { orderIds } — marks those payable commissions as paid */
-      payout: (id: string) => `/api/admin/shop/agencies/${id}/commissions/payout`,
+      payout: (id: string) =>
+        `/api/admin/shop/agencies/${id}/commissions/payout`,
     },
   },
   shop: {
     profile: {
       base: "/api/shop/profile",
+      orderStats: "/api/shop/profile/order-stats",
+      orders: "/api/shop/profile/orders",
+      commissionSummary: "/api/shop/profile/commission-summary",
+      commissionPayouts: "/api/shop/profile/commission-payouts",
+      report: "/api/shop/profile/report",
       products: "/api/shop/profile/products",
       productOrder: "/api/shop/profile/products/order",
-      productVisibility: (productId: number | string) => `/api/shop/profile/products/${productId}/visibility`,
-      productDelete: (productId: number | string) => `/api/shop/profile/products/${productId}`,
+      productVisibility: (productId: number | string) =>
+        `/api/shop/profile/products/${productId}/visibility`,
+      productDelete: (productId: number | string) =>
+        `/api/shop/profile/products/${productId}`,
     },
     catalog: {
       products: "/api/shop/catalog/products",

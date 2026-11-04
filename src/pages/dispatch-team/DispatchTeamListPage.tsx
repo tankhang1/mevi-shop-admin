@@ -38,22 +38,25 @@ export default function DispatchTeamListPage() {
   const [deleting, setDeleting] = useState<DispatchTeamRow | null>(null);
   const [confirmAuto, setConfirmAuto] = useState(false);
 
-  usePageActions(() => (
-    <>
-      <Button
-        variant="outline"
-        className="px-2.5 md:px-4"
-        onClick={() => setConfirmAuto(true)}
-        aria-label="Tự động phân đơn"
-      >
-        <Wand2 className="h-4 w-4 md:mr-1.5" />
-        <span className="max-md:hidden">Phân đơn còn tồn</span>
-      </Button>
-      <Button onClick={() => navigate(ROUTES.dispatchTeamCreate)}>
-        <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Tạo" : "Tạo nhóm"}
-      </Button>
-    </>
-  ), [isMobile]);
+  usePageActions(
+    () => (
+      <>
+        <Button
+          variant="outline"
+          className="px-2.5 md:px-4"
+          onClick={() => setConfirmAuto(true)}
+          aria-label="Tự động phân đơn"
+        >
+          <Wand2 className="h-4 w-4 md:mr-1.5" />
+          <span className="max-md:hidden">Phân đơn còn tồn</span>
+        </Button>
+        <Button onClick={() => navigate(ROUTES.dispatchTeamCreate)}>
+          <Plus className="mr-1 h-4 w-4" /> {isMobile ? "Tạo" : "Tạo nhóm"}
+        </Button>
+      </>
+    ),
+    [isMobile],
+  );
 
   const fail = (e: unknown) =>
     toast({
@@ -99,36 +102,51 @@ export default function DispatchTeamListPage() {
     {
       key: "memberIds",
       label: "Thành viên",
-      render: (_, t) => (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {t.members.map((m) => (
-            <span
-              key={m.id}
-              className="inline-flex items-center gap-1 rounded-full border py-0.5 pl-0.5 pr-2 text-xs"
-              title={m.name}
-            >
-              <Initials name={m.name} size="h-5 w-5 text-[10px]" />
-              {m.name.split(" ").slice(-1)[0]}
-              {m.id === t.leaderId && (
-                <Crown
-                  className="h-3 w-3 text-amber-500"
-                  aria-label="Trưởng nhóm"
-                />
-              )}
-            </span>
-          ))}
-        </div>
-      ),
+      render: (_, t) => {
+        if (t.members.length > 0) {
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {t.members.map((m) => (
+                <span
+                  key={m.id}
+                  className="inline-flex items-center gap-1 rounded-full border py-0.5 pl-0.5 pr-2 text-xs"
+                  title={m.name}
+                >
+                  <Initials name={m.name} size="h-5 w-5 text-[10px]" />
+                  {m.name.split(" ").slice(-1)[0]}
+                  {m.id === t.leaderId && (
+                    <Crown
+                      className="h-3 w-3 text-amber-500"
+                      aria-label="Trưởng nhóm"
+                    />
+                  )}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return (
+          <span className="text-sm text-muted-foreground">
+            {t.memberCount
+              ? `${t.memberCount} thành viên`
+              : "Chưa có thành viên"}
+          </span>
+        );
+      },
     },
     {
       key: "categories",
       label: "Danh mục phụ trách",
-      render: (_, t) =>
-        t.categories.length ? (
+      render: (_, t) => {
+        const displayCategories =
+          t.categoryObjects && t.categoryObjects.length > 0
+            ? t.categoryObjects.map((c) => c.name)
+            : t.categories;
+        return displayCategories.length ? (
           <div className="flex flex-wrap gap-1">
-            {t.categories.map((c) => (
+            {displayCategories.map((c, idx) => (
               <span
-                key={c}
+                key={idx}
                 className="rounded-full bg-muted px-2 py-0.5 text-xs"
               >
                 {c}
@@ -137,7 +155,8 @@ export default function DispatchTeamListPage() {
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">Chưa gán</span>
-        ),
+        );
+      },
     },
     {
       key: "openOrders",

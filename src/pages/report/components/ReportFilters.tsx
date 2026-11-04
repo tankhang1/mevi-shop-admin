@@ -11,7 +11,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { PRODUCT_CATEGORIES } from "@/features/product";
+import { useCategories } from "@/features/shop-catalog";
 import type { OrderSource } from "@/features/report";
 import {
   PRESETS,
@@ -40,6 +40,15 @@ export function ReportFilters({
   initialShopId,
   showSource = true,
 }: Props) {
+  const { data: categoryData } = useCategories();
+  const categories = Array.isArray(categoryData)
+    ? categoryData
+    : ((
+        categoryData as unknown as {
+          items?: Array<{ id: number | string; name: string }>;
+        }
+      )?.items ?? []);
+
   const set = (patch: Partial<ReportFilterState>) =>
     onChange({ ...f, ...patch });
   const isDefault =
@@ -67,7 +76,11 @@ export function ReportFilters({
       >
         <TabsList className="grid w-full grid-cols-5 md:inline-flex md:w-auto">
           {PRESETS.map((p) => (
-            <TabsTrigger key={p.value} value={p.value} className="px-1 text-xs md:px-3 md:text-sm">
+            <TabsTrigger
+              key={p.value}
+              value={p.value}
+              className="px-1 text-xs md:px-3 md:text-sm"
+            >
               {p.label}
             </TabsTrigger>
           ))}
@@ -114,14 +127,14 @@ export function ReportFilters({
       )}
 
       <Select value={f.category} onValueChange={(v) => set({ category: v })}>
-        <SelectTrigger className="h-9 w-full md:w-40!" aria-label="Danh mục">
-          <SelectValue />
+        <SelectTrigger className="h-9 w-full md:w-44!" aria-label="Danh mục">
+          <SelectValue placeholder="Mọi danh mục" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Mọi danh mục</SelectItem>
-          {PRODUCT_CATEGORIES.map((c) => (
-            <SelectItem key={c} value={c}>
-              {c}
+          {categories.map((c) => (
+            <SelectItem key={c.id} value={String(c.id)}>
+              {c.name}
             </SelectItem>
           ))}
         </SelectContent>

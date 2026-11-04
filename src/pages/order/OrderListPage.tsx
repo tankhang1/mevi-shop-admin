@@ -26,7 +26,10 @@ import {
   countActive,
   isFinalOrderStatus,
   useOrders,
+  useOrderStatusCounts,
   useUpdateOrderStatus,
+  SHIPPING_CARRIERS_MAP,
+  type ShippingCarrier,
 } from "@/features/order";
 import { BackLink } from "@/components/common/BackLink";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -71,6 +74,10 @@ export default function OrderListPage() {
     status: table.params.status as OrderListParams["status"],
     dateField: table.params.dateField as OrderListParams["dateField"],
   });
+  const { data: statusCounts } = useOrderStatusCounts({
+    shopId: table.params.shopId,
+    agencyId: table.params.agencyId,
+  });
   const [filterOpen, setFilterOpen] = useState(false);
   const applyFilters = (next: OrderFilters & { shopId?: string }) => {
     const { onFilterChange } = table.bind(page, isFetching);
@@ -90,7 +97,8 @@ export default function OrderListPage() {
     try {
       await update.mutateAsync({
         id: cancelTarget.id,
-        status: "cancelled",
+        status: "CANCELLED",
+        reason,
         note: reason,
       });
       toast({ title: "Đã huỷ đơn hàng", description: cancelTarget.code });
@@ -132,40 +140,48 @@ export default function OrderListPage() {
     {
       key: "trackingCode",
       label: "Mã vận đơn",
-      render: (_, o) =>
-        o.trackingCode ? (
+      render: (_, o) => {
+        const carrierName =
+          (o.shippingCarrier && SHIPPING_CARRIERS_MAP[o.shippingCarrier as ShippingCarrier]) ||
+          o.shippingCarrier ||
+          o.carrier;
+        return o.trackingCode ? (
           <div className="text-sm">
             <div className="whitespace-nowrap font-mono font-medium">
               {o.trackingCode}
             </div>
-            {o.carrier && (
+            {carrierName && (
               <div className="whitespace-nowrap text-xs text-muted-foreground">
-                {o.carrier}
+                {carrierName}
               </div>
             )}
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
-        ),
+        );
+      },
     },
     {
       key: "teamName",
       label: "Điều phối",
-      render: (_, o) =>
-        o.teamName ? (
+      render: (_, o) => {
+        const tName = o.dispatchGroup?.name ?? o.teamName;
+        const aName = o.assignee?.fullName ?? o.assigneeName;
+        return tName ? (
           <div className="text-sm">
-            <div className="whitespace-nowrap">{o.teamName}</div>
-            {o.assigneeName && (
+            <div className="whitespace-nowrap font-medium">{tName}</div>
+            {aName && (
               <div className="text-xs text-muted-foreground">
-                {o.assigneeName}
+                {aName}
               </div>
             )}
           </div>
         ) : (
-          <span className="whitespace-nowrap text-xs text-amber-700">
-            Chưa phân
+          <span className="whitespace-nowrap text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+            Chưa phân nhóm
           </span>
-        ),
+        );
+      },
     },
     {
       key: "changeStatus",
@@ -178,7 +194,7 @@ export default function OrderListPage() {
             value={o.status}
             onValueChange={(v) => {
               if (v === o.status) return;
-              if (v === "cancelled") setCancelTarget(o);
+              if (v === "CANCELLED" || v === "cancelled") setCancelTarget(o);
               else setPending({ order: o, next: v as OrderStatus });
             }}
             disabled={isFinalOrderStatus(o.status) || update.isPending}
@@ -193,12 +209,13 @@ export default function OrderListPage() {
                   value={s}
                   // Orders only move forward (cancel is always allowed until final)
                   disabled={
+                    s !== "CANCELLED" &&
                     s !== "cancelled" &&
                     s !== o.status &&
                     ORDER_FLOW.indexOf(s) < ORDER_FLOW.indexOf(o.status)
                   }
                 >
-                  {ORDER_STATUS[s].label}
+                  {ORDER_STATUS[s]?.label ?? s}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -248,14 +265,13 @@ export default function OrderListPage() {
           <BackLink to={ROUTES.dispatchTeams} label="Nhóm điều phối" />
         </div>
       )}
-      {isMobile && (
-        <OrderStatusChips
-          value={table.state.filters.status ?? "all"}
-          onChange={(v) =>
-            table.bind(page, isFetching).onFilterChange("status", v)
-          }
-        />
-      )}
+      <OrderStatusChips
+        value={table.state.filters.status ?? "all"}
+        onChange={(v) =>
+          table.bind(page, isFetching).onFilterChange("status", v)
+        }
+        counts={statusCounts}
+      />
       <DataTable
         {...table.bind(page, isFetching)}
         columns={columns}
@@ -267,7 +283,7 @@ export default function OrderListPage() {
           <OrderMobileCard
             order={o}
             helpers={helpers}
-            onDeliver={(order) => setPending({ order, next: "completed" })}
+            onDeliver={(order) => setPending({ order, next: "DELIVERED" })}
             onCancel={setCancelTarget}
           />
         )}

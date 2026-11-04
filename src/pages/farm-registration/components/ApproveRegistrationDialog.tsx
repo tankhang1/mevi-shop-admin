@@ -54,7 +54,7 @@ const skuFrom = (name: string) =>
 function Body({ r, onDone }: { r: FarmRegistration; onDone: () => void }) {
   const { toast } = useToast();
   const approve = useApproveRegistration();
-  const { data: groups } = useProductGroups({ size: 200, shopId: r.shopId });
+  const { data: groups } = useProductGroups({ size: 100, shopId: r.shopId });
   const [sku, setSku] = useState(() => skuFrom(r.name));
   const [price, setPrice] = useState(String(r.proposedPrice));
   const [salePrice, setSalePrice] = useState("");

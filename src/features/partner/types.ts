@@ -44,6 +44,7 @@ export interface PartnerProfile {
   verifiedAt: string | null;
   verifiedByUserId: number | null;
   publiclyVisible: boolean;
+  commissionRate?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,4 +109,78 @@ export interface UpdatePartnerSuspensionInput {
 
 export interface UpdatePartnerVerificationInput {
   verified: boolean;
+}
+
+export interface UpdateCommissionRateInput {
+  commissionRate: number;
+}
+
+export interface PartnerOrderStats {
+  orders: {
+    pending: number;
+    confirmed: number;
+    shipping: number;
+    delivered: number;
+    cancelled: number;
+    total: number;
+  };
+  deliveredRevenue: number;
+  averageOrderValue: number;
+}
+
+export interface PartnerCommissionSummary {
+  commissionRate: number;
+  pendingAmount: number;
+  payableAmount: number;
+  payableOrderCount: number;
+  paidAmount: number;
+}
+
+export interface PartnerCommissionPayout {
+  id: number;
+  storefrontId: number;
+  amount: number;
+  orderCount: number;
+  note?: string | null;
+  paidBy?: { id: number; fullName: string } | null;
+  paidAt: string;
+}
+
+export interface CreatePayoutInput {
+  note?: string;
+}
+
+export interface PartnerReportProductItem {
+  product: {
+    id: number;
+    code: string;
+    title: string;
+    imageUrl?: string;
+  };
+  orderCount: number;
+  quantity: number;
+  revenue: number;
+  share: number;
+}
+
+export interface PartnerReport {
+  totalRevenue: number;
+  totalDeliveredOrders: number;
+  monthRevenue: number;
+  monthDeliveredOrders: number;
+  monthQuantity: number;
+  dataThrough: string;
+  series: { period: string; revenue: number; orderCount: number }[];
+  products: PartnerReportProductItem[];
+  topProducts: {
+    product: { id: number; code: string; title: string; imageUrl?: string };
+    revenue: number[];
+  }[];
+}
+
+export interface GetPartnerReportParams {
+  from?: string;
+  to?: string;
+  granularity?: "DAY" | "WEEK" | "MONTH";
+  categoryId?: number | string;
 }

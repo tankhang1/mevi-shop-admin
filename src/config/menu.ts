@@ -20,6 +20,7 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ROUTES } from "./routes";
 
+// const ONLY_SP_ADMIN: FarmRole[] = ["MEVI_SUPER_ADMIN"];
 const ROOT = ["MEVI_SUPER_ADMIN", "MEVI_ADMIN", "MEVI_SHOP_ADMIN"] as const;
 const AGENT = ["MEVI_SHOP_AGENT"] as const;
 /** Order-processing staff: their own orders and the customers on them */
@@ -31,18 +32,18 @@ const ALL = [...ROOT, ...AGENT];
  * blocks routes listed here for roles that don't have them (isRouteAuthorized).
  */
 export const shopMenu: AdminMenuSection[] = [
-  {
-    title: "Tổng quan",
-    items: [
-      {
-        id: "dashboard",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        href: ROUTES.dashboard,
-        roles: [...ALL],
-      },
-    ],
-  },
+  // {
+  //   title: "Tổng quan",
+  //   items: [
+  //     {
+  //       id: "dashboard",
+  //       label: "Dashboard",
+  //       icon: LayoutDashboard,
+  //       href: ROUTES.dashboard,
+  //       roles: [...ALL],
+  //     },
+  //   ],
+  // },
   {
     title: "Sản phẩm",
     items: [
@@ -151,18 +152,18 @@ export const shopMenu: AdminMenuSection[] = [
       },
     ],
   },
-  {
-    title: "Gian hàng",
-    items: [
-      {
-        id: "my-shop",
-        label: "Thông tin gian hàng",
-        icon: Store,
-        href: ROUTES.myShop,
-        roles: [...AGENT, ...ROOT],
-      },
-    ],
-  },
+  // {
+  //   title: "Gian hàng",
+  //   items: [
+  //     {
+  //       id: "my-shop",
+  //       label: "Thông tin gian hàng",
+  //       icon: Store,
+  //       href: ROUTES.myShop,
+  //       roles: [...AGENT, ...ROOT],
+  //     },
+  //   ],
+  // },
   {
     title: "Đối tác",
     roles: [...ROOT],

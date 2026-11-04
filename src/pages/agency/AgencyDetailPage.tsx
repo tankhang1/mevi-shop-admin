@@ -9,7 +9,6 @@ import {
   Pencil,
   Phone,
   ShoppingBag,
-  Trash2,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -33,12 +32,12 @@ import {
   StatusPill,
 } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { useAgency } from "@/features/agency";
+import { type Agency, type AgencyKind } from "@/features/agency";
 import {
-  type OrderListParams,
-  isFinalOrderStatus,
-  useOrders,
-} from "@/features/order";
+  usePartnerOrderStats,
+  usePartnerProfileDetail,
+} from "@/features/partner";
+import { type OrderListParams, useOrders } from "@/features/order";
 import {
   orderColumns,
   orderFilters,
@@ -48,7 +47,6 @@ import { formatDate, formatVnd } from "@/lib/format";
 import { AgencyActiveToggle } from "./components/AgencyActiveToggle";
 import { AgencyCommissions } from "./components/AgencyCommissions";
 import { AgencyFormDialog } from "./components/AgencyFormDialog";
-import { DeleteAgencyDialog } from "./components/DeleteAgencyDialog";
 import { ShopSalesReport } from "@/pages/report/components/ShopSalesReport";
 
 /** Storefront the agency's referral link points to (?ref={slug}) */
@@ -103,32 +101,48 @@ function StatCard({
 export default function AgencyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const { data: agency, isLoading, isError } = useAgency(id);
+  const { data: partnerDetail, isLoading, isError } =
+    usePartnerProfileDetail(id);
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // All of the agency's orders for the stat cards; the table below pages separately
-  const { data: allOrders } = useOrders({ agencyId: id, size: 10_000 });
+  const profile = partnerDetail?.profile;
+  const agency: Agency | undefined = profile
+    ? {
+        id: String(profile.id),
+        name: profile.name,
+        slug: profile.handle,
+        kind: (profile.partnerType === "AGENCY"
+          ? "agency"
+          : "ctv") as AgencyKind,
+        commissionRate: profile.commissionRate ?? 0,
+        logoUrl: profile.logoUrl || undefined,
+        brandColor: profile.brandColor || "#214c3a",
+        contactName: profile.contactName,
+        phone: profile.contactPhone,
+        email: profile.contactEmail || undefined,
+        active: !profile.suspended,
+        createdAt: profile.createdAt,
+      }
+    : undefined;
+
+  // Thẻ số liệu lấy trực tiếp từ API thống kê đối tác (Mục 13.3)
+  const { data: orderStats } = usePartnerOrderStats(id);
   const table = useTableParams<Pick<OrderListParams, "status">>({
     status: "all",
   });
   const { data: page, isFetching } = useOrders({
     ...table.params,
+    storefrontId: id,
     agencyId: id,
   });
 
   usePageActions(
     () =>
       agency && (
-        <>
-          <Button variant="outline" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-1.5 h-4 w-4 text-destructive" /> Xoá
-          </Button>
-          <Button onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-1.5 h-4 w-4" /> Sửa thông tin
-          </Button>
-        </>
+        <Button onClick={() => setEditOpen(true)}>
+          <Pencil className="mr-1.5 h-4 w-4" /> Sửa thông tin
+        </Button>
       ),
     [agency?.id],
   );
@@ -145,9 +159,6 @@ export default function AgencyDetailPage() {
     );
   }
 
-  const orders = allOrders?.items ?? [];
-  const completed = orders.filter((o) => o.status === "completed");
-  const revenue = completed.reduce((s, o) => s + o.total, 0);
   const color = agency.brandColor || "#214c3a";
   const shareUrl = `${SHOP_URL}/?ref=${agency.slug}`;
 
@@ -288,29 +299,33 @@ export default function AgencyDetailPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Tổng đơn"
-              value={String(orders.length)}
+              value={orderStats ? String(orderStats.orders.total) : "—"}
               note="Qua link giới thiệu"
               icon={ShoppingBag}
             />
             <StatCard
               label="Đã lên đơn"
-              value={String(
-                orders.filter((o) => !isFinalOrderStatus(o.status)).length,
-              )}
+              value={
+                orderStats
+                  ? String(
+                      (orderStats.orders.pending ?? 0) +
+                        (orderStats.orders.confirmed ?? 0) +
+                        (orderStats.orders.shipping ?? 0),
+                    )
+                  : "—"
+              }
               note="Chưa giao hàng"
               icon={Clock3}
             />
             <StatCard
               label="Doanh thu"
-              value={formatVnd(revenue)}
+              value={orderStats ? formatVnd(orderStats.deliveredRevenue) : "—"}
               note="Đơn hoàn tất"
               icon={Banknote}
             />
             <StatCard
               label="Giá trị TB"
-              value={formatVnd(
-                completed.length ? Math.round(revenue / completed.length) : 0,
-              )}
+              value={orderStats ? formatVnd(orderStats.averageOrderValue) : "—"}
               note="Mỗi đơn hoàn tất"
               icon={TrendingUp}
             />
@@ -346,11 +361,6 @@ export default function AgencyDetailPage() {
         open={editOpen}
         onOpenChange={setEditOpen}
         agency={agency}
-      />
-      <DeleteAgencyDialog
-        agency={deleteOpen ? agency : null}
-        onOpenChange={setDeleteOpen}
-        onDeleted={() => navigate(ROUTES.agencies)}
       />
     </div>
   );

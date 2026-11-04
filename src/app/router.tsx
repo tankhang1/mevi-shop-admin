@@ -8,7 +8,7 @@ import { ShopLayout } from "./layouts/ShopLayout";
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const ProfilePage = lazy(() => import("@/pages/account/ProfilePage"));
-const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
+// const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const ProductListPage = lazy(() => import("@/pages/product/ProductListPage"));
 const ProductCreatePage = lazy(
   () => import("@/pages/product/ProductCreatePage"),
@@ -87,11 +87,15 @@ const AgencyDetailRoute = rootOnly(AgencyDetailPage);
 const AgencyReportRoute = rootOnly(AgencyReportPage);
 const PartnerContactListRoute = rootOnly(PartnerContactListPage);
 
-/** Staff work from their order queue; the dashboard shows shop-wide numbers they shouldn't see */
+/** Staff work from their order queue; dashboard is hidden temporarily */
 function DashboardRoute() {
   const { isStaff, isLoading } = useAccess();
   if (isLoading) return <LoadingBlock />;
-  return isStaff ? <Redirect to={ROUTES.orders} replace /> : <DashboardPage />;
+  return isStaff ? (
+    <Redirect to={ROUTES.orders} replace />
+  ) : (
+    <Redirect to={ROUTES.products} replace />
+  );
 }
 
 function ReportsIndexRoute() {
@@ -187,7 +191,7 @@ function ProtectedRoutes() {
             <Route path={ROUTES.shops} component={ShopListRoute} />
             <Route path={ROUTES.profile} component={ProfilePage} />
             <Route>
-              <Redirect to={ROUTES.dashboard} replace />
+              <Redirect to={ROUTES.products} replace />
             </Route>
           </Switch>
         </Suspense>
@@ -202,7 +206,7 @@ export function AppRouter() {
       <Switch>
         <Route path={ROUTES.login}>
           {getAccessToken() ? (
-            <Redirect to={ROUTES.dashboard} replace />
+            <Redirect to={ROUTES.products} replace />
           ) : (
             <LoginPage />
           )}

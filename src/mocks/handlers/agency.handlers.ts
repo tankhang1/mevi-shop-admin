@@ -141,4 +141,163 @@ export const agencyHandlers: MockHandler[] = [
       return { data: null };
     },
   },
+  // ── Partner Profiles Mock Handlers (Mục 13) ──
+  {
+    method: "GET",
+    path: "/api/admin/shop/partner-profiles/:id/order-stats",
+    handle: ({ params }) => {
+      const a = findAgency(params.id);
+      const orders = db.orders.filter((o) => o.agencyId === a.id);
+      const delivered = orders.filter((o) => o.status === "DELIVERED" || o.status === "completed");
+      const rev = delivered.reduce((s, o) => s + o.total, 0);
+
+      return {
+        data: {
+          orders: {
+            pending: orders.filter((o) => o.status === "PENDING" || o.status === "new").length,
+            confirmed: orders.filter((o) => o.status === "CONFIRMED").length,
+            shipping: orders.filter((o) => o.status === "SHIPPING").length,
+            delivered: delivered.length,
+            cancelled: orders.filter((o) => o.status === "CANCELLED" || o.status === "cancelled").length,
+            total: orders.length,
+          },
+          deliveredRevenue: rev,
+          averageOrderValue: delivered.length ? Math.round(rev / delivered.length) : 0,
+        },
+      };
+    },
+  },
+  {
+    method: "GET",
+    path: "/api/admin/shop/partner-profiles/:id/commission-summary",
+    handle: ({ params }) => {
+      const a = findAgency(params.id);
+      const orders = db.orders.filter((o) => o.agencyId === a.id);
+      const rate = a.commissionRate ?? 8;
+
+      let pendingAmount = 0;
+      let payableAmount = 0;
+      let payableOrderCount = 0;
+      let paidAmount = 0;
+
+      for (const o of orders) {
+        const amt = Math.round((o.total * (o.commissionRate ?? rate)) / 100);
+        if (o.commissionPaidAt) {
+          paidAmount += amt;
+        } else if (o.status === "DELIVERED" || o.status === "completed") {
+          payableAmount += amt;
+          payableOrderCount++;
+        } else if (o.status !== "CANCELLED" && o.status !== "cancelled") {
+          pendingAmount += amt;
+        }
+      }
+
+      return {
+        data: {
+          commissionRate: rate,
+          pendingAmount,
+          payableAmount,
+          payableOrderCount,
+          paidAmount,
+        },
+      };
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/admin/shop/partner-profiles/:id/commission-payouts",
+    handle: ({ params, body }: { params: Record<string, string>; body?: { note?: string } }) => {
+      const a = findAgency(params.id);
+      const now = new Date().toISOString();
+      let count = 0;
+      let amount = 0;
+
+      for (const o of db.orders) {
+        if (o.agencyId !== a.id || o.commissionPaidAt) continue;
+        if (o.status === "DELIVERED" || o.status === "completed") {
+          o.commissionPaidAt = now;
+          count++;
+          amount += Math.round((o.total * (o.commissionRate ?? a.commissionRate)) / 100);
+        }
+      }
+
+      if (!count) throw new HttpError(409, "Không còn hoa hồng nào cần thanh toán");
+
+      return {
+        data: {
+          id: Math.floor(Math.random() * 1000) + 1,
+          storefrontId: Number(a.id) || 9001,
+          amount,
+          orderCount: count,
+          note: body?.note?.trim() || null,
+          paidBy: { id: 1, fullName: "Quản trị viên" },
+          paidAt: now,
+        },
+      };
+    },
+  },
+  {
+    method: "GET",
+    path: "/api/admin/shop/partner-profiles/:id/commission-payouts",
+    handle: () => ({
+      data: [
+        {
+          id: 1,
+          storefrontId: 9001,
+          amount: 178960,
+          orderCount: 3,
+          note: "Chuyển khoản Vietcombank tháng trước",
+          paidBy: { id: 1, fullName: "Lê Chủ Shop" },
+          paidAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+        },
+      ],
+    }),
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/shop/partner-profiles/:id/commission",
+    handle: ({ params, body }: { params: Record<string, string>; body: { commissionRate: number } }) => {
+      const a = findAgency(params.id);
+      if (body.commissionRate < 0 || body.commissionRate > 100) {
+        throw new HttpError(400, "Tỷ lệ hoa hồng không hợp lệ (0-100%)");
+      }
+      a.commissionRate = body.commissionRate;
+      return { data: a };
+    },
+  },
+  {
+    method: "GET",
+    path: "/api/admin/shop/partner-profiles/:id/report",
+    handle: ({ params, query }) => {
+      const a = findAgency(params.id);
+      const orders = db.orders.filter((o) => o.agencyId === a.id && (o.status === "DELIVERED" || o.status === "completed"));
+      const rev = orders.reduce((s, o) => s + o.total, 0);
+
+      return {
+        data: {
+          totalRevenue: rev,
+          totalDeliveredOrders: orders.length,
+          monthRevenue: Math.round(rev * 0.4),
+          monthDeliveredOrders: Math.max(1, Math.round(orders.length * 0.4)),
+          monthQuantity: orders.reduce((s, o) => s + (o.items ?? []).reduce((q, it) => q + it.quantity, 0), 0),
+          dataThrough: new Date().toISOString().slice(0, 10),
+          series: [
+            { period: String(query.from || "2026-10-05"), revenue: Math.round(rev * 0.3), orderCount: 3 },
+            { period: String(query.to || "2026-11-03"), revenue: Math.round(rev * 0.7), orderCount: 7 },
+          ],
+          products: db.products.slice(0, 5).map((p, i) => ({
+            product: { id: p.id, code: p.sku, title: p.name, imageUrl: p.images[0] },
+            orderCount: 4 - i,
+            quantity: 10 + i * 2,
+            revenue: (p.salePrice ?? p.price) * (10 + i * 2),
+            share: 20.0,
+          })),
+          topProducts: db.products.slice(0, 5).map((p) => ({
+            product: { id: p.id, code: p.sku, title: p.name, imageUrl: p.images[0] },
+            revenue: [100000, 200000],
+          })),
+        },
+      };
+    },
+  },
 ];

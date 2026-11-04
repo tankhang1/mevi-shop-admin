@@ -3,9 +3,8 @@ import type { ReactNode } from "react";
 import { useLocation, useParams } from "wouter";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Crown, Plus, Tags, Users, X } from "lucide-react";
+import { Crown, Layers, Plus, Users, X } from "lucide-react";
 import { Button, Input, Label, Textarea, cn, useToast } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import placeholder from "@/assets/images/image-placeholder.webp";
 import { BackLink } from "@/components/common/BackLink";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
@@ -14,10 +13,11 @@ import {
   type DispatchTeamFormValues,
   dispatchTeamSchema,
   useCreateDispatchTeam,
+  useDispatchTeam,
   useDispatchTeams,
   useUpdateDispatchTeam,
 } from "@/features/dispatch-team";
-import { PRODUCT_CATEGORIES, useProducts } from "@/features/product";
+import { useProductGroups } from "@/features/product-group";
 import { useStaffList } from "@/features/staff";
 import { getErrorMessage } from "@/lib/api-error";
 import { Initials } from "@/pages/customer/CustomerListPage";
@@ -28,7 +28,11 @@ const toFormValues = (t?: DispatchTeam): DispatchTeamFormValues => ({
   description: t?.description ?? "",
   memberIds: t?.memberIds ?? [],
   leaderId: t?.leaderId ?? null,
-  categories: t?.categories ?? [],
+  categories:
+    t?.categories && t.categories.length > 0
+      ? t.categories
+      : (t?.categoryObjects?.map((c) => String(c.id)) ?? []),
+  active: t?.active ?? true,
 });
 
 function Section({
@@ -69,10 +73,15 @@ export default function DispatchTeamFormPage() {
   const { id } = useParams<{ id?: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: teamPage, isLoading } = useDispatchTeams({ size: 200 });
-  const team = id ? teamPage?.items.find((t) => t.id === id) : undefined;
-  const { data: staffPage } = useStaffList({ size: 200 });
-  const { data: productPage } = useProducts({ size: 200 });
+  const { data: teamDetail, isLoading: isLoadingDetail } = useDispatchTeam(id);
+  const { data: teamPage, isLoading: isLoadingList } = useDispatchTeams({ size: 100 });
+  const team = teamDetail ?? (id ? teamPage?.items.find((t) => t.id === id) : undefined);
+  const isLoading = id ? (isLoadingDetail && isLoadingList) : false;
+
+  const { data: staffPage } = useStaffList({ size: 100 });
+  const { data: categoryGroupsPage } = useProductGroups({ size: 100 });
+  const categoryGroups = categoryGroupsPage?.items ?? [];
+
   const create = useCreateDispatchTeam();
   const update = useUpdateDispatchTeam();
   const [picker, setPicker] = useState<"members" | "categories" | null>(null);
@@ -84,21 +93,22 @@ export default function DispatchTeamFormPage() {
     control,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<DispatchTeamFormValues>({ resolver: zodResolver(dispatchTeamSchema), defaultValues: toFormValues() });
+  } = useForm<DispatchTeamFormValues>({
+    resolver: zodResolver(dispatchTeamSchema),
+    defaultValues: toFormValues(),
+  });
 
   useEffect(() => {
     if (team) reset(toFormValues(team));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team?.id, reset]);
+  }, [team, reset]);
 
   const memberIds = useWatch({ control, name: "memberIds" });
   const leaderId = useWatch({ control, name: "leaderId" });
   const categories = useWatch({ control, name: "categories" });
 
   // Locked accounts can't work orders
-  const staff = (staffPage?.items ?? []).filter((s) => s.status !== "disabled" || memberIds.includes(s.id));
+  const staff = (staffPage?.items ?? []).filter((s) => s.status !== "disabled" && s.status !== "inactive" || memberIds.includes(s.id));
   const otherTeams = (teamPage?.items ?? []).filter((t) => t.id !== id);
-  const products = productPage?.items ?? [];
 
   const memberItems: PickerItem[] = staff.map((s) => {
     const current = otherTeams.find((t) => t.memberIds.includes(s.id));
@@ -112,19 +122,16 @@ export default function DispatchTeamFormPage() {
     };
   });
 
-  const categoryItems: PickerItem[] = PRODUCT_CATEGORIES.map((c) => {
-    const inCat = products.filter((p) => p.category === c);
-    const owner = otherTeams.find((t) => t.categories.includes(c));
+  const categoryItems: PickerItem[] = categoryGroups.map((c) => {
+    const owner = otherTeams.find((t) => t.categories.includes(c.id));
     return {
-      id: c,
-      title: c,
-      subtitle: `${inCat.length} sản phẩm`,
+      id: c.id,
+      title: c.name,
+      subtitle: `${c.productCount ?? 0} sản phẩm`,
       media: (
-        <img
-          src={inCat.find((p) => p.images[0])?.images[0] || placeholder}
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-lg border object-cover"
-        />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/30 text-muted-foreground">
+          <Layers className="h-5 w-5" />
+        </div>
       ),
       note: owner ? `Đã thuộc ${owner.name}` : undefined,
       disabled: !!owner,
@@ -139,10 +146,25 @@ export default function DispatchTeamFormPage() {
   const onSubmit = async (data: DispatchTeamFormValues) => {
     try {
       if (team) {
-        await update.mutateAsync({ id: team.id, data });
+        await update.mutateAsync({
+          id: team.id,
+          data: {
+            name: data.name,
+            description: data.description,
+            memberUserIds: data.memberIds.map(Number).filter((n) => Number.isFinite(n) && n > 0),
+            leaderUserId: data.leaderId ? Number(data.leaderId) : null,
+            categoryIds: data.categories.map(Number).filter((n) => Number.isFinite(n) && n > 0),
+          },
+        });
         toast({ title: "Đã lưu nhóm điều phối", description: data.name });
       } else {
-        await create.mutateAsync(data);
+        await create.mutateAsync({
+          name: data.name,
+          description: data.description,
+          memberUserIds: data.memberIds.map(Number).filter((n) => Number.isFinite(n) && n > 0),
+          leaderUserId: data.leaderId ? Number(data.leaderId) : null,
+          categoryIds: data.categories.map(Number).filter((n) => Number.isFinite(n) && n > 0),
+        });
         toast({ title: "Đã tạo nhóm điều phối", description: data.name });
       }
       navigate(ROUTES.dispatchTeams);
@@ -177,7 +199,7 @@ export default function DispatchTeamFormPage() {
       </section>
 
       <Section
-        icon={<Tags className="h-4 w-4" />}
+        icon={<Layers className="h-4 w-4" />}
         title="Danh mục sản phẩm phụ trách"
         hint="Áp dụng cho mọi gian hàng. Đơn có sản phẩm thuộc các danh mục này được tự động giao lần lượt cho từng thành viên."
         action={

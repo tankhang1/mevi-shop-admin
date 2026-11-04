@@ -10,7 +10,15 @@ import { LoadingBlock } from "./ui-bits";
  * Page-level guard. The backend already rejects these calls (403); this just shows
  * a clear message instead of a page full of errors when someone opens the URL directly.
  */
-export function RequireRole({ root, shopAdmin, children }: { root?: boolean; shopAdmin?: boolean; children: ReactNode }) {
+export function RequireRole({
+  root,
+  shopAdmin,
+  children,
+}: {
+  root?: boolean;
+  shopAdmin?: boolean;
+  children: ReactNode;
+}) {
   const { isRoot, isShopAdmin, isLoading } = useAccess();
   if (isLoading) return <LoadingBlock />;
   if ((root && isRoot) || (shopAdmin && isShopAdmin)) return <>{children}</>;
@@ -22,10 +30,12 @@ export function RequireRole({ root, shopAdmin, children }: { root?: boolean; sho
         </span>
         <h2 className="text-lg font-semibold">Không có quyền truy cập</h2>
         <p className="text-sm text-muted-foreground">
-          {root ? "Trang này chỉ dành cho quản trị viên Mevi." : "Trang này chỉ dành cho chủ gian hàng."}
+          {root
+            ? "Trang này chỉ dành cho quản trị viên Mevi."
+            : "Trang này chỉ dành cho chủ gian hàng."}
         </p>
         <Button asChild variant="outline">
-          <Link href={ROUTES.dashboard}>Về tổng quan</Link>
+          <Link href={ROUTES.products}>Về trang sản phẩm</Link>
         </Button>
       </CardContent>
     </Card>

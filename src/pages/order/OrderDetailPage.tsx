@@ -98,7 +98,7 @@ export default function OrderDetailPage() {
 
   const changeStatus = async (status: typeof order.status, reason?: string) => {
     try {
-      await update.mutateAsync({ id: order.id, status, note: reason });
+      await update.mutateAsync({ id: order.id, status, reason, note: reason });
       toast({
         title: "Đã cập nhật đơn hàng",
         description: `${order.code} → ${ORDER_STATUS[status].label}`,
@@ -129,8 +129,11 @@ export default function OrderDetailPage() {
     }
   };
 
-  const subtotal = order.items.reduce((s, it) => s + it.quantity * it.price, 0);
-  const units = order.items.reduce((s, it) => s + it.quantity, 0);
+  const subtotal = (order.items ?? []).reduce(
+    (s, it) => s + it.quantity * (it.unitPrice ?? it.price ?? 0),
+    0,
+  );
+  const units = (order.items ?? []).reduce((s, it) => s + it.quantity, 0);
   const noteValue = note ?? order.internalNote ?? "";
 
   const buyerPhone = order.customerPhone ?? order.recipientPhone;
@@ -163,32 +166,62 @@ export default function OrderDetailPage() {
 
           <Section title="Sản phẩm" aside={`${units} món`}>
             <ul className="-my-3 divide-y">
-              {order.items.map((it) => (
-                <li key={it.productId} className="flex items-center gap-3 py-3">
-                  <img
-                    src={it.image || placeholder}
-                    alt=""
-                    className="h-12 w-12 shrink-0 rounded-lg border object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={ROUTES.productDetail(it.productId)}
-                      className="line-clamp-1 text-sm font-medium hover:underline"
-                    >
-                      {it.name}
-                    </Link>
-                    <div className="flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
-                      {it.sku && <span className="font-mono">{it.sku}</span>}
-                      <span className="whitespace-nowrap">
-                        {formatVnd(it.price)} × {it.quantity}
-                      </span>
+              {(order.items ?? []).map((it, idx) => {
+                const pId = it.product?.id ? String(it.product.id) : it.productId;
+                const title = it.product?.title ?? it.name ?? "Sản phẩm";
+                const img = it.product?.imageUrl ?? it.image ?? placeholder;
+                const sku = it.sku ?? it.product?.code;
+                const price = it.unitPrice ?? it.price ?? 0;
+                const lineTotal = it.lineTotal ?? price * it.quantity;
+                const variantTitle = it.variant?.title;
+                const unitText = it.baseUnit?.toUpperCase();
+
+                return (
+                  <li key={it.id ?? `${pId}-${idx}`} className="flex items-center gap-3 py-3">
+                    <img
+                      src={img}
+                      alt=""
+                      className="h-12 w-12 shrink-0 rounded-lg border object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      {pId ? (
+                        <Link
+                          href={ROUTES.productDetail(pId)}
+                          className="line-clamp-1 text-sm font-medium hover:underline"
+                        >
+                          {title}
+                        </Link>
+                      ) : (
+                        <span className="line-clamp-1 text-sm font-medium">{title}</span>
+                      )}
+                      <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground mt-0.5">
+                        {sku && <span className="font-mono">{sku}</span>}
+                        {variantTitle && (
+                          <span className="rounded bg-muted px-1.5 py-0.2 text-[11px] font-medium text-foreground">
+                            {variantTitle}
+                          </span>
+                        )}
+                        {!variantTitle && unitText && (
+                          <span className="rounded bg-emerald-50 text-emerald-800 px-1.5 py-0.2 text-[11px] font-medium border border-emerald-200">
+                            ĐVT: {unitText}
+                          </span>
+                        )}
+                        <span className="whitespace-nowrap">
+                          {formatVnd(price)} × {it.quantity}
+                        </span>
+                      </div>
+                      {it.allocation && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Trừ tồn: {it.allocation.variantQuantity ?? 0} quy cách + {it.allocation.unitQuantity ?? 0} {unitText || "đơn vị"}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="whitespace-nowrap text-sm font-semibold tabular-nums">
-                    {formatVnd(it.price * it.quantity)}
-                  </div>
-                </li>
-              ))}
+                    <div className="whitespace-nowrap text-sm font-semibold tabular-nums">
+                      {formatVnd(lineTotal)}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </Section>
 
@@ -202,15 +235,17 @@ export default function OrderDetailPage() {
                       href={ROUTES.customerDetail(order.customerId)}
                       className="font-medium text-primary hover:underline"
                     >
-                      {order.customerName ?? order.recipientName}
+                      {order.customer?.fullName ?? order.customerName ?? order.recipient?.name ?? order.recipientName}
                     </Link>
                   ) : (
-                    <span className="font-medium">{order.customerName ?? order.recipientName}</span>
+                    <span className="font-medium">
+                      {order.customer?.fullName ?? order.customerName ?? order.recipient?.name ?? order.recipientName}
+                    </span>
                   )}
                 </Field>
-                {order.customerCode && (
+                {(order.customer?.code || order.customerCode) && (
                   <Field label="Mã khách hàng">
-                    <span className="font-mono">{order.customerCode}</span>
+                    <span className="font-mono">{order.customer?.code ?? order.customerCode}</span>
                   </Field>
                 )}
                 <Field label="Số điện thoại">
@@ -218,7 +253,9 @@ export default function OrderDetailPage() {
                     {buyerPhone}
                   </a>
                 </Field>
-                {order.customerEmail && <Field label="Email">{order.customerEmail}</Field>}
+                {(order.customer?.email || order.customerEmail) && (
+                  <Field label="Email">{order.customer?.email ?? order.customerEmail}</Field>
+                )}
               </div>
 
               <div className="space-y-3 p-4 sm:p-5">
@@ -231,21 +268,23 @@ export default function OrderDetailPage() {
                   )}
                 </h3>
                 <Field label="Người nhận">
-                  <span className="font-medium">{order.recipientName}</span>
+                  <span className="font-medium">{order.recipient?.name ?? order.recipientName}</span>
                   {" · "}
-                  <a href={`tel:${order.recipientPhone}`} className="text-primary hover:underline">
-                    {order.recipientPhone}
+                  <a href={`tel:${order.recipient?.phone ?? order.recipientPhone}`} className="text-primary hover:underline">
+                    {order.recipient?.phone ?? order.recipientPhone}
                   </a>
                 </Field>
                 <Field label="Địa chỉ">
-                  {order.street ?? order.address}
-                  {order.ward && order.province && (
+                  {order.recipient?.addressLine ?? order.street ?? order.address}
+                  {(order.recipient?.district || order.ward) && (order.recipient?.province || order.province) && (
                     <span className="block text-muted-foreground">
-                      {order.ward}, {order.province}
+                      {order.recipient?.district ?? order.ward}, {order.recipient?.province ?? order.province}
                     </span>
                   )}
                 </Field>
-                {order.deliveryNote && <Field label="Lời nhắn">{order.deliveryNote}</Field>}
+                {(order.note || order.deliveryNote) && (
+                  <Field label="Lời nhắn">{order.note ?? order.deliveryNote}</Field>
+                )}
                 {order.deliveredAt && <Field label="Đã giao lúc">{formatDate(order.deliveredAt)}</Field>}
               </div>
             </CardContent>
@@ -292,28 +331,36 @@ export default function OrderDetailPage() {
                 <dd className="text-lg font-bold tabular-nums text-primary">{formatVnd(order.total)}</dd>
               </div>
             </dl>
-            {(isRoot || order.agencyName) && (
+            {(isRoot || order.storefront || order.agencyName) && (
               <dl className="mt-4 space-y-2 border-t pt-4 text-sm">
                 {isRoot && (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Gian hàng</dt>
+                    <dt className="text-muted-foreground">Gian hàng Mevi</dt>
                     <dd className="text-right font-medium">{order.shopName ?? "—"}</dd>
                   </div>
                 )}
-                {order.agencyName && (
+                {(order.storefront || order.agencyName) && (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Đại lý</dt>
+                    <dt className="text-muted-foreground">Đại lý / CTV</dt>
                     <dd className="text-right">
-                      {isRoot && order.agencyId ? (
+                      {isRoot && (order.storefront?.id || order.agencyId) ? (
                         <Link
-                          href={ROUTES.agencyDetail(order.agencyId)}
+                          href={ROUTES.agencyDetail(String(order.storefront?.id ?? order.agencyId))}
                           className="font-medium text-primary hover:underline"
                         >
-                          {order.agencyName}
+                          {order.storefront?.name ?? order.agencyName}
                         </Link>
                       ) : (
-                        <span className="font-medium">{order.agencyName}</span>
+                        <span className="font-medium">{order.storefront?.name ?? order.agencyName}</span>
                       )}
+                    </dd>
+                  </div>
+                )}
+                {order.commission && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Hoa hồng ({order.commission.rate}%)</dt>
+                    <dd className="text-right font-medium text-emerald-800 tabular-nums">
+                      {formatVnd(order.commission.amount)}
                     </dd>
                   </div>
                 )}

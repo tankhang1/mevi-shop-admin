@@ -23,7 +23,9 @@ export interface Review {
 export interface ReviewListParams extends ListParams {
   rating?: "all" | "1" | "2" | "3" | "4" | "5";
   replied?: "all" | "yes" | "no";
+  hidden?: boolean;
   productId?: string;
+  keyword?: string;
 }
 
 export interface ReviewStats {
@@ -33,4 +35,17 @@ export interface ReviewStats {
   distribution: [number, number, number, number, number];
   unreplied: number;
   hidden: number;
+}
+
+export interface ReviewStarDistribution {
+  stars: number;
+  count: number;
+}
+
+/** Số liệu màn Đánh giá khách hàng (BE notice 2026-11-03 mục 7.5) */
+export interface ReviewSummary {
+  ratingAverage: number | null;
+  ratingCount: number;
+  ratingDistribution: ReviewStarDistribution[];
+  unrepliedCount: number;
 }

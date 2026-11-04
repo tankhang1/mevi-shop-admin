@@ -12,7 +12,7 @@ export const orderColumns: Column<Order>[] = [
     mobilePriority: "primary",
     render: (_, o) => (
       <div>
-        <div className="font-medium">{o.code}</div>
+        <div className="font-medium font-mono">{o.code}</div>
         <div className="text-xs text-muted-foreground">{formatDate(o.createdAt)}</div>
       </div>
     ),
@@ -21,29 +21,42 @@ export const orderColumns: Column<Order>[] = [
     key: "customerName",
     label: "Khách hàng",
     mobilePriority: "secondary",
-    render: (_, o) => (
-      <div className="whitespace-nowrap">
-        <div>{o.customerName ?? o.recipientName}</div>
-        <div className="text-xs text-muted-foreground">
-          {o.customerCode && <span className="font-mono">{o.customerCode} · </span>}
-          {o.customerPhone ?? o.recipientPhone}
+    render: (_, o) => {
+      const name = o.customer?.fullName ?? o.customerName ?? o.recipient?.name ?? o.recipientName ?? "—";
+      const code = o.customer?.code ?? o.customerCode;
+      const phone = o.customer?.phoneNumber ?? o.customerPhone ?? o.recipient?.phone ?? o.recipientPhone;
+      return (
+        <div className="whitespace-nowrap">
+          <div>{name}</div>
+          <div className="text-xs text-muted-foreground">
+            {code && <span className="font-mono">{code} · </span>}
+            {phone}
+          </div>
         </div>
-      </div>
-    ),
+      );
+    },
   },
   {
     key: "address",
     label: "Giao đến",
-    render: (_, o) => (
-      <div className="min-w-52 text-sm">
-        <div>
-          {o.recipientName} · <span className="text-muted-foreground">{o.recipientPhone}</span>
+    render: (_, o) => {
+      const recipientName = o.recipient?.name ?? o.recipientName ?? "—";
+      const recipientPhone = o.recipient?.phone ?? o.recipientPhone ?? "";
+      const address =
+        o.recipient?.addressLine ||
+        (o.recipient?.district && o.recipient?.province
+          ? `${o.recipient.district}, ${o.recipient.province}`
+          : o.address || "—");
+
+      return (
+        <div className="min-w-52 text-sm">
+          <div>
+            {recipientName} {recipientPhone && <span className="text-muted-foreground">· {recipientPhone}</span>}
+          </div>
+          <div className="text-xs text-muted-foreground line-clamp-1">{address}</div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          {o.ward && o.province ? `${o.ward}, ${o.province}` : o.address}
-        </div>
-      </div>
-    ),
+      );
+    },
   },
   {
     key: "total",
@@ -55,7 +68,10 @@ export const orderColumns: Column<Order>[] = [
     key: "status",
     label: "Trạng thái",
     mobilePriority: "badge",
-    render: (v) => <StatusPill {...ORDER_STATUS[v as OrderStatus]} />,
+    render: (v) => {
+      const cfg = ORDER_STATUS[v as OrderStatus] ?? { label: String(v), className: "bg-muted" };
+      return <StatusPill label={cfg.label} className={cfg.className} />;
+    },
   },
 ];
 

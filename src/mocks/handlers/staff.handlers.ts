@@ -9,7 +9,18 @@ const EP = API_ENDPOINTS.admin.staff;
 const teamOf = (id: string) => db.dispatchTeams.find((t) => t.memberIds.includes(id));
 const withShop = (s: Staff): Staff => {
   const team = teamOf(s.id);
-  return { ...s, teamId: team?.id ?? null, teamName: team?.name ?? null };
+  const fullName = s.fullName || s.name || "Nhân viên";
+  const phoneNumber = s.phoneNumber || s.phone || "0900000000";
+  return {
+    ...s,
+    fullName,
+    name: fullName,
+    phoneNumber,
+    phone: phoneNumber,
+    code: s.code ?? `U00000${s.id.replace(/\D/g, "") || "10"}`,
+    teamId: team?.id ?? null,
+    teamName: team?.name ?? null,
+  };
 };
 
 /** A staff member belongs to at most one team: drop them from every other team, then add to `teamId` */
@@ -61,6 +72,23 @@ export const staffHandlers: MockHandler[] = [
     },
   },
   {
+    method: "PUT",
+    path: `${EP.base}/:id`,
+    handle: ({ params }) => {
+      const s = findOwned(params.id);
+      return { data: withShop(s) };
+    },
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/users/:id/status",
+    handle: ({ params, body }: { params: Record<string, string>; body: { status: "active" | "inactive" } }) => {
+      const s = findOwned(params.id);
+      s.status = body.status === "inactive" ? "disabled" : "active";
+      return { data: withShop(s) };
+    },
+  },
+  {
     method: "POST",
     path: EP.base,
     handle: ({ body }: { body: StaffInput }) => {
@@ -71,7 +99,7 @@ export const staffHandlers: MockHandler[] = [
         id: uid("st"),
         name: body.name.trim(),
         phone: body.phone.trim(),
-        email: body.email.trim(),
+        email: (body.email || "").trim(),
         ...profileOf(body),
         // Nhân viên điều phối: handle orders and the customers on them
         role: "sales",

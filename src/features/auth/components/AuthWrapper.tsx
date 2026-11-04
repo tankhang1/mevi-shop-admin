@@ -38,10 +38,13 @@ async function handleCallback() {
   // Priority: ?redirect / ?redirect_url → path saved before login → dashboard
   const params = new URLSearchParams(window.location.search);
   const saved = authApi.takeRedirect();
-  let target = [params.get("redirect"), params.get("redirect_url"), saved].find(isSafeRedirect) ?? null;
+  let target =
+    [params.get("redirect"), params.get("redirect_url"), saved].find(
+      isSafeRedirect,
+    ) ?? null;
   if (target && isRootOnlyPath(target) && !isRoot) target = null;
 
-  window.location.replace(target ?? ROUTES.dashboard);
+  window.location.replace(target ?? ROUTES.products);
 }
 
 /** Handles the SSO callback; sends users without a token straight to SSO */
@@ -54,7 +57,8 @@ export function AuthWrapper({ children }: { children: ReactNode }) {
       void handleCallback();
       return;
     }
-    const current = window.location.pathname + window.location.search + window.location.hash;
+    const current =
+      window.location.pathname + window.location.search + window.location.hash;
     if (isSafeRedirect(current)) authApi.saveRedirect(current);
     authApi.startLogin();
   }, [isReady]);

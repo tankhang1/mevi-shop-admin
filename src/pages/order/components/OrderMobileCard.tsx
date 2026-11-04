@@ -1,4 +1,4 @@
-import { Check, MapPin, Network, Package, Phone, Truck, X } from "lucide-react";
+import { Check, MapPin, Network, Package, Truck, X } from "lucide-react";
 import { type MobileCardHelpers, cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
 import { ORDER_STATUS, type Order, isFinalOrderStatus } from "@/features/order";
@@ -11,46 +11,75 @@ interface Props {
   onCancel: (o: Order) => void;
 }
 
-/** Mobile order card: who/where/how much at a glance, quick actions for open orders */
+/** Mobile order card: hiển thị gọn gàng, thao tác nhanh */
 export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Props) {
   const open = !isFinalOrderStatus(o.status);
   const units = (o.items ?? []).reduce((s, it) => s + it.quantity, 0);
 
+  const customerName =
+    o.customer?.fullName ?? o.customerName ?? o.recipient?.name ?? o.recipientName ?? "—";
+  const customerCode = o.customer?.code ?? o.customerCode;
+  const recipientName = o.recipient?.name ?? o.recipientName;
+  const address =
+    o.recipient?.addressLine ||
+    (o.recipient?.district && o.recipient?.province
+      ? `${o.recipient.district}, ${o.recipient.province}`
+      : o.address || "—");
+  const dispatchName = o.dispatchGroup?.name ?? o.teamName;
+  const assigneeName = o.assignee?.fullName ?? o.assigneeName;
+
+  const statusCfg = ORDER_STATUS[o.status] ?? {
+    label: String(o.status),
+    className: "bg-muted",
+  };
+
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border bg-card shadow-sm",
+        "overflow-hidden rounded-2xl border bg-card shadow-xs",
         open && "border-l-4 border-l-sky-500",
       )}
     >
-      <button type="button" onClick={helpers.onView} className="block w-full space-y-2 p-3.5 text-left active:bg-muted/50">
+      <button
+        type="button"
+        onClick={helpers.onView}
+        className="block w-full space-y-2 p-3.5 text-left active:bg-muted/50"
+      >
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm font-bold">{o.code}</span>
-          <StatusPill {...ORDER_STATUS[o.status]} />
-          <span className="ml-auto text-[11px] text-muted-foreground">{formatDate(o.createdAt)}</span>
+          <StatusPill label={statusCfg.label} className={statusCfg.className} />
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {formatDate(o.createdAt)}
+          </span>
         </div>
 
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0 space-y-0.5">
-            <p className="truncate font-semibold">
-              {o.customerName ?? o.recipientName}
-              {o.customerCode && <span className="ml-1 font-mono text-[11px] font-normal text-muted-foreground">{o.customerCode}</span>}
+            <p className="truncate font-semibold text-sm">
+              {customerName}
+              {customerCode && (
+                <span className="ml-1 font-mono text-[11px] font-normal text-muted-foreground">
+                  {customerCode}
+                </span>
+              )}
             </p>
             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
               <MapPin className="h-3 w-3 shrink-0" />
-              {o.recipientName !== (o.customerName ?? o.recipientName) && `${o.recipientName} · `}
-              {o.ward && o.province ? `${o.ward}, ${o.province}` : o.address}
+              {recipientName && recipientName !== customerName && `${recipientName} · `}
+              {address}
             </p>
             {o.trackingCode && (
               <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 <Truck className="h-3 w-3 shrink-0" />
-                <span className="font-mono text-foreground">{o.trackingCode}</span>
-                {o.carrier && ` · ${o.carrier}`}
+                <span className="font-mono text-foreground font-medium">{o.trackingCode}</span>
+                {o.shippingCarrier && ` · ${o.shippingCarrier}`}
               </p>
             )}
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-base font-bold tabular-nums text-primary">{formatVnd(o.total)}</p>
+            <p className="text-base font-bold tabular-nums text-primary">
+              {formatVnd(o.total)}
+            </p>
             {units > 0 && (
               <p className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
                 <Package className="h-3 w-3" /> {units} sản phẩm
@@ -59,40 +88,32 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
           </div>
         </div>
 
-        {o.teamName && (
+        {dispatchName && (
           <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Network className="h-3 w-3" /> {o.teamName}
-            {o.assigneeName && ` · ${o.assigneeName}`}
+            <Network className="h-3 w-3" /> {dispatchName}
+            {assigneeName && ` · ${assigneeName}`}
           </p>
         )}
       </button>
 
-      <div className="flex items-center gap-2 border-t bg-muted/30 px-3 py-2">
-        <a
-          href={`tel:${o.recipientPhone}`}
-          className="flex items-center gap-1.5 text-xs font-medium text-primary"
-        >
-          <Phone className="h-3.5 w-3.5" /> {o.recipientPhone}
-        </a>
-        {open && (
-          <div className="ml-auto flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => onCancel(o)}
-              className="flex h-8 items-center gap-1 rounded-full border bg-background px-3 text-xs font-medium text-destructive"
-            >
-              <X className="h-3.5 w-3.5" /> Huỷ
-            </button>
-            <button
-              type="button"
-              onClick={() => onDeliver(o)}
-              className="flex h-8 items-center gap-1 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground"
-            >
-              <Check className="h-3.5 w-3.5" /> Đã giao
-            </button>
-          </div>
-        )}
-      </div>
+      {open && (
+        <div className="flex items-center justify-end gap-2 border-t bg-muted/20 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => onCancel(o)}
+            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
+          >
+            <X className="h-3.5 w-3.5" /> Huỷ đơn
+          </button>
+          <button
+            type="button"
+            onClick={() => onDeliver(o)}
+            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700"
+          >
+            <Check className="h-3.5 w-3.5" /> Đã giao
+          </button>
+        </div>
+      )}
     </div>
   );
 }

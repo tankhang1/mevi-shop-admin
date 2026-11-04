@@ -2,16 +2,17 @@ import { Link, useParams } from "wouter";
 import { BackLink } from "@/components/common/BackLink";
 import { EmptyBlock, LoadingBlock, StatusPill } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { AGENCY_KIND, useAgency } from "@/features/agency";
+import { AGENCY_KIND, type Agency, type AgencyKind } from "@/features/agency";
+import { usePartnerProfileDetail } from "@/features/partner";
 import { ShopSalesReport } from "./components/ShopSalesReport";
 
 /** Root drill-down from "Doanh thu theo đại lý / CTV": one partner's referred sales */
 export default function AgencyReportPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: agency, isLoading, isError } = useAgency(id);
+  const { data: partnerDetail, isLoading, isError } = usePartnerProfileDetail(id);
 
   if (isLoading) return <LoadingBlock />;
-  if (isError || !agency) {
+  if (isError || !partnerDetail?.profile) {
     return (
       <EmptyBlock>
         Không tìm thấy đại lý / CTV.{" "}
@@ -21,6 +22,22 @@ export default function AgencyReportPage() {
       </EmptyBlock>
     );
   }
+
+  const profile = partnerDetail.profile;
+  const agency: Agency = {
+    id: String(profile.id),
+    name: profile.name,
+    slug: profile.handle,
+    kind: (profile.partnerType === "AGENCY" ? "agency" : "ctv") as AgencyKind,
+    commissionRate: profile.commissionRate ?? 0,
+    logoUrl: profile.logoUrl || undefined,
+    brandColor: profile.brandColor || "#214c3a",
+    contactName: profile.contactName,
+    phone: profile.contactPhone,
+    email: profile.contactEmail || undefined,
+    active: !profile.suspended,
+    createdAt: profile.createdAt,
+  };
 
   return (
     <div className="space-y-4 sm:space-y-5">

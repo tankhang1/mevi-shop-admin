@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { partnerApi } from "../api/partner.api";
 import type {
+  CreatePayoutInput,
   CreateShopPartnerUserInput,
+  GetPartnerReportParams,
   ListPartnerContactRequestsParams,
   ListPartnerProfilesParams,
+  UpdateCommissionRateInput,
   UpdateContactRequestStatusInput,
   UpdatePartnerSuspensionInput,
   UpdatePartnerTypeInput,
@@ -22,6 +25,14 @@ export const partnerKeys = {
     [...partnerKeys.profiles(), "list", params ?? {}] as const,
   profileDetail: (id: number | string) =>
     [...partnerKeys.profiles(), "detail", String(id)] as const,
+  orderStats: (id: number | string) =>
+    [...partnerKeys.profiles(), "order-stats", String(id)] as const,
+  commissionSummary: (id: number | string) =>
+    [...partnerKeys.profiles(), "commission-summary", String(id)] as const,
+  commissionPayouts: (id: number | string, params?: { page?: number; size?: number }) =>
+    [...partnerKeys.profiles(), "commission-payouts", String(id), params ?? {}] as const,
+  report: (id: number | string, params?: GetPartnerReportParams) =>
+    [...partnerKeys.profiles(), "report", String(id), params ?? {}] as const,
 };
 
 // ── Contact Requests Hooks ──
@@ -155,4 +166,88 @@ export function useUpdatePartnerVerification() {
     },
   });
 }
+
+// ── Hoa hồng, Thống kê & Báo cáo Hooks (Mục 13) ──
+
+export function usePartnerOrderStats(id: number | string | undefined) {
+  return useQuery({
+    queryKey: partnerKeys.orderStats(id ?? ""),
+    queryFn: () => partnerApi.getOrderStats(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePartnerCommissionSummary(id: number | string | undefined) {
+  return useQuery({
+    queryKey: partnerKeys.commissionSummary(id ?? ""),
+    queryFn: () => partnerApi.getCommissionSummary(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePartnerCommissionPayouts(
+  id: number | string | undefined,
+  params?: { page?: number; size?: number },
+) {
+  return useQuery({
+    queryKey: partnerKeys.commissionPayouts(id ?? "", params),
+    queryFn: () => partnerApi.getCommissionPayouts(id!, params),
+    enabled: Boolean(id),
+  });
+}
+
+export function useUpdatePartnerCommissionRate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: number | string;
+      input: UpdateCommissionRateInput;
+    }) => partnerApi.updateCommissionRate(id, input),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.profileDetail(variables.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.commissionSummary(variables.id),
+      });
+    },
+  });
+}
+
+export function useCreatePartnerCommissionPayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: number | string;
+      input?: CreatePayoutInput;
+    }) => partnerApi.createCommissionPayout(id, input),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.commissionSummary(variables.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.commissionPayouts(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+}
+
+export function usePartnerReport(
+  id: number | string | undefined,
+  params?: GetPartnerReportParams,
+) {
+  return useQuery({
+    queryKey: partnerKeys.report(id ?? "", params),
+    queryFn: () => partnerApi.getReport(id!, params),
+    enabled: Boolean(id),
+  });
+}
+
 

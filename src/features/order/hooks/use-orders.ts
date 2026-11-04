@@ -1,12 +1,18 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "@/features/dashboard/hooks/use-dashboard";
 import { orderApi } from "../api/order.api";
-import type { OrderListParams, OrderStatus } from "../types";
+import type {
+  OrderListParams,
+  OrderProcessingInput,
+  OrderStatus,
+} from "../types";
 
 export const orderKeys = {
   all: ["orders"] as const,
   list: (params: OrderListParams) => [...orderKeys.all, "list", params] as const,
-  detail: (id: string) => [...orderKeys.all, "detail", id] as const,
+  statusCounts: (params?: Partial<OrderListParams>) =>
+    [...orderKeys.all, "status-counts", params] as const,
+  detail: (id: string | number) => [...orderKeys.all, "detail", String(id)] as const,
 };
 
 export function useOrders(params: OrderListParams = {}) {
@@ -17,42 +23,89 @@ export function useOrders(params: OrderListParams = {}) {
   });
 }
 
-export function useOrder(id: string | undefined) {
+export function useOrderStatusCounts(params?: Partial<OrderListParams>) {
+  return useQuery({
+    queryKey: orderKeys.statusCounts(params),
+    queryFn: () => orderApi.statusCounts(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useOrder(id: string | number | undefined) {
   return useQuery({
     queryKey: orderKeys.detail(id ?? ""),
     queryFn: () => orderApi.detail(id!),
-    enabled: !!id,
+    enabled: id !== undefined && id !== "",
   });
 }
 
 export function useUpdateOrderNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, internalNote }: { id: string; internalNote: string }) => orderApi.updateNote(id, internalNote),
-    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+    mutationFn: ({ id, internalNote }: { id: string | number; internalNote: string }) =>
+      orderApi.updateNote(id, internalNote),
+    onSuccess: (_, { id }) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+        qc.invalidateQueries({ queryKey: orderKeys.all }),
+      ]),
   });
 }
 
 export function useUpdateOrderTracking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; carrier: string; trackingCode: string }) => orderApi.updateTracking(id, data),
-    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string | number;
+      carrier: string;
+      trackingCode: string;
+    }) => orderApi.updateTracking(id, data),
+    onSuccess: (_, { id }) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+        qc.invalidateQueries({ queryKey: orderKeys.all }),
+      ]),
   });
 }
 
 export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, note }: { id: string; status: OrderStatus; note?: string }) =>
-      orderApi.updateStatus(id, status, note),
+    mutationFn: ({
+      id,
+      status,
+      note,
+      reason,
+    }: {
+      id: string | number;
+      status: OrderStatus;
+      note?: string;
+      reason?: string;
+    }) => orderApi.updateStatus(id, { status, note, reason }),
     onSuccess: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: orderKeys.all }),
         qc.invalidateQueries({ queryKey: dashboardKeys.all }),
-        // "Đã giao hàng" deducts stock → Kho sản phẩm blocks + product stock change
         qc.invalidateQueries({ queryKey: ["inventory"] }),
         qc.invalidateQueries({ queryKey: ["products"] }),
+      ]),
+  });
+}
+
+export function useUpdateOrderProcessing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string | number } & OrderProcessingInput) =>
+      orderApi.updateProcessing(id, data),
+    onSuccess: (_, { id }) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+        qc.invalidateQueries({ queryKey: orderKeys.all }),
+        qc.invalidateQueries({ queryKey: ["dispatch-teams"] }),
+        qc.invalidateQueries({ queryKey: ["dispatch-groups"] }),
       ]),
   });
 }
@@ -60,13 +113,20 @@ export function useUpdateOrderStatus() {
 export function useAssignOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, teamId, assigneeId }: { id: string; teamId: string | null; assigneeId: string | null }) =>
-      orderApi.assign(id, teamId, assigneeId),
-    // Team workload counts change too
+    mutationFn: ({
+      id,
+      teamId,
+      assigneeId,
+    }: {
+      id: string | number;
+      teamId: string | number | null;
+      assigneeId: string | number | null;
+    }) => orderApi.assign(id, teamId ? String(teamId) : null, assigneeId ? String(assigneeId) : null),
     onSuccess: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: orderKeys.all }),
         qc.invalidateQueries({ queryKey: ["dispatch-teams"] }),
+        qc.invalidateQueries({ queryKey: ["dispatch-groups"] }),
       ]),
   });
 }

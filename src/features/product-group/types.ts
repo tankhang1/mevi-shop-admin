@@ -9,8 +9,10 @@ export interface ProductGroup {
   /** Joined by the backend for list/detail views */
   shopName?: string;
   name: string;
+  handle?: string;
   description?: string;
   imageUrl?: string;
+  productCount?: number;
   productIds: string[];
   createdAt: string;
 }
@@ -20,7 +22,10 @@ export interface ProductGroupDetail extends ProductGroup {
   products: Product[];
 }
 
-export type ProductGroupInput = Pick<ProductGroup, "name" | "description" | "imageUrl"> & { shopId?: string };
+export type ProductGroupInput = Pick<
+  ProductGroup,
+  "name" | "description" | "imageUrl"
+> & { shopId?: string };
 
 export interface ProductGroupListParams extends ListParams {
   /** Root only — shop admins are always scoped to their own shop */

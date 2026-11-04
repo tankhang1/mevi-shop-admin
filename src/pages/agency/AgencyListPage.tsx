@@ -1,20 +1,35 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   type Column,
+  type RowAction,
   DataTable,
   type TableFilterDef,
   Badge,
   Button,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { ArrowLeftRight, Ban, CheckCircle2, ShieldCheck, User, UserPlus } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Ban,
+  CheckCircle2,
+  Coins,
+  ShieldCheck,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { RequireRole } from "@/components/common/RequireRole";
+import { ROUTES } from "@/config/routes";
 import {
   type PartnerProfile,
   type PartnerType,
   usePartnerProfiles,
 } from "@/features/partner";
 import { useTableParams } from "@/hooks/useTableParams";
-import { cleanFilters, fromSpringPage, toSpringPageParams } from "@/lib/pagination";
+import {
+  cleanFilters,
+  fromSpringPage,
+  toSpringPageParams,
+} from "@/lib/pagination";
 import { PartnerTypeDialog } from "./components/PartnerTypeDialog";
 import { PartnerSuspensionDialog } from "./components/PartnerSuspensionDialog";
 import { PartnerAccountDetailDialog } from "./components/PartnerAccountDetailDialog";
@@ -40,6 +55,7 @@ const filters: TableFilterDef[] = [
 ];
 
 function PartnerList() {
+  const [, navigate] = useLocation();
   const table = useTableParams<{ partnerType: string; suspended: string }>({
     partnerType: "all",
     suspended: "all",
@@ -61,7 +77,9 @@ function PartnerList() {
   const { data, isFetching } = usePartnerProfiles(queryParams);
   const page = fromSpringPage(data);
 
-  const [selectedPartner, setSelectedPartner] = useState<PartnerProfile | undefined>();
+  const [selectedPartner, setSelectedPartner] = useState<
+    PartnerProfile | undefined
+  >();
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [suspensionDialogOpen, setSuspensionDialogOpen] = useState(false);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
@@ -73,7 +91,12 @@ function PartnerList() {
       label: "Đối tác / Gian hàng",
       mobilePriority: "primary",
       render: (_, p) => (
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.agencyDetail(String(p.id)))}
+          className="flex items-center gap-2.5 text-left group transition hover:opacity-80"
+          title="Bấm để xem chi tiết, hoa hồng và báo cáo"
+        >
           {p.logoUrl ? (
             <img
               src={p.logoUrl}
@@ -89,8 +112,8 @@ function PartnerList() {
             </div>
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-1 font-semibold text-foreground">
-              <span className="truncate">{p.name}</span>
+            <div className="flex items-center gap-1 font-semibold text-foreground group-hover:text-primary">
+              <span className="truncate group-hover:underline">{p.name}</span>
               {p.verified && (
                 <ShieldCheck
                   className="h-3.5 w-3.5 text-sky-600 shrink-0"
@@ -102,7 +125,7 @@ function PartnerList() {
               @{p.handle}
             </div>
           </div>
-        </div>
+        </button>
       ),
     },
     {
@@ -125,7 +148,9 @@ function PartnerList() {
       render: (_, p) => (
         <div className="text-xs">
           <div className="font-medium text-foreground">{p.contactName}</div>
-          <div className="text-muted-foreground font-mono">{p.contactPhone}</div>
+          <div className="text-muted-foreground font-mono">
+            {p.contactPhone}
+          </div>
         </div>
       ),
     },
@@ -143,70 +168,61 @@ function PartnerList() {
             Bị tạm khóa
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300">
+          <Badge
+            variant="outline"
+            className="text-xs text-emerald-600 border-emerald-300"
+          >
             Hoạt động
           </Badge>
         ),
     },
+  ];
+
+  const rowActions: RowAction<PartnerProfile>[] = [
     {
-      key: "actions",
-      label: "Thao tác",
-      render: (_, p) => (
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-2"
-            title="Đổi loại đối tác (CTV / Đại lý)"
-            onClick={() => {
-              setSelectedPartner(p);
-              setTypeDialogOpen(true);
-            }}
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Đổi loại</span>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="ghost"
-            className={`h-8 px-2 ${
-              p.suspended ? "text-emerald-600" : "text-destructive"
-            }`}
-            title={p.suspended ? "Mở lại hoạt động" : "Tạm khóa đối tác"}
-            onClick={() => {
-              setSelectedPartner(p);
-              setSuspensionDialogOpen(true);
-            }}
-          >
-            {p.suspended ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                <span className="text-xs">Mở lại</span>
-              </>
-            ) : (
-              <>
-                <Ban className="h-3.5 w-3.5 mr-1" />
-                <span className="text-xs">Tạm khóa</span>
-              </>
-            )}
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 px-2"
-            title="Xem thông tin tài khoản chủ sở hữu"
-            onClick={() => {
-              setSelectedPartner(p);
-              setAccountDialogOpen(true);
-            }}
-          >
-            <User className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Tài khoản</span>
-          </Button>
-        </div>
-      ),
+      key: "detail",
+      label: "Hoa hồng & Chi tiết",
+      icon: Coins,
+      onClick: (p) => navigate(ROUTES.agencyDetail(String(p.id))),
+    },
+    {
+      key: "type",
+      label: "Đổi loại đối tác",
+      icon: ArrowLeftRight,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setTypeDialogOpen(true);
+      },
+    },
+    {
+      key: "suspend",
+      label: "Tạm khóa",
+      icon: Ban,
+      destructive: true,
+      hidden: (p) => p.suspended,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setSuspensionDialogOpen(true);
+      },
+    },
+    {
+      key: "resume",
+      label: "Mở lại hoạt động",
+      icon: CheckCircle2,
+      hidden: (p) => !p.suspended,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setSuspensionDialogOpen(true);
+      },
+    },
+    {
+      key: "account",
+      label: "Tài khoản đăng nhập",
+      icon: User,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setAccountDialogOpen(true);
+      },
     },
   ];
 
@@ -216,7 +232,8 @@ function PartnerList() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Quản lý Đối tác</h1>
           <p className="text-sm text-muted-foreground">
-            Danh sách Cộng tác viên (CTV) và Đại lý bán hàng trong hệ sinh thái Mevi Shop
+            Danh sách Cộng tác viên (CTV) và Đại lý bán hàng trong hệ sinh thái
+            Mevi Shop
           </p>
         </div>
         <Button onClick={() => setCreateAccountOpen(true)}>
@@ -231,6 +248,7 @@ function PartnerList() {
         filters={filters}
         searchPlaceholder="Tìm theo tên gian hàng, handle, người đại diện, SĐT..."
         enableMobileCard
+        rowActions={rowActions}
       />
 
       <PartnerTypeDialog

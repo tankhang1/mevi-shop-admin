@@ -23,6 +23,7 @@ import {
   useUpdateAgency,
   DEFAULT_COMMISSION_RATE,
 } from "@/features/agency";
+import { useUpdatePartnerCommissionRate } from "@/features/partner";
 import { getErrorMessage } from "@/lib/api-error";
 
 interface Props {
@@ -63,6 +64,7 @@ export function AgencyFormDialog({ open, onOpenChange, agency }: Props) {
   const { toast } = useToast();
   const create = useCreateAgency();
   const update = useUpdateAgency();
+  const updateCommissionRate = useUpdatePartnerCommissionRate();
   const isEdit = !!agency;
   const {
     register,
@@ -90,6 +92,12 @@ export function AgencyFormDialog({ open, onOpenChange, agency }: Props) {
   const onSubmit = async (data: AgencyFormValues) => {
     try {
       if (isEdit) {
+        if (data.commissionRate !== undefined && Number.isFinite(Number(agency.id))) {
+          await updateCommissionRate.mutateAsync({
+            id: agency.id,
+            input: { commissionRate: Number(data.commissionRate) },
+          });
+        }
         await update.mutateAsync({ id: agency.id, data });
         toast({ title: "Đã lưu thông tin đại lý", description: data.name });
       } else {

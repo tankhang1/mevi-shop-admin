@@ -105,7 +105,7 @@ export function OrderDispatchCard({ order }: { order: OrderDetail }) {
             <SelectContent>
               <SelectItem value={NONE}>Cả nhóm</SelectItem>
               {team?.members.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
+                <SelectItem key={m.id} value={String(m.id)}>
                   {m.name}
                   {m.id === team.leaderId ? " (trưởng nhóm)" : ""}
                 </SelectItem>

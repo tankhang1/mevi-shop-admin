@@ -67,23 +67,23 @@ export default function ReportPage() {
   const [filters, setFilters] = useState<ReportFilterState>(() =>
     defaultFilters(shopFilter.initialShopId),
   );
-  const { data, isLoading, isFetching } = useRevenueReport({
-    groupBy,
-    from: filters.from,
-    to: filters.to,
-    category: filters.category,
-    source: filters.source,
-    shopId: shopFilter.isRoot ? filters.shopId : undefined,
-  });
+  const isProductReport = kind === "product" || kind === "sales";
+  const { data, isLoading, isFetching } = useRevenueReport(
+    {
+      groupBy,
+      from: filters.from,
+      to: filters.to,
+      category: filters.category,
+      source: filters.source,
+      shopId: shopFilter.isRoot ? filters.shopId : undefined,
+    },
+    { enabled: !isProductReport && Boolean(view) },
+  );
   const isAgency = groupBy === "agency";
   // Hooks above run for every route; bail out only after them
-  // Shop admin's own sales overview; root has the per-dimension reports instead
-  if (kind === "sales")
-    return isRoot ? (
-      <Redirect to={ROUTES.report("agency")} replace />
-    ) : (
-      <ShopSalesReport />
-    );
+  if (isProductReport) {
+    return <ShopSalesReport />;
+  }
   if (!view) return <Redirect to={ROUTES.report("agency")} replace />;
   // A shop is itself a đại lý / CTV — its own figures live on "Doanh thu của tôi"
   if (!isRoot && (groupBy === "agency" || groupBy === "farm"))

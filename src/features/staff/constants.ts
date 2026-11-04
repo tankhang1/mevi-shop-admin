@@ -33,4 +33,5 @@ export const STAFF_STATUS: Record<StaffStatus, { label: string; className: strin
   invited: { label: "Chờ kích hoạt", className: "bg-amber-100 text-amber-800" },
   active: { label: "Hoạt động", className: "bg-emerald-100 text-emerald-800" },
   disabled: { label: "Tạm khoá", className: "bg-slate-200 text-slate-700" },
+  inactive: { label: "Tạm khoá", className: "bg-slate-200 text-slate-700" },
 };

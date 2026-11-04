@@ -181,8 +181,8 @@ function PartnerContactList() {
             Yêu cầu liên hệ hợp tác
           </h1>
           <p className="text-sm text-muted-foreground">
-            Danh sách người quan tâm gửi thông tin liên hệ làm Cộng tác viên / Đại
-            lý Mevi Shop
+            Danh sách người quan tâm gửi thông tin liên hệ làm Cộng tác viên /
+            Đại lý Mevi Shop
           </p>
         </div>
         <Button

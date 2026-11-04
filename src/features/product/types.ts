@@ -90,7 +90,24 @@ export interface Product {
   createdAt: string;
 }
 
-export type ProductInput = Omit<Product, "id" | "status" | "rejectionReason" | "listed" | "stock" | "lowStockThreshold" | "source" | "createdAt" | "shopName" | "farmName" | "regionName" | "gardenStock" | "cropName" | "sources" | "shopId"> & {
+export type ProductInput = Omit<
+  Product,
+  | "id"
+  | "status"
+  | "rejectionReason"
+  | "listed"
+  | "stock"
+  | "lowStockThreshold"
+  | "source"
+  | "createdAt"
+  | "shopName"
+  | "farmName"
+  | "regionName"
+  | "gardenStock"
+  | "cropName"
+  | "sources"
+  | "shopId"
+> & {
   shopId?: string;
   /** Names are joined by the backend, so only ids are sent */
   sources?: (Pick<ProductSource, "farmId" | "regionId" | "importPrice"> & {
@@ -104,6 +121,10 @@ export interface ProductListParams extends ListParams {
   /** "true" = Đang kinh doanh, "false" = Tạm ngưng kinh doanh */
   listed?: "all" | "true" | "false";
   category?: string;
+  categoryId?: number | string;
+  keyword?: string;
+  agricultural?: boolean;
+  lowStock?: boolean;
   /** Root only — shop admins are always scoped to their own shop */
   shopId?: string;
 }

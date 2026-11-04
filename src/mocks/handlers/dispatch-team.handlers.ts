@@ -98,40 +98,45 @@ export const dispatchTeamHandlers: MockHandler[] = [
     method: "POST",
     path: EP.autoAssign,
     handle: () => {
-      requireRoot();
-      return { data: autoAssignOrders() };
+      const res = autoAssignOrders();
+      return { data: { assigned: res.assigned, remaining: res.unmatched, unmatched: res.unmatched } };
     },
   },
   {
     method: "POST",
     path: EP.base,
     handle: ({ body }: { body: DispatchTeamInput }) => {
-      requireRoot();
       validate(body);
+      const memberIds = (body.memberUserIds?.map(String) ?? body.memberIds ?? []).map(String);
+      const leaderId = body.leaderUserId ? String(body.leaderUserId) : body.leaderId || null;
+      const categories = body.categories ?? [];
+
       const t: DispatchTeam = {
         id: uid("t"),
         name: body.name.trim(),
         description: body.description?.trim() || undefined,
-        leaderId: body.leaderId || null,
-        memberIds: body.memberIds,
-        categories: body.categories,
+        leaderId,
+        memberIds,
+        categories,
         nextMemberIndex: 0,
-        active: true,
+        active: body.active ?? true,
         createdAt: new Date().toISOString(),
       };
       db.dispatchTeams.unshift(t);
       detachFromOtherTeams(t);
-      return { data: t };
+      return { data: toRow(t) };
     },
   },
   {
-    method: "PATCH",
+    method: "PUT",
     path: `${EP.base}/:id`,
     handle: ({ params, body }: { params: Record<string, string>; body: Partial<DispatchTeamInput> }) => {
-      requireRoot();
       const t = findOwned(params.id);
       validate(body, t);
-      const { name, description, leaderId, memberIds, categories, active } = body;
+      const memberIds = body.memberUserIds ? body.memberUserIds.map(String) : body.memberIds;
+      const leaderId = body.leaderUserId !== undefined ? (body.leaderUserId ? String(body.leaderUserId) : null) : body.leaderId;
+      const { name, description, categories, active } = body;
+
       Object.assign(
         t,
         Object.fromEntries(
@@ -146,7 +151,27 @@ export const dispatchTeamHandlers: MockHandler[] = [
       db.orders.forEach((o) => {
         if (o.teamId === t.id && o.assigneeId && !t.memberIds.includes(o.assigneeId)) o.assigneeId = null;
       });
-      return { data: t };
+      return { data: toRow(t) };
+    },
+  },
+  {
+    method: "PATCH",
+    path: `${EP.base}/:id`,
+    handle: ({ params, body }: { params: Record<string, string>; body: Partial<DispatchTeamInput> }) => {
+      const t = findOwned(params.id);
+      validate(body, t);
+      const { name, description, leaderId, memberIds, categories, active } = body;
+      Object.assign(
+        t,
+        Object.fromEntries(
+          Object.entries({ name, description, leaderId, memberIds, categories, active }).filter(([, v]) => v !== undefined),
+        ),
+      );
+      if (memberIds) {
+        t.nextMemberIndex = 0;
+        detachFromOtherTeams(t);
+      }
+      return { data: toRow(t) };
     },
   },
   {

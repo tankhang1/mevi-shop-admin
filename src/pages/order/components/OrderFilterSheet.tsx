@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Button,
@@ -16,24 +16,44 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { useDispatchTeams } from "@/features/dispatch-team";
-import { EMPTY_ORDER_FILTERS, ORDER_STATUS, ORDER_STATUSES, type OrderFilters, VN_LOCATIONS, VN_PROVINCES } from "@/features/order";
-import { useProducts } from "@/features/product";
-import { useProductGroups } from "@/features/product-group";
-import { useStaffList } from "@/features/staff";
+import {
+  type DispatchTeamRow,
+  useDispatchTeams,
+} from "@/features/dispatch-team";
+import {
+  EMPTY_ORDER_FILTERS,
+  ORDER_STATUS,
+  ORDER_STATUSES,
+  type OrderFilters,
+  VN_LOCATIONS,
+  VN_PROVINCES,
+} from "@/features/order";
+import { type Product, useProducts } from "@/features/product";
+import { type ProductGroup, useProductGroups } from "@/features/product-group";
+import { type Staff, useStaffList } from "@/features/staff";
 
 const ALL = "all";
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="space-y-3 border-b pb-5 last:border-0">
-      <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</legend>
+      <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </legend>
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </fieldset>
   );
 }
 
-function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
+function Field({
+  label,
+  children,
+  wide,
+}: {
+  label: string;
+  children: ReactNode;
+  wide?: boolean;
+}) {
   return (
     <div className={wide ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}>
       <Label className="text-xs">{label}</Label>
@@ -84,13 +104,33 @@ interface Props {
 export function OrderFilterSheet({ open, onOpenChange, ...rest }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-xl"
+      >
         {/* Mounted only while open, so each opening starts from the applied filters */}
         {open && <FilterBody {...rest} onClose={() => onOpenChange(false)} />}
       </SheetContent>
     </Sheet>
   );
 }
+
+const extractList = <T,>(data: unknown): T[] => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === "object") {
+    if ("items" in data && Array.isArray((data as { items: unknown }).items)) {
+      return (data as { items: T[] }).items;
+    }
+    if (
+      "content" in data &&
+      Array.isArray((data as { content: unknown }).content)
+    ) {
+      return (data as { content: T[] }).content;
+    }
+  }
+  return [];
+};
 
 function FilterBody({
   value,
@@ -99,22 +139,79 @@ function FilterBody({
   onClose,
 }: Omit<Props, "open" | "onOpenChange"> & { onClose: () => void }) {
   const [f, setF] = useState<Value>(value);
-  const set = (patch: Partial<Value>) => setF((prev) => ({ ...prev, ...patch }));
+  const set = (patch: Partial<Value>) =>
+    setF((prev) => ({ ...prev, ...patch }));
 
-  const { data: teams } = useDispatchTeams({ size: 200 });
-  const { data: staff } = useStaffList({ size: 200 });
-  const { data: groups } = useProductGroups({ size: 200 });
-  const { data: products } = useProducts({ size: 200 });
+  const { data: teams } = useDispatchTeams({ size: 100 });
+  const { data: staff } = useStaffList({ size: 100 });
+  const { data: groups } = useProductGroups({ size: 100 });
 
-  const team = teams?.items.find((t) => t.id === f.teamId);
-  // Picking a team narrows the staff list to its members
-  const staffOptions = (staff?.items ?? [])
-    .filter((s) => !team || team.memberIds.includes(s.id))
-    .map((s) => ({ label: s.name, value: s.id }));
-  const group = groups?.items.find((g) => g.id === f.productGroupId);
-  const productOptions = (products?.items ?? [])
-    .filter((p) => !group || group.productIds.includes(p.id))
-    .map((p) => ({ label: `${p.name} · ${p.sku}`, value: p.id }));
+  // Lọc sản phẩm trực tiếp từ API backend theo categoryId được chọn
+  const selectedCategoryId =
+    f.productGroupId && f.productGroupId !== ALL ? f.productGroupId : undefined;
+  const { data: products } = useProducts({
+    categoryId: selectedCategoryId,
+    size: 100,
+  });
+
+  const teamList = useMemo(() => extractList<DispatchTeamRow>(teams), [teams]);
+  const staffList = useMemo(() => extractList<Staff>(staff), [staff]);
+  const groupList = useMemo(() => extractList<ProductGroup>(groups), [groups]);
+  const productList = useMemo(() => extractList<Product>(products), [products]);
+
+  const team = teamList.find((t) => String(t.id) === String(f.teamId));
+
+  // Danh sách nhân viên: nếu đã chọn nhóm thì lấy thành viên thuộc nhóm đó
+  const staffOptions = useMemo(() => {
+    if (f.teamId && f.teamId !== ALL && f.teamId !== "none" && team) {
+      if (team.members && team.members.length > 0) {
+        return team.members.map((m) => ({
+          label: m.fullName || m.name || `Nhân viên #${m.id}`,
+          value: String(m.id),
+        }));
+      }
+      const memberIdSet = new Set((team.memberIds ?? []).map(String));
+      return staffList
+        .filter((s) => memberIdSet.has(String(s.id)))
+        .map((s) => ({
+          label: s.fullName || s.name || s.phone || "Nhân viên",
+          value: String(s.id),
+        }));
+    }
+
+    if (f.teamId === "none") {
+      const allAssignedIds = new Set(
+        teamList.flatMap((t) => [
+          ...(t.memberIds ?? []).map(String),
+          ...(t.members ?? []).map((m) => String(m.id)),
+        ]),
+      );
+      return staffList
+        .filter((s) => !allAssignedIds.has(String(s.id)))
+        .map((s) => ({
+          label: s.fullName || s.name || s.phone || "Nhân viên",
+          value: String(s.id),
+        }));
+    }
+
+    return staffList.map((s) => ({
+      label: s.fullName || s.name || s.phone || "Nhân viên",
+      value: String(s.id),
+    }));
+  }, [f.teamId, team, teamList, staffList]);
+
+  // Danh sách sản phẩm: Đã được lọc chính xác qua API backend theo categoryId
+  const productOptions = useMemo(() => {
+    return productList.map((p) => {
+      const name =
+        p.name || (p as unknown as { title?: string }).title || "Sản phẩm";
+      const sku = p.sku || (p as unknown as { code?: string }).code;
+      return {
+        label: sku ? `${name} · ${sku}` : name,
+        value: String(p.id),
+      };
+    });
+  }, [productList]);
   const wards = f.province !== ALL ? (VN_LOCATIONS[f.province] ?? []) : [];
 
   return (
@@ -137,7 +234,11 @@ function FilterBody({
             </Field>
           )}
           <Field label="Mã đơn hàng">
-            <Input value={f.code} onChange={(e) => set({ code: e.target.value })} placeholder="VD: MV-2001" />
+            <Input
+              value={f.code}
+              onChange={(e) => set({ code: e.target.value })}
+              placeholder="VD: MV-2001"
+            />
           </Field>
           <Field label="Trạng thái">
             <Select value={f.status} onValueChange={(v) => set({ status: v })}>
@@ -181,10 +282,20 @@ function FilterBody({
             </div>
           </Field>
           <Field label="Từ ngày">
-            <Input type="date" value={f.from} max={f.to || undefined} onChange={(e) => set({ from: e.target.value })} />
+            <Input
+              type="date"
+              value={f.from}
+              max={f.to || undefined}
+              onChange={(e) => set({ from: e.target.value })}
+            />
           </Field>
           <Field label="Đến ngày">
-            <Input type="date" value={f.to} min={f.from || undefined} onChange={(e) => set({ to: e.target.value })} />
+            <Input
+              type="date"
+              value={f.to}
+              min={f.from || undefined}
+              onChange={(e) => set({ to: e.target.value })}
+            />
           </Field>
         </Group>
 
@@ -197,7 +308,10 @@ function FilterBody({
               placeholder="Tất cả nhóm"
               options={[
                 { label: "Chưa phân nhóm", value: "none" },
-                ...(teams?.items ?? []).map((t) => ({ label: t.name, value: t.id })),
+                ...teamList.map((t) => ({
+                  label: t.name,
+                  value: t.id,
+                })),
               ]}
             />
           </Field>
@@ -219,7 +333,10 @@ function FilterBody({
               onChange={(v) => set({ productGroupId: v, productId: ALL })}
               allLabel="Tất cả nhóm sản phẩm"
               placeholder="Tất cả nhóm sản phẩm"
-              options={(groups?.items ?? []).map((g) => ({ label: g.name, value: g.id }))}
+              options={groupList.map((g) => ({
+                label: g.name,
+                value: g.id,
+              }))}
             />
           </Field>
           <Field label="Sản phẩm">
@@ -247,7 +364,11 @@ function FilterBody({
             <Pick
               value={f.ward}
               onChange={(v) => set({ ward: v })}
-              allLabel={f.province !== ALL ? "Tất cả xã / phường" : "Chọn tỉnh / thành trước"}
+              allLabel={
+                f.province !== ALL
+                  ? "Tất cả xã / phường"
+                  : "Chọn tỉnh / thành trước"
+              }
               placeholder="Tất cả xã / phường"
               options={wards.map((w) => ({ label: w, value: w }))}
             />
@@ -256,7 +377,11 @@ function FilterBody({
 
         <Group title="Khách hàng">
           <Field label="Mã khách hàng">
-            <Input value={f.customerCode} onChange={(e) => set({ customerCode: e.target.value })} placeholder="VD: KH0001" />
+            <Input
+              value={f.customerCode}
+              onChange={(e) => set({ customerCode: e.target.value })}
+              placeholder="VD: KH0001"
+            />
           </Field>
           <Field label="Số điện thoại">
             <Input
@@ -271,7 +396,15 @@ function FilterBody({
       </div>
 
       <SheetFooter className="flex-row justify-between gap-2 border-t p-4 sm:px-6">
-        <Button variant="ghost" onClick={() => setF({ ...EMPTY_ORDER_FILTERS, ...(shopOptions && { shopId: ALL }) })}>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            setF({
+              ...EMPTY_ORDER_FILTERS,
+              ...(shopOptions && { shopId: ALL }),
+            })
+          }
+        >
           Xoá bộ lọc
         </Button>
         <div className="flex gap-2">

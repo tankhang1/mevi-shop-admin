@@ -37,10 +37,10 @@ function bucketsFor(from: Date, to: Date): { bucket: TrendBucket; starts: Date[]
 function buildReport({ groupBy, from, to, shopId, category, source, agencyId }: Filters): RevenueReport {
   const fromD = startOfDay(new Date(from));
   const toD = new Date(startOfDay(new Date(to)).getTime() + DAY - 1);
-  const inCategory = (productId: string) =>
-    !category || category === "all" || db.products.find((p) => p.id === productId)?.category === category;
+  const inCategory = (productId?: string) =>
+    !category || category === "all" || (productId ? db.products.find((p) => p.id === productId)?.category === category : false);
   const orders = scoped(db.orders, shopId)
-    .filter((o) => o.status === "completed")
+    .filter((o) => o.status === "DELIVERED" || o.status === "completed")
     .filter((o) => new Date(o.createdAt) >= fromD && new Date(o.createdAt) <= toD)
     .filter((o) => !source || source === "all" || (source === "agency" ? !!o.agencyId : !o.agencyId))
     .filter((o) => !agencyId || o.agencyId === agencyId)
@@ -49,7 +49,9 @@ function buildReport({ groupBy, from, to, shopId, category, source, agencyId }: 
     .filter((o) => o.items.length > 0)
     .map((o) => ({
       ...o,
-      total: category && category !== "all" ? o.items.reduce((s, it) => s + it.quantity * it.price, 0) : o.total,
+      total: category && category !== "all"
+        ? o.items.reduce((s, it) => s + it.quantity * (it.unitPrice ?? it.price ?? 0), 0)
+        : o.total,
     }));
   const { bucket: trendBucket, starts } = bucketsFor(fromD, toD);
   const bucketOf = (iso: string) => {
@@ -164,5 +166,41 @@ export const reportHandlers: MockHandler[] = [
         agencyId: query.agencyId as string | undefined,
       }),
     }),
+  },
+  {
+    method: "GET",
+    path: API_ENDPOINTS.admin.reports.products,
+    handle: ({ query }) => {
+      const from = String(query.from || "2026-10-05");
+      const to = String(query.to || "2026-11-03");
+      const sampleProducts = db.products.slice(0, 10).map((p, i) => ({
+        product: { id: p.id, code: p.sku, title: p.name, imageUrl: p.images[0] },
+        orderCount: 8 - Math.min(i, 6),
+        quantity: 20 + i * 3,
+        revenue: (p.salePrice ?? p.price) * (20 + i * 3),
+        share: Math.max(1, Math.round((25 - i * 2.2) * 10) / 10),
+      }));
+      const totalRev = sampleProducts.reduce((s, p) => s + p.revenue, 0);
+
+      return {
+        data: {
+          from,
+          to,
+          revenue: totalRev,
+          deliveredOrders: sampleProducts.reduce((s, p) => s + p.orderCount, 0),
+          quantity: sampleProducts.reduce((s, p) => s + p.quantity, 0),
+          productCount: sampleProducts.length,
+          series: [
+            { period: from, revenue: Math.round(totalRev * 0.3), orderCount: 12 },
+            { period: to, revenue: Math.round(totalRev * 0.7), orderCount: 26 },
+          ],
+          products: sampleProducts,
+          topProducts: sampleProducts.slice(0, 5).map((p) => ({
+            product: p.product,
+            revenue: [Math.round(p.revenue * 0.4), Math.round(p.revenue * 0.6)],
+          })),
+        },
+      };
+    },
   },
 ];

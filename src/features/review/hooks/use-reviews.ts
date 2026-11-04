@@ -1,12 +1,20 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { dashboardKeys } from "@/features/dashboard/hooks/use-dashboard";
 import { reviewApi } from "../api/review.api";
 import type { ReviewListParams } from "../types";
 
 export const reviewKeys = {
   all: ["reviews"] as const,
-  list: (params: ReviewListParams) => [...reviewKeys.all, "list", params] as const,
-  stats: (productId?: string) => [...reviewKeys.all, "stats", productId ?? "all"] as const,
+  list: (params: ReviewListParams) =>
+    [...reviewKeys.all, "list", params] as const,
+  stats: (productId?: string) =>
+    [...reviewKeys.all, "stats", productId ?? "all"] as const,
+  summary: () => [...reviewKeys.all, "summary"] as const,
 };
 
 export function useReviews(params: ReviewListParams = {}) {
@@ -17,8 +25,18 @@ export function useReviews(params: ReviewListParams = {}) {
   });
 }
 
+export function useReviewSummary() {
+  return useQuery({
+    queryKey: reviewKeys.summary(),
+    queryFn: () => reviewApi.summary(),
+  });
+}
+
 export function useReviewStats(productId?: string) {
-  return useQuery({ queryKey: reviewKeys.stats(productId), queryFn: () => reviewApi.stats({ productId }) });
+  return useQuery({
+    queryKey: reviewKeys.stats(productId),
+    queryFn: () => reviewApi.stats({ productId }),
+  });
 }
 
 function useInvalidateReviews() {
@@ -33,7 +51,8 @@ function useInvalidateReviews() {
 export function useReplyReview() {
   const invalidate = useInvalidateReviews();
   return useMutation({
-    mutationFn: ({ id, content }: { id: string; content: string }) => reviewApi.reply(id, content),
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      reviewApi.reply(id, content),
     onSuccess: invalidate,
   });
 }
@@ -41,7 +60,8 @@ export function useReplyReview() {
 export function useSetReviewHidden() {
   const invalidate = useInvalidateReviews();
   return useMutation({
-    mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) => reviewApi.setHidden(id, hidden),
+    mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) =>
+      reviewApi.setHidden(id, hidden),
     onSuccess: invalidate,
   });
 }
