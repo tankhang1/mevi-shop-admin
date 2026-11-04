@@ -129,7 +129,9 @@ function PartnerContactDetailForm({
           <SelectContent>
             <SelectItem value="NEW">Chờ liên hệ</SelectItem>
             <SelectItem value="CONTACTED">Đã liên hệ</SelectItem>
-            <SelectItem value="ACCOUNT_CREATED">Đã cấp tài khoản</SelectItem>
+            <SelectItem value="ACCOUNT_CREATED">
+              Đã trở thành đối tác
+            </SelectItem>
             <SelectItem value="REJECTED">Không hợp tác</SelectItem>
           </SelectContent>
         </Select>

@@ -30,7 +30,7 @@ const filters: TableFilterDef[] = [
     options: [
       { label: "Chờ liên hệ", value: "NEW" },
       { label: "Đã liên hệ", value: "CONTACTED" },
-      { label: "Đã cấp tài khoản", value: "ACCOUNT_CREATED" },
+      { label: "Đã trở thành đối tác", value: "ACCOUNT_CREATED" },
       { label: "Không hợp tác", value: "REJECTED" },
     ],
   },
@@ -45,7 +45,7 @@ const STATUS_MAP: Record<
 > = {
   NEW: { label: "Chờ liên hệ", variant: "default" },
   CONTACTED: { label: "Đã liên hệ", variant: "secondary" },
-  ACCOUNT_CREATED: { label: "Đã cấp tài khoản", variant: "outline" },
+  ACCOUNT_CREATED: { label: "Đã trở thành đối tác", variant: "outline" },
   REJECTED: { label: "Không hợp tác", variant: "destructive" },
 };
 
