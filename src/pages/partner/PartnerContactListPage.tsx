@@ -28,7 +28,7 @@ const filters: TableFilterDef[] = [
     key: "status",
     label: "Trạng thái",
     options: [
-      { label: "Mới", value: "NEW" },
+      { label: "Chờ liên hệ", value: "NEW" },
       { label: "Đã liên hệ", value: "CONTACTED" },
       { label: "Đã cấp tài khoản", value: "ACCOUNT_CREATED" },
       { label: "Không hợp tác", value: "REJECTED" },
