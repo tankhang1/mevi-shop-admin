@@ -21,11 +21,13 @@ import {
   isoDay,
   rangeFor,
 } from "./report-filters";
+import { ShopCombobox } from "./ShopCombobox";
 
 interface Props {
   value: ReportFilterState;
   onChange: (next: ReportFilterState) => void;
-  /** Root only */
+  /** Root only: true if root can filter by shop, or pass shopOptions for backward compatibility */
+  showShopFilter?: boolean;
   shopOptions?: { label: string; value: string }[];
   initialShopId: string;
   /** Off for one agency's report — its orders are all agency-sourced */
@@ -36,6 +38,7 @@ interface Props {
 export function ReportFilters({
   value: f,
   onChange,
+  showShopFilter,
   shopOptions,
   initialShopId,
   showSource = true,
@@ -57,8 +60,10 @@ export function ReportFilters({
     f.source === "all" &&
     f.shopId === initialShopId;
 
+  const canFilterShop = showShopFilter ?? Boolean(shopOptions);
+
   // Mobile 2-col grid: source, category, shop, reset — reset spans the row when it'd sit alone
-  const halfCells = Number(showSource) + 1 + Number(!!shopOptions) + 1;
+  const halfCells = Number(showSource) + 1 + Number(canFilterShop) + 1;
 
   return (
     <div className="grid grid-cols-2 gap-2 md:flex! md:flex-wrap md:items-center">
@@ -140,20 +145,11 @@ export function ReportFilters({
         </SelectContent>
       </Select>
 
-      {shopOptions && (
-        <Select value={f.shopId} onValueChange={(v) => set({ shopId: v })}>
-          <SelectTrigger className="h-9 w-full md:w-48!" aria-label="Gian hàng">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả gian hàng</SelectItem>
-            {shopOptions.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {canFilterShop && (
+        <ShopCombobox
+          value={f.shopId}
+          onChange={(shopId) => set({ shopId })}
+        />
       )}
 
       <Button

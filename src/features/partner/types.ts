@@ -21,6 +21,14 @@ export interface PartnerContactRequest {
   updatedAt: string;
 }
 
+export interface PartnerContactStatusCounts {
+  new: number;
+  contacted: number;
+  accountCreated: number;
+  rejected: number;
+  total: number;
+}
+
 export interface PartnerProfile {
   id: number;
   workspaceId: number;
@@ -183,4 +191,47 @@ export interface GetPartnerReportParams {
   to?: string;
   granularity?: "DAY" | "WEEK" | "MONTH";
   categoryId?: number | string;
+}
+
+export interface GeoProvince {
+  code: string;
+  name: string;
+  nameEn?: string;
+  fullName: string;
+  fullNameEn?: string;
+  codeName?: string;
+}
+
+export interface GeoWard {
+  code: string;
+  name: string;
+  nameEn?: string;
+  fullName: string;
+  fullNameEn?: string;
+  codeName?: string;
+  provinceCode: string;
+}
+
+export interface ResetUserPasswordInput {
+  userId: number | string;
+  password: string;
+  fullName?: string;
+  username?: string;
+  email?: string;
+  province?: string;
+  audienceType?: string;
+}
+
+export interface UnifiedCreatePartnerInput {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  audienceType: "individual" | "business";
+  password?: string;
+  shopName: string;
+  handle: string;
+  slogan?: string;
+  province: string;
+  ward?: string;
+  detailAddress?: string;
 }

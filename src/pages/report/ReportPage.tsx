@@ -232,7 +232,7 @@ export default function ReportPage() {
       <ReportFilters
         value={filters}
         onChange={setFilters}
-        shopOptions={shopFilter.filter?.options}
+        showShopFilter={shopFilter.isRoot}
         initialShopId={shopFilter.initialShopId}
       />
 

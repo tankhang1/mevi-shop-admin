@@ -4,7 +4,6 @@ import {
   Network,
   Package,
   ShoppingCart,
-  Building2,
   FolderTree,
   Handshake,
   Store,
@@ -144,18 +143,18 @@ export const shopMenu: AdminMenuSection[] = [
       },
     ],
   },
-  // {
-  //   title: "Gian hàng",
-  //   items: [
-  //     {
-  //       id: "my-shop",
-  //       label: "Thông tin gian hàng",
-  //       icon: Store,
-  //       href: ROUTES.myShop,
-  //       roles: [...AGENT, ...ROOT],
-  //     },
-  //   ],
-  // },
+  {
+    title: "Gian hàng",
+    items: [
+      {
+        id: "my-shop",
+        label: "Thông tin gian hàng",
+        icon: Store,
+        href: ROUTES.myShop,
+        roles: [...AGENT, ...ROOT],
+      },
+    ],
+  },
   {
     title: "Đối tác",
     roles: [...ROOT],
@@ -167,16 +166,16 @@ export const shopMenu: AdminMenuSection[] = [
         href: ROUTES.partnerContactRequests,
         roles: [...ROOT],
       },
-      {
-        id: "shops",
-        label: "Gian hàng",
-        icon: Building2,
-        href: ROUTES.shops,
-        roles: [...ROOT],
-      },
+      // {
+      //   id: "shops",
+      //   label: "Gian hàng",
+      //   icon: Building2,
+      //   href: ROUTES.shops,
+      //   roles: [...ROOT],
+      // },
       {
         id: "agencies",
-        label: "Đại lý",
+        label: "Đại lý - Cộng tác viên",
         icon: Handshake,
         href: ROUTES.agencies,
         roles: [...ROOT],

@@ -47,6 +47,7 @@ import { formatDate, formatVnd } from "@/lib/format";
 import { AgencyActiveToggle } from "./components/AgencyActiveToggle";
 import { AgencyCommissions } from "./components/AgencyCommissions";
 import { AgencyFormDialog } from "./components/AgencyFormDialog";
+import { PartnerCommissionDialog } from "./components/PartnerCommissionDialog";
 import { ShopSalesReport } from "@/pages/report/components/ShopSalesReport";
 
 /** Storefront the agency's referral link points to (?ref={slug}) */
@@ -105,13 +106,16 @@ export default function AgencyDetailPage() {
     usePartnerProfileDetail(id);
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
+  const [commissionDialogOpen, setCommissionDialogOpen] = useState(false);
 
   const profile = partnerDetail?.profile;
   const agency: Agency | undefined = profile
     ? {
         id: String(profile.id),
+        workspaceId: profile.workspaceId,
         name: profile.name,
         slug: profile.handle,
+        slogan: profile.slogan || undefined,
         kind: (profile.partnerType === "AGENCY"
           ? "agency"
           : "ctv") as AgencyKind,
@@ -121,6 +125,7 @@ export default function AgencyDetailPage() {
         contactName: profile.contactName,
         phone: profile.contactPhone,
         email: profile.contactEmail || undefined,
+        province: profile.province,
         active: !profile.suspended,
         createdAt: profile.createdAt,
       }
@@ -268,6 +273,24 @@ export default function AgencyDetailPage() {
                   </a>
                 )}
               </InfoRow>
+              <InfoRow label="Hoa hồng">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                    {agency.commissionRate != null
+                      ? `${agency.commissionRate}%`
+                      : "—"}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-primary hover:bg-primary/10"
+                    onClick={() => setCommissionDialogOpen(true)}
+                  >
+                    <Pencil className="mr-1 h-3.5 w-3.5" /> Thay đổi
+                  </Button>
+                </div>
+              </InfoRow>
               <InfoRow label="Màu thương hiệu">
                 <span className="inline-flex items-center gap-2">
                   <span
@@ -362,6 +385,14 @@ export default function AgencyDetailPage() {
         onOpenChange={setEditOpen}
         agency={agency}
       />
+
+      {profile && (
+        <PartnerCommissionDialog
+          open={commissionDialogOpen}
+          onOpenChange={setCommissionDialogOpen}
+          partner={profile}
+        />
+      )}
     </div>
   );
 }

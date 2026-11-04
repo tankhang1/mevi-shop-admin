@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ListParams } from "@/types/api";
+import { partnerKeys } from "@/features/partner/hooks/usePartner";
 import { agencyApi } from "../api/agency.api";
 import type { Agency, AgencyInput, CommissionListParams } from "../types";
 
@@ -38,7 +39,11 @@ export function useUpdateAgency() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Agency> }) => agencyApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: agencyKeys.all }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: agencyKeys.all });
+      qc.invalidateQueries({ queryKey: agencyKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: partnerKeys.profiles() });
+    },
   });
 }
 

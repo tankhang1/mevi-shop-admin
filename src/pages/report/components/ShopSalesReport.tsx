@@ -18,7 +18,9 @@ import {
   mapProductReportToRevenueReport,
   useProductRevenueReport,
 } from "@/features/report";
+import { useAccess } from "@/features/auth";
 import { usePartnerReport } from "@/features/partner";
+import { useShopFilter } from "@/features/shop";
 import { formatVnd } from "@/lib/format";
 import { ReportTrendChart } from "./ReportTrendChart";
 import { RevenueBars } from "./RevenueBars";
@@ -81,9 +83,11 @@ const columns: Column<RevenueRow>[] = [
  * `agencyId` to see one đại lý / CTV's referred sales.
  */
 export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
+  const { isRoot } = useAccess();
+  const shopFilter = useShopFilter();
   const isMobile = useIsMobile();
   const [filters, setFilters] = useState<ReportFilterState>(() =>
-    defaultFilters(),
+    defaultFilters(shopFilter.initialShopId),
   );
   const [, navigate] = useLocation();
   const range = { from: filters.from, to: filters.to };
@@ -95,6 +99,7 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
       ...range,
     });
     if (agencyId) q.set("agencyId", agencyId);
+    if (isRoot && filters.shopId !== "all") q.set("shopId", filters.shopId);
     navigate(`${ROUTES.orders}?${q}`);
   };
   const now = new Date();
@@ -132,6 +137,8 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
                 ? "DIRECT"
                 : "",
           categoryId,
+          storefrontId:
+            isRoot && filters.shopId !== "all" ? filters.shopId : undefined,
         }
       : undefined,
   );
@@ -237,7 +244,8 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
       <ReportFilters
         value={filters}
         onChange={setFilters}
-        initialShopId="all"
+        showShopFilter={isRoot && !agencyId}
+        initialShopId={shopFilter.initialShopId}
         showSource={!agencyId}
       />
 

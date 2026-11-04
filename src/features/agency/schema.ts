@@ -2,18 +2,19 @@ import { z } from "zod";
 
 export const agencySchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên gian hàng"),
-  kind: z.enum(["agency", "ctv"]),
+  kind: z.enum(["agency", "ctv"]).optional(),
   slug: z
     .string()
     .trim()
     .min(1, "Vui lòng nhập slug")
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Chỉ gồm chữ thường, số và dấu gạch ngang"),
+  slogan: z.string().trim().max(80, "Tối đa 80 ký tự").optional(),
   brandColor: z.string().optional(),
-  logoUrl: z.union([z.literal(""), z.url("URL không hợp lệ")]).optional(),
+  logoUrl: z.string().trim().max(1000).optional().or(z.literal("")),
   contactName: z.string().optional(),
   phone: z.string().optional(),
   email: z.union([z.literal(""), z.email("Email không hợp lệ")]).optional(),
-  commissionRate: z.number({ message: "Nhập số %" }).min(0, "Tối thiểu 0%").max(50, "Tối đa 50%"),
+  province: z.string().optional(),
 });
 
 export type AgencyFormValues = z.infer<typeof agencySchema>;

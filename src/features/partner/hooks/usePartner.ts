@@ -6,6 +6,8 @@ import type {
   GetPartnerReportParams,
   ListPartnerContactRequestsParams,
   ListPartnerProfilesParams,
+  ResetUserPasswordInput,
+  UnifiedCreatePartnerInput,
   UpdateCommissionRateInput,
   UpdateContactRequestStatusInput,
   UpdatePartnerSuspensionInput,
@@ -16,6 +18,8 @@ import type {
 export const partnerKeys = {
   all: ["partner"] as const,
   contactRequests: () => [...partnerKeys.all, "contact-requests"] as const,
+  contactStatusCounts: (keyword?: string) =>
+    [...partnerKeys.contactRequests(), "status-counts", keyword ?? ""] as const,
   contactRequestList: (params?: ListPartnerContactRequestsParams) =>
     [...partnerKeys.contactRequests(), "list", params ?? {}] as const,
   contactRequestDetail: (id: number | string) =>
@@ -36,6 +40,14 @@ export const partnerKeys = {
 };
 
 // ── Contact Requests Hooks ──
+
+export function usePartnerContactStatusCounts(keyword?: string) {
+  return useQuery({
+    queryKey: partnerKeys.contactStatusCounts(keyword),
+    queryFn: () => partnerApi.getContactStatusCounts(keyword),
+    placeholderData: (prev) => prev,
+  });
+}
 
 export function usePartnerContactRequests(
   params?: ListPartnerContactRequestsParams,
@@ -87,6 +99,31 @@ export function useCreateShopPartnerUser() {
       queryClient.invalidateQueries({
         queryKey: partnerKeys.contactRequests(),
       });
+      queryClient.invalidateQueries({ queryKey: partnerKeys.profiles() });
+    },
+  });
+}
+
+export function useCreateUnifiedPartner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UnifiedCreatePartnerInput) =>
+      partnerApi.createUnifiedPartner(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.contactRequests(),
+      });
+      queryClient.invalidateQueries({ queryKey: partnerKeys.profiles() });
+    },
+  });
+}
+
+export function useResetUserPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ResetUserPasswordInput) =>
+      partnerApi.resetUserPassword(input),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: partnerKeys.profiles() });
     },
   });
@@ -212,6 +249,12 @@ export function useUpdatePartnerCommissionRate() {
       });
       queryClient.invalidateQueries({
         queryKey: partnerKeys.commissionSummary(variables.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: partnerKeys.profiles(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["agencies"],
       });
     },
   });

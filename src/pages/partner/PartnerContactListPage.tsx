@@ -6,12 +6,13 @@ import {
   Badge,
   Button,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { UserCheck, Eye, PhoneCall, UserPlus } from "lucide-react";
+import { Eye, PhoneCall } from "lucide-react";
 import { RequireRole } from "@/components/common/RequireRole";
 import {
   type ContactRequestStatus,
   type PartnerContactRequest,
   usePartnerContactRequests,
+  usePartnerContactStatusCounts,
 } from "@/features/partner";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatDate } from "@/lib/format";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/pagination";
 import { PartnerContactDetailDialog } from "./components/PartnerContactDetailDialog";
 import { CreatePartnerAccountDialog } from "./components/CreatePartnerAccountDialog";
+import { PartnerContactStatusCards } from "./components/PartnerContactStatusCards";
 
 const filters: TableFilterDef[] = [
   {
@@ -31,7 +33,7 @@ const filters: TableFilterDef[] = [
       { label: "Chờ liên hệ", value: "NEW" },
       { label: "Đã liên hệ", value: "CONTACTED" },
       { label: "Đã trở thành đối tác", value: "ACCOUNT_CREATED" },
-      { label: "Không hợp tác", value: "REJECTED" },
+      // { label: "Không hợp tác", value: "REJECTED" },
     ],
   },
 ];
@@ -62,6 +64,8 @@ function PartnerContactList() {
   });
 
   const { data, isFetching } = usePartnerContactRequests(queryParams);
+  const { data: statusCounts, isLoading: isCountsLoading } =
+    usePartnerContactStatusCounts(table.params.keyword);
   const page = fromSpringPage(data);
 
   const [selectedRequest, setSelectedRequest] = useState<
@@ -156,7 +160,7 @@ function PartnerContactList() {
             <Eye className="h-4 w-4 mr-1" />
             <span className="text-xs">Chi tiết</span>
           </Button>
-          {r.status !== "ACCOUNT_CREATED" && (
+          {/* {r.status !== "ACCOUNT_CREATED" && (
             <Button
               size="sm"
               variant="outline"
@@ -167,7 +171,7 @@ function PartnerContactList() {
               <UserCheck className="h-4 w-4 mr-1" />
               <span className="text-xs">Cấp tài khoản</span>
             </Button>
-          )}
+          )} */}
         </div>
       ),
     },
@@ -180,7 +184,7 @@ function PartnerContactList() {
           Danh sách người quan tâm gửi thông tin liên hệ làm Cộng tác viên / Đại
           lý Mevi Shop
         </p>
-        <Button
+        {/* <Button
           onClick={() => {
             setSelectedRequest(undefined);
             setCreateAccountOpen(true);
@@ -188,8 +192,13 @@ function PartnerContactList() {
         >
           <UserPlus className="mr-1.5 h-4 w-4" />
           Cấp tài khoản đối tác
-        </Button>
+        </Button> */}
       </div>
+
+      <PartnerContactStatusCards
+        counts={statusCounts}
+        isLoading={isCountsLoading}
+      />
 
       <DataTable
         {...table.bind(page, isFetching)}

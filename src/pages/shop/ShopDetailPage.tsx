@@ -1,11 +1,10 @@
+import { useState } from "react";
 import { useParams } from "wouter";
-import { BadgeCheck, Eye, EyeOff, ShieldCheck, User } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, Loader2, User } from "lucide-react";
 import {
   Badge,
   Card,
-  Label,
-  Switch,
-  useToast,
+  cn,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { BackLink } from "@/components/common/BackLink";
 import { RequireRole } from "@/components/common/RequireRole";
@@ -14,17 +13,15 @@ import { ROUTES } from "@/config/routes";
 import {
   usePartnerProfileDetail,
   useUpdatePartnerSuspension,
-  useUpdatePartnerVerification,
 } from "@/features/partner";
-import { getErrorMessage } from "@/lib/api-error";
 import { formatDate } from "@/lib/format";
+import { PartnerSuspensionDialog } from "@/pages/agency/components/PartnerSuspensionDialog";
 
 function ShopDetail() {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
   const { data, isLoading, isError } = usePartnerProfileDetail(id);
+  const [suspensionDialogOpen, setSuspensionDialogOpen] = useState(false);
 
-  const updateVerification = useUpdatePartnerVerification();
   const updateSuspension = useUpdatePartnerSuspension();
 
   if (isLoading) return <LoadingBlock />;
@@ -33,146 +30,137 @@ function ShopDetail() {
 
   const { profile: shop, ownerAccount } = data;
 
-  const handleToggleVerified = async (verified: boolean) => {
-    try {
-      await updateVerification.mutateAsync({
-        id: shop.id,
-        input: { verified },
-      });
-      toast({
-        title: verified ? "Đã xác minh gian hàng" : "Đã gỡ xác minh",
-        description: shop.name,
-      });
-    } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Không thể lưu",
-        description: getErrorMessage(e),
-      });
-    }
-  };
-
-  const handleToggleSuspension = async (active: boolean) => {
-    try {
-      await updateSuspension.mutateAsync({
-        id: shop.id,
-        input: { suspended: !active },
-      });
-      toast({
-        title: active ? "Đã mở gian hàng" : "Đã tạm khóa gian hàng",
-        description: shop.name,
-      });
-    } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Không thể lưu",
-        description: getErrorMessage(e),
-      });
-    }
-  };
-
   return (
     <div className="space-y-4">
       <BackLink to={ROUTES.shops} label="Danh sách gian hàng" />
 
-      {/* Header card with cover image & logo */}
-      <div className="rounded-xl border bg-card overflow-hidden">
+      {/* Header card with cover image, logo & active toggle */}
+      <div className="rounded-xl border bg-card overflow-hidden shadow-2xs">
         <div
-          className="h-32 sm:h-48 w-full bg-slate-100 bg-cover bg-center"
+          className="relative h-32 sm:h-48 w-full bg-slate-100 bg-cover bg-center"
           style={{
             backgroundImage: shop.coverImageUrl
               ? `url(${shop.coverImageUrl})`
               : undefined,
           }}
-        />
-        <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 -mt-10 sm:-mt-12">
-          {shop.logoUrl ? (
-            <img
-              src={shop.logoUrl}
-              alt=""
-              className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-card object-cover bg-card shadow-sm shrink-0"
-            />
-          ) : (
-            <div
-              className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-card flex items-center justify-center text-2xl font-bold text-white shadow-sm shrink-0 uppercase"
-              style={{ background: shop.brandColor || "#2E7D32" }}
+        >
+          {/* Lớp gradient nhẹ bảo vệ nền banner */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+        </div>
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {/* Khối Thông tin & Logo gian hàng (Backdrop blur ôm trọn logo và nội dung theo độ rộng thực tế) */}
+            <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 -mt-12 sm:-mt-16 p-2.5 sm:p-3.5 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-md shadow-xs dark:border-border/40 dark:bg-card/80 w-fit max-w-full">
+              {shop.logoUrl ? (
+                <img
+                  src={shop.logoUrl}
+                  alt=""
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-cover bg-card shadow-xs ring-1 ring-border/20 shrink-0"
+                />
+              ) : (
+                <div
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold text-white shadow-xs ring-1 ring-border/20 shrink-0 uppercase"
+                  style={{ background: shop.brandColor || "#2E7D32" }}
+                >
+                  {shop.name.charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0 space-y-1 pr-1 sm:pr-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                    {shop.name}
+                  </h1>
+                  {shop.verified && (
+                    <span title="Đã xác minh">
+                      <BadgeCheck className="h-4.5 w-4.5 text-sky-600 shrink-0" />
+                    </span>
+                  )}
+                  <Badge
+                    variant={
+                      shop.partnerType === "AGENCY" ? "default" : "secondary"
+                    }
+                  >
+                    {shop.partnerType === "AGENCY" ? "Đại lý" : "Cộng tác viên"}
+                  </Badge>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground font-mono">
+                  @{shop.handle} · {shop.province}
+                </p>
+                {shop.slogan && (
+                  <p className="text-xs sm:text-sm italic text-foreground/80">
+                    "{shop.slogan}"
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Active / Suspension Toggle Card ở góc trên bên phải */}
+            <button
+              type="button"
+              onClick={() => setSuspensionDialogOpen(true)}
+              disabled={updateSuspension.isPending}
+              className={cn(
+                "group flex items-center gap-3 rounded-2xl border p-2.5 sm:p-3 text-left transition-all w-full md:w-auto shrink-0 shadow-xs cursor-pointer select-none backdrop-blur-md",
+                !shop.suspended
+                  ? "border-primary/30 bg-card/85 hover:bg-primary/[0.08] hover:border-primary/50"
+                  : "border-destructive/30 bg-card/85 hover:bg-destructive/[0.08] hover:border-destructive/50",
+              )}
+              title={
+                !shop.suspended
+                  ? "Nhấn để tạm khóa gian hàng"
+                  : "Nhấn để mở khóa gian hàng"
+              }
             >
-              {shop.name.charAt(0)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                {shop.name}
-              </h1>
-              {shop.verified && (
-                <BadgeCheck className="h-5 w-5 text-sky-600 shrink-0" />
-              )}
-              <Badge
-                variant={
-                  shop.partnerType === "AGENCY" ? "default" : "secondary"
-                }
+              <span
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-colors",
+                  !shop.suspended
+                    ? "bg-primary/10 text-primary"
+                    : "bg-destructive/10 text-destructive",
+                )}
               >
-                {shop.partnerType === "AGENCY" ? "Đại lý" : "Cộng tác viên"}
-              </Badge>
-              {shop.suspended && (
-                <Badge variant="destructive">Đang tạm khóa</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground font-mono">
-              @{shop.handle} · {shop.province}
-            </p>
-            {shop.slogan && (
-              <p className="text-sm italic text-foreground/80">
-                "{shop.slogan}"
-              </p>
-            )}
+                {updateSuspension.isPending ? (
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                ) : !shop.suspended ? (
+                  <Eye className="h-4.5 w-4.5" />
+                ) : (
+                  <EyeOff className="h-4.5 w-4.5" />
+                )}
+              </span>
+              <div className="min-w-0 pr-1">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      !shop.suspended ? "text-primary" : "text-destructive",
+                    )}
+                  >
+                    {!shop.suspended ? "Đang hoạt động" : "Đang tạm khóa"}
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-block h-2 w-2 rounded-full shrink-0",
+                      !shop.suspended ? "bg-primary" : "bg-destructive",
+                    )}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground group-hover:underline">
+                  {!shop.suspended
+                    ? "Nhấn để tạm khóa gian hàng"
+                    : "Nhấn để mở khóa gian hàng"}
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Quick toggles */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-          <ShieldCheck className="h-5 w-5 text-sky-600" />
-          <div className="min-w-0 flex-1">
-            <Label className="font-medium text-sm">Xác minh gian hàng</Label>
-            <p className="text-xs text-muted-foreground">
-              {shop.verified
-                ? "Gian hàng đang có huy hiệu xác minh uy tín"
-                : "Chưa gắn huy hiệu xác minh"}
-            </p>
-          </div>
-          <Switch
-            checked={shop.verified}
-            disabled={updateVerification.isPending}
-            onCheckedChange={handleToggleVerified}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-          {shop.suspended ? (
-            <EyeOff className="h-5 w-5 text-destructive" />
-          ) : (
-            <Eye className="h-5 w-5 text-emerald-600" />
-          )}
-          <div className="min-w-0 flex-1">
-            <Label className="font-medium text-sm">Hiển thị gian hàng</Label>
-            <p className="text-xs text-muted-foreground">
-              {shop.suspended
-                ? `Đang tạm khóa${
-                    shop.suspensionNote ? `: ${shop.suspensionNote}` : ""
-                  }`
-                : "Gian hàng và sản phẩm đang hiển thị công khai"}
-            </p>
-          </div>
-          <Switch
-            checked={!shop.suspended}
-            disabled={updateSuspension.isPending}
-            onCheckedChange={handleToggleSuspension}
-          />
-        </div>
-      </div>
+      {/* Dialog xác nhận thay đổi trạng thái (Tạm khóa / Mở lại gian hàng) */}
+      <PartnerSuspensionDialog
+        open={suspensionDialogOpen}
+        onOpenChange={setSuspensionDialogOpen}
+        partner={shop}
+      />
 
       {/* Detail cards */}
       <div className="grid gap-4 md:grid-cols-2">

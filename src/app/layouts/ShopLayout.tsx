@@ -27,14 +27,15 @@ function titleFor(path: string) {
   if (path.startsWith(ROUTES.customers)) return "Chi tiết khách hàng";
   if (path === ROUTES.orders) return "Đơn đặt hàng";
   if (path.startsWith(ROUTES.orders)) return "Chi tiết đơn hàng";
-  if (path.startsWith(ROUTES.agencies)) return "Đại lý";
+  if (path.startsWith(ROUTES.agencies)) return "Đại lý - Cộng tác viên";
   if (path === ROUTES.reviews) return "Đánh giá khách hàng";
   if (path === ROUTES.dispatchTeams) return "Nhóm điều phối";
   if (path === ROUTES.dispatchTeamCreate) return "Tạo nhóm điều phối";
   if (path.startsWith(ROUTES.dispatchTeams)) return "Sửa nhóm điều phối";
   if (path === ROUTES.report("sales")) return "Doanh thu của tôi";
   if (path === ROUTES.report("agency")) return "Doanh thu theo đại lý / CTV";
-  if (path.startsWith(`${ROUTES.report("agency")}/`)) return "Báo cáo đại lý / CTV";
+  if (path.startsWith(`${ROUTES.report("agency")}/`))
+    return "Báo cáo đại lý / CTV";
   if (path === ROUTES.report("product")) return "Doanh thu theo sản phẩm";
   if (path === ROUTES.report("group")) return "Doanh thu theo nhóm sản phẩm";
   if (path === ROUTES.report("farm")) return "Doanh thu theo nông hộ";
@@ -54,10 +55,15 @@ export function ShopLayout({ children }: { children: ReactNode }) {
   const actions = usePageHeaderStore((s) => s.actions);
   const { isRoot, isStaff, roles } = useAccess();
   const layout = isMobile ? (
-    <ShopMobileLayout brandTitle={BRAND_TITLE} navItems={mobileNavFor(isRoot, isStaff)}>
+    <ShopMobileLayout
+      brandTitle={BRAND_TITLE}
+      navItems={mobileNavFor(isRoot, isStaff)}
+    >
       {/* Desktop shows the title in the layout header; mobile gets it here, next to the page actions */}
       <div className="mb-4 flex min-h-9 items-center gap-2">
-        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">{titleFor(location)}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">
+          {titleFor(location)}
+        </h1>
         {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
       </div>
       {children}

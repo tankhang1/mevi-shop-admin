@@ -20,6 +20,7 @@ import { productHandlers } from "./handlers/product.handlers";
 import { reportHandlers } from "./handlers/report.handlers";
 import { staffHandlers } from "./handlers/staff.handlers";
 import { shopHandlers } from "./handlers/shop.handlers";
+import { geoHandlers } from "./handlers/geo.handlers";
 import { env } from "@/config/env";
 import { getAccessToken } from "@/features/auth/store/auth.store";
 import { HttpError, type MockHandler } from "./utils";
@@ -39,6 +40,7 @@ const handlers: MockHandler[] = [
   ...shopHandlers,
   ...staffHandlers,
   ...reportHandlers,
+  ...geoHandlers,
 ];
 
 const LATENCY_MS = 350;

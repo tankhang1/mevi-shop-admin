@@ -21,14 +21,17 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   partner?: PartnerProfile;
+  title?: string;
 }
 
 function PartnerSuspensionForm({
   partner,
   onClose,
+  title,
 }: {
   partner: PartnerProfile;
   onClose: () => void;
+  title?: string;
 }) {
   const { toast } = useToast();
   const updateSuspension = useUpdatePartnerSuspension();
@@ -48,7 +51,7 @@ function PartnerSuspensionForm({
       });
 
       toast({
-        title: willSuspend ? "Đã tạm khóa đối tác" : "Đã mở lại đối tác",
+        title: willSuspend ? "Đã tạm khóa gian hàng" : "Đã mở lại gian hàng",
         description: willSuspend
           ? `Gian hàng của "${partner.name}" đã bị tạm khóa và ẩn khỏi trang public.`
           : `Gian hàng của "${partner.name}" đã được mở lại hoạt động bình thường.`,
@@ -68,13 +71,12 @@ function PartnerSuspensionForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <DialogHeader>
         <DialogTitle>
-          {willSuspend
-            ? "Tạm khóa đối tác & gian hàng"
-            : "Mở lại hoạt động đối tác"}
+          {title ||
+            (willSuspend ? "Tạm khóa gian hàng" : "Mở lại hoạt động gian hàng")}
         </DialogTitle>
         <DialogDescription>
           {willSuspend
-            ? `Khi tạm khóa, gian hàng của "${partner.name}" sẽ bị ẩn khỏi trang public (trả về 404) và đối tác không thể chỉnh sửa hồ sơ hay sản phẩm.`
+            ? `Khi tạm khóa, gian hàng của "${partner.name}"đối tác không thể chỉnh sửa hồ sơ hay sản phẩm.`
             : `Gian hàng "${partner.name}" sẽ hiển thị công khai trở lại và đối tác có thể tiếp tục thao tác.`}
         </DialogDescription>
       </DialogHeader>
@@ -116,6 +118,7 @@ export function PartnerSuspensionDialog({
   open,
   onOpenChange,
   partner,
+  title,
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,6 +127,7 @@ export function PartnerSuspensionDialog({
           <PartnerSuspensionForm
             key={partner.id}
             partner={partner}
+            title={title}
             onClose={() => onOpenChange(false)}
           />
         )}

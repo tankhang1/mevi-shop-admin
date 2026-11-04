@@ -13,7 +13,10 @@ import {
   Ban,
   CheckCircle2,
   Coins,
+  KeyRound,
+  Percent,
   ShieldCheck,
+  Store,
   User,
   UserPlus,
 } from "lucide-react";
@@ -30,9 +33,10 @@ import {
   fromSpringPage,
   toSpringPageParams,
 } from "@/lib/pagination";
-import { PartnerTypeDialog } from "./components/PartnerTypeDialog";
 import { PartnerSuspensionDialog } from "./components/PartnerSuspensionDialog";
-import { PartnerAccountDetailDialog } from "./components/PartnerAccountDetailDialog";
+import { PartnerTypeDialog } from "./components/PartnerTypeDialog";
+import { PartnerCommissionDialog } from "./components/PartnerCommissionDialog";
+import { ResetPasswordDialog } from "./components/ResetPasswordDialog";
 import { CreatePartnerAccountDialog } from "@/pages/partner/components/CreatePartnerAccountDialog";
 
 const filters: TableFilterDef[] = [
@@ -80,22 +84,52 @@ function PartnerList() {
   const [selectedPartner, setSelectedPartner] = useState<
     PartnerProfile | undefined
   >();
-  const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [suspensionDialogOpen, setSuspensionDialogOpen] = useState(false);
-  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [typeDialogOpen, setTypeDialogOpen] = useState(false);
+  const [commissionDialogOpen, setCommissionDialogOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
 
   const columns: Column<PartnerProfile>[] = [
     {
-      key: "name",
-      label: "Đối tác / Gian hàng",
+      key: "partner",
+      label: "Đối tác",
       mobilePriority: "primary",
       render: (_, p) => (
         <button
           type="button"
           onClick={() => navigate(ROUTES.agencyDetail(String(p.id)))}
           className="flex items-center gap-2.5 text-left group transition hover:opacity-80"
-          title="Bấm để xem chi tiết, hoa hồng và báo cáo"
+          title="Bấm để xem thông tin chi tiết và hoa hồng đối tác"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs uppercase">
+            {p.contactName ? (
+              p.contactName.charAt(0)
+            ) : (
+              <User className="h-4 w-4" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline truncate">
+              {p.contactName || "Chưa cập nhật"}
+            </div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {p.contactPhone || "Chưa có SĐT"}
+            </div>
+          </div>
+        </button>
+      ),
+    },
+    {
+      key: "storefront",
+      label: "Gian hàng",
+      mobilePriority: "secondary",
+      render: (_, p) => (
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.shopDetail(String(p.id)))}
+          className="flex items-center gap-2.5 text-left group transition hover:opacity-80"
+          title="Bấm để xem thông tin chi tiết gian hàng"
         >
           {p.logoUrl ? (
             <img
@@ -105,7 +139,7 @@ function PartnerList() {
             />
           ) : (
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white uppercase"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white uppercase shadow-xs"
               style={{ background: p.brandColor || "#2E7D32" }}
             >
               {p.name.charAt(0)}
@@ -142,16 +176,20 @@ function PartnerList() {
       ),
     },
     {
-      key: "contact",
-      label: "Người đại diện & SĐT",
-      mobilePriority: "secondary",
+      key: "commissionRate",
+      label: "Hoa hồng",
       render: (_, p) => (
-        <div className="text-xs">
-          <div className="font-medium text-foreground">{p.contactName}</div>
-          <div className="text-muted-foreground font-mono">
-            {p.contactPhone}
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedPartner(p);
+            setCommissionDialogOpen(true);
+          }}
+          className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 hover:underline text-xs"
+          title="Bấm để cập nhật tỷ lệ hoa hồng"
+        >
+          {p.commissionRate != null ? `${p.commissionRate}%` : "—"}
+        </button>
       ),
     },
     {
@@ -181,17 +219,41 @@ function PartnerList() {
   const rowActions: RowAction<PartnerProfile>[] = [
     {
       key: "detail",
-      label: "Hoa hồng & Chi tiết",
+      label: "Xem thông tin",
       icon: Coins,
       onClick: (p) => navigate(ROUTES.agencyDetail(String(p.id))),
     },
     {
-      key: "type",
-      label: "Đổi loại đối tác",
+      key: "shopDetail",
+      label: "Xem gian hàng",
+      icon: Store,
+      onClick: (p) => navigate(ROUTES.shopDetail(String(p.id))),
+    },
+    {
+      key: "commission",
+      label: "Chia sẻ hoa hồng",
+      icon: Percent,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setCommissionDialogOpen(true);
+      },
+    },
+    {
+      key: "changeType",
+      label: "Chuyển loại đối tác",
       icon: ArrowLeftRight,
       onClick: (p) => {
         setSelectedPartner(p);
         setTypeDialogOpen(true);
+      },
+    },
+    {
+      key: "resetPassword",
+      label: "Đặt lại mật khẩu",
+      icon: KeyRound,
+      onClick: (p) => {
+        setSelectedPartner(p);
+        setResetPasswordOpen(true);
       },
     },
     {
@@ -215,22 +277,12 @@ function PartnerList() {
         setSuspensionDialogOpen(true);
       },
     },
-    {
-      key: "account",
-      label: "Tài khoản đăng nhập",
-      icon: User,
-      onClick: (p) => {
-        setSelectedPartner(p);
-        setAccountDialogOpen(true);
-      },
-    },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Quản lý Đối tác</h1>
           <p className="text-sm text-muted-foreground">
             Danh sách Cộng tác viên (CTV) và Đại lý bán hàng trong hệ sinh thái
             Mevi Shop
@@ -238,7 +290,7 @@ function PartnerList() {
         </div>
         <Button onClick={() => setCreateAccountOpen(true)}>
           <UserPlus className="mr-1.5 h-4 w-4" />
-          Cấp tài khoản đối tác
+          Thêm đối tác
         </Button>
       </div>
 
@@ -251,22 +303,28 @@ function PartnerList() {
         rowActions={rowActions}
       />
 
-      <PartnerTypeDialog
-        open={typeDialogOpen}
-        onOpenChange={setTypeDialogOpen}
-        partner={selectedPartner}
-      />
-
       <PartnerSuspensionDialog
         open={suspensionDialogOpen}
         onOpenChange={setSuspensionDialogOpen}
         partner={selectedPartner}
       />
 
-      <PartnerAccountDetailDialog
-        open={accountDialogOpen}
-        onOpenChange={setAccountDialogOpen}
-        partnerId={selectedPartner?.id}
+      <PartnerTypeDialog
+        open={typeDialogOpen}
+        onOpenChange={setTypeDialogOpen}
+        partner={selectedPartner}
+      />
+
+      <PartnerCommissionDialog
+        open={commissionDialogOpen}
+        onOpenChange={setCommissionDialogOpen}
+        partner={selectedPartner}
+      />
+
+      <ResetPasswordDialog
+        open={resetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        partner={selectedPartner}
       />
 
       <CreatePartnerAccountDialog

@@ -155,9 +155,10 @@ export const API_ENDPOINTS = {
       tracking: (id: string | number) => `/api/shop/orders/${id}/processing`,
       assign: (id: string | number) => `/api/shop/orders/${id}/processing`,
     },
-    /** Yêu cầu liên hệ hợp tác (BE notice 2026-10-28) */
+    /** Yêu cầu liên hệ hợp tác (BE notice 2026-10-28 & 2026-11-05) */
     partnerContactRequests: {
       base: "/api/admin/shop/partner-contact-requests",
+      statusCounts: "/api/admin/shop/partner-contact-requests/status-counts",
       detail: (id: number | string) =>
         `/api/admin/shop/partner-contact-requests/${id}`,
       status: (id: number | string) =>
@@ -195,6 +196,8 @@ export const API_ENDPOINTS = {
     users: {
       /** POST — Cấp tài khoản đối tác */
       shopPartners: "/api/admin/users/shop-partners",
+      /** PUT — Cập nhật tài khoản / đặt lại mật khẩu */
+      update: (id: string | number) => `/api/admin/users/${id}`,
     },
     shops: {
       base: "/api/center/workspaces",
@@ -242,5 +245,11 @@ export const API_ENDPOINTS = {
   },
   storage: {
     storefrontPhotos: "/api/storage/storefront-photos",
+  },
+  masterData: {
+    geo: {
+      provinces: "/api/master-data/geo/provinces",
+      wards: "/api/master-data/geo/wards",
+    },
   },
 } as const;

@@ -10,10 +10,13 @@ import type {
   PartnerCommissionPayout,
   PartnerCommissionSummary,
   PartnerContactRequest,
+  PartnerContactStatusCounts,
   PartnerOrderStats,
   PartnerProfile,
   PartnerProfileDetail,
   PartnerReport,
+  ResetUserPasswordInput,
+  UnifiedCreatePartnerInput,
   UpdateCommissionRateInput,
   UpdateContactRequestStatusInput,
   UpdatePartnerSuspensionInput,
@@ -27,6 +30,16 @@ const USERS_EP = API_ENDPOINTS.admin.users;
 
 export const partnerApi = {
   // ── Yêu cầu liên hệ hợp tác ──
+  getContactStatusCounts: async (
+    keyword?: string,
+  ): Promise<PartnerContactStatusCounts> => {
+    const res = await realApiClient.get<PartnerContactStatusCounts>(
+      CONTACT_EP.statusCounts,
+      { params: keyword ? { keyword } : undefined },
+    );
+    return res.data;
+  },
+
   getContactRequests: async (params?: ListPartnerContactRequestsParams) => {
     const res = await realApiClient.get<SpringPage<PartnerContactRequest>>(
       CONTACT_EP.base,
@@ -56,6 +69,49 @@ export const partnerApi = {
   createShopPartnerUser: async (input: CreateShopPartnerUserInput) => {
     const res = await realApiClient.post(USERS_EP.shopPartners, input);
     return res.data;
+  },
+
+  /** Đặt lại mật khẩu tài khoản người dùng */
+  resetUserPassword: async (input: ResetUserPasswordInput) => {
+    const payload: Record<string, unknown> = {
+      fullName: input.fullName || "Đối tác",
+      password: input.password,
+    };
+    if (input.username) payload.username = input.username;
+    if (input.email) payload.email = input.email;
+    if (input.province) payload.province = input.province;
+    if (input.audienceType) payload.audienceType = input.audienceType;
+
+    const res = await realApiClient.put(USERS_EP.update(input.userId), payload);
+    return res.data;
+  },
+
+  /** Tạo đồng nhất tài khoản + hồ sơ gian hàng cho đối tác */
+  createUnifiedPartner: async (input: UnifiedCreatePartnerInput) => {
+    // Bước 1: Tạo tài khoản shop partner kèm hồ sơ gian hàng và tự động xác minh (shopProfileVerified: true)
+    const userRes = await realApiClient.post(USERS_EP.shopPartners, {
+      fullName: input.fullName,
+      phoneNumber: input.phoneNumber,
+      email: input.email || undefined,
+      audienceType: input.audienceType,
+      province: input.province,
+      password: input.password || undefined,
+      shopProfile: {
+        name: input.shopName,
+        handle: input.handle,
+        slogan: input.slogan || undefined,
+        province: input.province,
+        contactName: input.fullName,
+        contactPhone: input.phoneNumber,
+        contactEmail: input.email || undefined,
+        description: input.detailAddress
+          ? `Địa chỉ: ${input.detailAddress}${input.ward ? `, ${input.ward}` : ""}, ${input.province}`
+          : undefined,
+      },
+      shopProfileVerified: true,
+    });
+
+    return userRes.data;
   },
 
   // ── Hồ sơ đối tác & Gian hàng (Admin) ──
@@ -153,18 +209,16 @@ export const partnerApi = {
     id: number | string,
     params?: { page?: number; size?: number },
   ) => {
-    const res = await realApiClient.get<SpringPage<PartnerCommissionPayout> | PartnerCommissionPayout[]>(
-      PROFILE_EP.commissionPayouts(id),
-      { params },
-    );
+    const res = await realApiClient.get<
+      SpringPage<PartnerCommissionPayout> | PartnerCommissionPayout[]
+    >(PROFILE_EP.commissionPayouts(id), { params });
     return res.data;
   },
 
   getReport: async (id: number | string, params?: GetPartnerReportParams) => {
-    const res = await realApiClient.get<PartnerReport>(
-      PROFILE_EP.report(id),
-      { params },
-    );
+    const res = await realApiClient.get<PartnerReport>(PROFILE_EP.report(id), {
+      params,
+    });
     return res.data;
   },
 };

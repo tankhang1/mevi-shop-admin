@@ -6,14 +6,17 @@ export type AgencyKind = "agency" | "ctv";
 
 export interface Agency {
   id: string;
+  workspaceId?: number | string;
   name: string;
   kind: AgencyKind;
   slug: string;
+  slogan?: string;
   brandColor?: string;
   logoUrl?: string;
   contactName?: string;
   phone?: string;
   email?: string;
+  province?: string;
   active: boolean;
   /** % of order total the agency / CTV earns on orders through its referral link */
   commissionRate: number;
