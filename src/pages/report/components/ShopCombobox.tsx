@@ -45,10 +45,11 @@ export function ShopCombobox({
   }, [keyword]);
 
   // Gọi API tìm kiếm gian hàng theo keyword
-  const { data: shopData, isLoading, isFetching } = useShops(
-    { keyword: debouncedKeyword || undefined, size: 50 },
-    isRoot,
-  );
+  const {
+    data: shopData,
+    isLoading,
+    isFetching,
+  } = useShops({ keyword: debouncedKeyword || undefined, size: 50 }, isRoot);
 
   // Khi value khác "all" và chưa có selectedLabel, fetch thông tin shop đó
   const { data: initialShop } = useShop(
@@ -90,13 +91,10 @@ export function ShopCombobox({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent
-        className="w-[280px] p-0"
-        align="start"
-      >
+      <PopoverContent className="w-[280px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Tìm kiếm gian hàng theo API..."
+            placeholder="Tìm kiếm gian hàng..."
             value={keyword}
             onValueChange={setKeyword}
           />
@@ -129,7 +127,9 @@ export function ShopCombobox({
                         !value || value === "all" ? "opacity-100" : "opacity-0",
                       )}
                     />
-                    <span className="font-medium text-primary">Tất cả gian hàng</span>
+                    <span className="font-medium text-primary">
+                      Tất cả gian hàng
+                    </span>
                   </CommandItem>
 
                   {shops.map((shop) => (
@@ -150,7 +150,9 @@ export function ShopCombobox({
                         )}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{shop.name}</p>
+                        <p className="truncate text-sm font-medium">
+                          {shop.name}
+                        </p>
                         {shop.location && (
                           <p className="truncate text-[11px] text-muted-foreground">
                             {shop.location}
