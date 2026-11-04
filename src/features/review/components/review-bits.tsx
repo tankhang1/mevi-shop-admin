@@ -1,6 +1,12 @@
 import { Star } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { MockBadge } from "@/components/common/MockBadge";
 import type { ReviewStats } from "../types";
+
+/** Stats endpoint is missing: figures are real, but counted from the list API */
+export function ReviewStatsMockBadge() {
+  return <MockBadge title="Chưa có API thống kê — số liệu đang được đếm từ API danh sách" />;
+}
 
 export function Stars({ value, size = "sm" }: { value: number; size?: "sm" | "md" }) {
   const cls = size === "md" ? "h-5 w-5" : "h-3.5 w-3.5";
@@ -22,6 +28,7 @@ export function RatingSummary({ stats }: { stats: ReviewStats }) {
         <p className="text-4xl font-bold tabular-nums">{stats.total ? stats.average.toFixed(1) : "—"}</p>
         <Stars value={stats.average} size="md" />
         <p className="mt-1 text-xs text-muted-foreground">{stats.total} đánh giá</p>
+        <ReviewStatsMockBadge />
       </div>
       <div className="flex-1 space-y-1.5">
         {[5, 4, 3, 2, 1].map((star) => {

@@ -7,7 +7,6 @@ import type { StockMovement } from "@/features/inventory/types";
 import type { Order, OrderStatus } from "@/features/order/types";
 import type { Product } from "@/features/product/types";
 import type { ProductGroup } from "@/features/product-group/types";
-import type { Review } from "@/features/review/types";
 import type { Shop } from "@/features/shop/types";
 import type { Staff } from "@/features/staff/types";
 import { VN_LOCATIONS, VN_PROVINCES } from "@/features/order/constants";
@@ -30,7 +29,7 @@ export const db: {
   orders: Order[];
   agencies: Agency[];
   shops: Shop[];
-  reviews: Review[];
+  reviews: MockReview[];
 } = {
   shops: [
 
@@ -770,6 +769,24 @@ db.customers[0].note = "Mua số lượng lớn, ưu tiên giao buổi sáng.";
 db.customers[1].tags = ["Quà tặng"];
 
 // ── Generated reviews (deterministic), wording from mevi-shop's reviews model ──
+// Reviews use the real API now; this seed only feeds the mocked dashboard and shop figures
+interface MockReview {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage?: string;
+  shopId: string;
+  author: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  content: string;
+  tags: string[];
+  images: string[];
+  helpful: number;
+  createdAt: string;
+  hidden: boolean;
+  reply: { content: string; repliedAt: string; by: string } | null;
+}
+
 const AUTHORS = ["Nguyễn Thu Hà", "Trần Minh Khoa", "Lê Bảo Ngọc", "Phạm Gia Huy", "Võ Thị Mai", "Đỗ Quang Vinh", "Huỳnh Anh Thư", "Bùi Đức Long", "Ngô Phương Linh", "Đặng Hữu Tài"];
 const PRAISE = [
   { content: "Hàng tươi, đóng gói cẩn thận, giao nhanh hơn mình nghĩ. Sẽ ủng hộ shop dài dài.", tags: ["Giao nhanh", "Đóng gói kỹ"] },
@@ -801,7 +818,7 @@ for (const p of db.products) {
       productImage: p.images[0],
       shopId: p.shopId,
       author: pick(AUTHORS),
-      rating: (critical ? (pickR as (typeof CRITICAL)[number]).rating : rand() < 0.3 ? 4 : 5) as Review["rating"],
+      rating: (critical ? (pickR as (typeof CRITICAL)[number]).rating : rand() < 0.3 ? 4 : 5) as MockReview["rating"],
       content: pickR.content,
       tags: pickR.tags,
       images: rand() < 0.15 ? [img(`review-${rid}`)] : [],

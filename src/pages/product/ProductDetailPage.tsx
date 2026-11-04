@@ -109,7 +109,7 @@ export default function ProductDetailPage() {
         <TabsContent value="info" className="mt-0 space-y-5">
           <ProductInfo product={product} />
           {/* Reviews API not ready — still on mocks */}
-          <ProductReviews productId={String(product.id)} />
+          <ProductReviews productId={product.id} />
         </TabsContent>
         {/* No orders API yet */}
         <TabsContent value="sales" className="mt-0">

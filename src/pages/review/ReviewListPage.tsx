@@ -13,16 +13,15 @@ import {
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
-import { useAccess } from "@/features/auth";
-import { RatingSummary } from "@/features/review/components/review-bits";
+import { RatingSummary, ReviewStatsMockBadge } from "@/features/review/components/review-bits";
 import { type ReviewListParams, useReviewStats, useReviews } from "@/features/review";
-import { useShops } from "@/features/shop";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatPercent } from "@/lib/format";
+import { fromSpringPage } from "@/lib/pagination";
 import { ReviewCard } from "./components/ReviewCard";
 import { ReviewMobileHeader } from "./components/ReviewMobileHeader";
 
-type Filters = Required<Pick<ReviewListParams, "rating" | "replied">> & { shopId: string };
+type Filters = Required<Pick<ReviewListParams, "rating" | "replied" | "hidden">>;
 
 function FilterSelect({ value, onChange, options, className }: { value: string; onChange: (v: string) => void; options: [string, string][]; className?: string }) {
   return (
@@ -44,12 +43,11 @@ function FilterSelect({ value, onChange, options, className }: { value: string; 
 }
 
 export default function ReviewListPage() {
-  const { isRoot } = useAccess();
   const isMobile = useIsMobile();
-  const table = useTableParams<Filters>({ rating: "all", replied: "all", shopId: "all" }, 10);
-  const { data: page, isFetching } = useReviews(table.params);
+  const table = useTableParams<Filters>({ rating: "all", replied: "all", hidden: "all" }, 10);
+  const { data, isFetching } = useReviews(table.params);
+  const page = fromSpringPage(data);
   const { data: stats } = useReviewStats();
-  const { data: shops } = useShops({ size: 100 }, isRoot);
   const bound = table.bind(page, isFetching);
 
   // Debounced search
@@ -74,8 +72,10 @@ export default function ReviewListPage() {
           stats={stats}
           replied={f.replied}
           rating={f.rating}
+          hidden={f.hidden}
           onReplied={(v) => bound.onFilterChange("replied", v)}
           onRating={(v) => bound.onFilterChange("rating", v)}
+          onHidden={(v) => bound.onFilterChange("hidden", v)}
         />
       ) : (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -90,7 +90,7 @@ export default function ReviewListPage() {
               </span>
               <div>
                 <p className="text-2xl font-bold tabular-nums">{stats?.unreplied ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">Đánh giá chưa trả lời</p>
+                <p className="text-xs text-muted-foreground">Đánh giá chưa trả lời <ReviewStatsMockBadge /></p>
               </div>
             </div>
             {stats && stats.total > 0 && (
@@ -102,7 +102,7 @@ export default function ReviewListPage() {
               variant="outline"
               size="sm"
               className="self-start"
-              onClick={() => bound.onFilterChange("replied", "no")}
+              onClick={() => bound.onFilterChange("replied", "false")}
               disabled={!stats?.unreplied}
             >
               Xem đánh giá chưa trả lời
@@ -115,7 +115,7 @@ export default function ReviewListPage() {
       <div className="flex flex-wrap gap-2">
         <div className="relative max-sm:w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo khách, nội dung, sản phẩm..." className="pl-9!" />
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tìm theo nội dung, tên hoặc mã sản phẩm..." className="pl-9!" />
         </div>
         {!isMobile && (
         <>
@@ -129,17 +129,15 @@ export default function ReviewListPage() {
           className="max-sm:w-full sm:w-44"
           value={f.replied}
           onChange={(v) => bound.onFilterChange("replied", v)}
-          options={[["all", "Tất cả trạng thái"], ["no", "Chưa trả lời"], ["yes", "Đã trả lời"]]}
+          options={[["all", "Tất cả trạng thái"], ["false", "Chưa trả lời"], ["true", "Đã trả lời"]]}
+        />
+        <FilterSelect
+          className="max-sm:w-full sm:w-44"
+          value={f.hidden}
+          onChange={(v) => bound.onFilterChange("hidden", v)}
+          options={[["all", "Tất cả hiển thị"], ["false", "Đang hiện"], ["true", "Đang ẩn"]]}
         />
         </>
-        )}
-        {isRoot && (
-          <FilterSelect
-            className="max-sm:w-full sm:w-52"
-            value={f.shopId}
-            onChange={(v) => bound.onFilterChange("shopId", v)}
-            options={[["all", "Tất cả gian hàng"], ...(shops?.items ?? []).map((s) => [s.id, s.name] as [string, string])]}
-          />
         )}
       </div>
 
@@ -152,7 +150,7 @@ export default function ReviewListPage() {
       ) : (
         <div className={isFetching ? "grid gap-3 opacity-60 transition-opacity xl:grid-cols-2" : "grid gap-3 transition-opacity xl:grid-cols-2"}>
           {items.map((r) => (
-            <ReviewCard key={r.id} review={r} showShop={isRoot} />
+            <ReviewCard key={r.id} review={r} />
           ))}
         </div>
       )}

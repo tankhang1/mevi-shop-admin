@@ -2,12 +2,13 @@ import type { ElementType } from "react";
 import { Link } from "wouter";
 import { Building2, ChevronRight, ClipboardCheck, Inbox, MessageSquareText, Star } from "lucide-react";
 import { Card } from "@Team-Trung-Vu-Khang/eco-shared-ui";
+import { MockBadge } from "@/components/common/MockBadge";
 import { ROUTES } from "@/config/routes";
 import type { DashboardSummary } from "@/features/dashboard";
 
 /** "Needs attention now" counters — current state, not tied to the date range */
 export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary["snapshot"]; isRoot: boolean }) {
-  const items: { label: string; value: string; icon: ElementType; href: string; highlight?: boolean }[] = [
+  const items: { label: string; value: string; icon: ElementType; href: string; highlight?: boolean; mock?: boolean }[] = [
     { label: "Đơn mới cần xử lý", value: String(snapshot.newOrders), icon: Inbox, href: ROUTES.orders, highlight: snapshot.newOrders > 0 },
     {
       label: "Sản phẩm chờ duyệt",
@@ -23,6 +24,7 @@ export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary
       icon: MessageSquareText,
       href: ROUTES.reviews,
       highlight: snapshot.unrepliedReviews > 0,
+      mock: true,
     },
     isRoot
       ? {
@@ -36,6 +38,7 @@ export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary
           value: snapshot.averageRating ? `${snapshot.averageRating.toFixed(1)} ★` : "—",
           icon: Star,
           href: ROUTES.reviews,
+          mock: true,
         },
   ];
 
@@ -57,7 +60,9 @@ export function SnapshotStrip({ snapshot, isRoot }: { snapshot: DashboardSummary
             <i.icon className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xl font-bold leading-tight tabular-nums">{i.value}</p>
+            <p className="text-xl font-bold leading-tight tabular-nums">
+              {i.value} {i.mock && <MockBadge />}
+            </p>
             <p className="truncate text-xs text-muted-foreground">{i.label}</p>
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

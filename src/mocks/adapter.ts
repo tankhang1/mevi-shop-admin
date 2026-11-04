@@ -18,7 +18,6 @@ import { orderHandlers } from "./handlers/order.handlers";
 import { productGroupHandlers } from "./handlers/product-group.handlers";
 import { productHandlers } from "./handlers/product.handlers";
 import { reportHandlers } from "./handlers/report.handlers";
-import { reviewHandlers } from "./handlers/review.handlers";
 import { staffHandlers } from "./handlers/staff.handlers";
 import { shopHandlers } from "./handlers/shop.handlers";
 import { env } from "@/config/env";
@@ -39,7 +38,6 @@ const handlers: MockHandler[] = [
   ...agencyHandlers,
   ...shopHandlers,
   ...staffHandlers,
-  ...reviewHandlers,
   ...reportHandlers,
 ];
 
