@@ -159,6 +159,8 @@ export const API_ENDPOINTS = {
     reviews: {
       /** GET ?productId&rating&hidden&replied&keyword&page&size */
       base: "/api/admin/shop/reviews",
+      /** GET: whole-catalog figures for the reviews screen (no productId filter) */
+      summary: "/api/admin/shop/reviews/summary",
       /** PUT { content } · DELETE */
       reply: (id: number) => `/api/admin/shop/reviews/${id}/reply`,
       /** PUT { hidden, reason? } */

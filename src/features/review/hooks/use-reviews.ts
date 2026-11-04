@@ -6,6 +6,7 @@ import type { ReviewListParams, SetReviewVisibilityInput } from "../types";
 export const reviewKeys = {
   all: ["reviews"] as const,
   list: (params: ReviewListParams) => [...reviewKeys.all, "list", params] as const,
+  summary: () => [...reviewKeys.all, "summary"] as const,
   stats: (productId?: number) => [...reviewKeys.all, "stats", productId ?? "all"] as const,
 };
 
@@ -15,6 +16,10 @@ export function useReviews(params: ReviewListParams = {}) {
     queryFn: () => reviewApi.list(params),
     placeholderData: keepPreviousData,
   });
+}
+
+export function useReviewSummary() {
+  return useQuery({ queryKey: reviewKeys.summary(), queryFn: reviewApi.summary });
 }
 
 export function useReviewStats(productId?: number) {

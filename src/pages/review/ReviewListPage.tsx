@@ -13,8 +13,8 @@ import {
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
-import { RatingSummary, ReviewStatsMockBadge } from "@/features/review/components/review-bits";
-import { type ReviewListParams, useReviewStats, useReviews } from "@/features/review";
+import { RatingSummary } from "@/features/review/components/review-bits";
+import { type ReviewListParams, useReviewSummary, useReviews } from "@/features/review";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatPercent } from "@/lib/format";
 import { fromSpringPage } from "@/lib/pagination";
@@ -47,7 +47,7 @@ export default function ReviewListPage() {
   const table = useTableParams<Filters>({ rating: "all", replied: "all", hidden: "all" }, 10);
   const { data, isFetching } = useReviews(table.params);
   const page = fromSpringPage(data);
-  const { data: stats } = useReviewStats();
+  const { data: stats } = useReviewSummary();
   const bound = table.bind(page, isFetching);
 
   // Debounced search
@@ -64,6 +64,11 @@ export default function ReviewListPage() {
   const totalPages = Math.max(1, Math.ceil((page?.total ?? 0) / (page?.size || 1)));
   const current = page?.page ?? 1;
   const f = table.state.filters;
+  // Both filters, so the row count matches unrepliedCount (hidden reviews aren't counted)
+  const viewUnreplied = () => {
+    bound.onFilterChange("replied", "false");
+    bound.onFilterChange("hidden", "false");
+  };
 
   return (
     <div className="space-y-5">
@@ -74,6 +79,7 @@ export default function ReviewListPage() {
           rating={f.rating}
           hidden={f.hidden}
           onReplied={(v) => bound.onFilterChange("replied", v)}
+          onViewUnreplied={viewUnreplied}
           onRating={(v) => bound.onFilterChange("rating", v)}
           onHidden={(v) => bound.onFilterChange("hidden", v)}
         />
@@ -90,7 +96,7 @@ export default function ReviewListPage() {
               </span>
               <div>
                 <p className="text-2xl font-bold tabular-nums">{stats?.unreplied ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">Đánh giá chưa trả lời <ReviewStatsMockBadge /></p>
+                <p className="text-xs text-muted-foreground">Đánh giá chưa trả lời</p>
               </div>
             </div>
             {stats && stats.total > 0 && (
@@ -102,7 +108,7 @@ export default function ReviewListPage() {
               variant="outline"
               size="sm"
               className="self-start"
-              onClick={() => bound.onFilterChange("replied", "false")}
+              onClick={viewUnreplied}
               disabled={!stats?.unreplied}
             >
               Xem đánh giá chưa trả lời

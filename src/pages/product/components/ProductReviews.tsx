@@ -21,7 +21,7 @@ export function ProductReviews({ productId }: { productId: number }) {
         <CardTitle className="text-base">Đánh giá của khách hàng</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {stats && stats.total + stats.hidden > 0 && <RatingSummary stats={stats} />}
+        {stats && stats.total + stats.hidden > 0 && <RatingSummary stats={stats} mock />}
         {isLoading ? (
           <LoadingBlock />
         ) : !page?.items.length ? (

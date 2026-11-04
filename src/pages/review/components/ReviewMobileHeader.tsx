@@ -1,6 +1,6 @@
 import { MessageSquareWarning, Star } from "lucide-react";
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { ReviewStatsMockBadge, Stars } from "@/features/review/components/review-bits";
+import { Stars } from "@/features/review/components/review-bits";
 import type { ReviewStats } from "@/features/review";
 import { formatPercent } from "@/lib/format";
 
@@ -10,6 +10,7 @@ interface Props {
   rating: string;
   hidden: string;
   onReplied: (v: string) => void;
+  onViewUnreplied: () => void;
   onRating: (v: string) => void;
   onHidden: (v: string) => void;
 }
@@ -30,7 +31,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 /** Mobile: one compact summary card + chip filters instead of two big cards and stacked selects */
-export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, onRating, onHidden }: Props) {
+export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, onViewUnreplied, onRating, onHidden }: Props) {
   const max = Math.max(1, ...(stats?.distribution ?? [0]));
   const unreplied = stats?.unreplied ?? 0;
 
@@ -44,7 +45,6 @@ export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, 
               <Stars value={stats?.average ?? 0} />
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">{stats?.total ?? 0} đánh giá</p>
-            <ReviewStatsMockBadge />
           </div>
           <div className="min-w-0 flex-1 space-y-1">
             {[5, 4, 3, 2, 1].map((star) => {
@@ -65,7 +65,7 @@ export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, 
         {stats && stats.total > 0 && (
           <button
             type="button"
-            onClick={() => onReplied(replied === "false" ? "all" : "false")}
+            onClick={() => (replied === "false" ? onReplied("all") : onViewUnreplied())}
             disabled={!unreplied}
             className={cn(
               "mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm",
@@ -91,7 +91,7 @@ export function ReviewMobileHeader({ stats, replied, rating, hidden, onReplied, 
         <Chip active={replied === "all"} onClick={() => onReplied("all")}>
           Tất cả
         </Chip>
-        <Chip active={replied === "false"} onClick={() => onReplied("false")}>
+        <Chip active={replied === "false"} onClick={onViewUnreplied}>
           Chưa trả lời
           {!!unreplied && (
             <span className={cn("rounded-full px-1.5 text-xs", replied === "false" ? "bg-white/25" : "bg-amber-100 text-amber-800")}>

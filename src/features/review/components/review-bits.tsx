@@ -20,7 +20,7 @@ export function Stars({ value, size = "sm" }: { value: number; size?: "sm" | "md
 }
 
 /** Average + 5→1 star bars, as on the storefront product page */
-export function RatingSummary({ stats }: { stats: ReviewStats }) {
+export function RatingSummary({ stats, mock }: { stats: ReviewStats; mock?: boolean }) {
   const max = Math.max(1, ...stats.distribution);
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -28,7 +28,7 @@ export function RatingSummary({ stats }: { stats: ReviewStats }) {
         <p className="text-4xl font-bold tabular-nums">{stats.total ? stats.average.toFixed(1) : "—"}</p>
         <Stars value={stats.average} size="md" />
         <p className="mt-1 text-xs text-muted-foreground">{stats.total} đánh giá</p>
-        <ReviewStatsMockBadge />
+        {mock && <ReviewStatsMockBadge />}
       </div>
       <div className="flex-1 space-y-1.5">
         {[5, 4, 3, 2, 1].map((star) => {

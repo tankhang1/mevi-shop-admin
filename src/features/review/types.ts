@@ -50,7 +50,17 @@ export interface SetReviewVisibilityInput {
   reason?: string;
 }
 
-/** Derived on the client from list counts: the API has no stats endpoint */
+/** GET /reviews/summary: visible reviews only, including those of deleted / discontinued products */
+export interface ReviewSummaryResponse {
+  /** null when there are no reviews yet */
+  ratingAverage: number | null;
+  ratingCount: number;
+  /** Always all 5 levels, from 5 down to 1 */
+  ratingDistribution: { stars: number; count: number }[];
+  unrepliedCount: number;
+}
+
+/** From the summary API for the whole catalog; counted from the list API for one product */
 export interface ReviewStats {
   /** Visible reviews only, like the public score */
   total: number;
