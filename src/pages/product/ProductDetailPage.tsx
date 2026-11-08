@@ -12,7 +12,6 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { usePageActions } from "@/app/layouts/page-header.store";
 import { BackLink } from "@/components/common/BackLink";
-import { MockBadge } from "@/components/common/MockBadge";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
 import { useAccess } from "@/features/auth";
@@ -22,7 +21,7 @@ import { formatDate } from "@/lib/format";
 import { CatalogStatusToggle } from "./components/CatalogStatusToggle";
 import { ProductInfo } from "./components/ProductInfo";
 import { CatalogStockMovementTable } from "@/pages/inventory/components/CatalogStockMovementTable";
-import { StockMovementTable } from "@/pages/inventory/components/StockMovementTable";
+import { ProductSalesTable } from "./components/ProductSalesTable";
 import { ProductReviews } from "./components/ProductReviews";
 import { ProductStockCard } from "./components/ProductStockCard";
 
@@ -100,7 +99,7 @@ export default function ProductDetailPage() {
           <TabsList>
             <TabsTrigger value="info">Thông tin</TabsTrigger>
             <TabsTrigger value="sales" className="gap-1.5">
-              Lịch sử bán hàng <MockBadge />
+              Lịch sử bán hàng
             </TabsTrigger>
             <TabsTrigger value="imports">Lịch sử tồn kho</TabsTrigger>
             <TabsTrigger value="stock">Tồn kho hiện tại</TabsTrigger>
@@ -111,9 +110,8 @@ export default function ProductDetailPage() {
           {/* Reviews API not ready — still on mocks */}
           <ProductReviews productId={product.id} />
         </TabsContent>
-        {/* No orders API yet */}
         <TabsContent value="sales" className="mt-0">
-          <StockMovementTable productId={String(product.id)} type="out" />
+          <ProductSalesTable productId={product.id} />
         </TabsContent>
         <TabsContent value="imports" className="mt-0">
           <CatalogStockMovementTable productId={product.id} />
