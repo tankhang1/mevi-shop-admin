@@ -227,6 +227,10 @@ export const API_ENDPOINTS = {
   shop: {
     profile: {
       base: "/api/shop/profile",
+      homeConfig: "/api/shop/profile/home-config",
+      homeBanners: "/api/shop/profile/home-banners",
+      homeHighlights: "/api/shop/profile/home-highlights",
+      homeFaqs: "/api/shop/profile/home-faqs",
       orderStats: "/api/shop/profile/order-stats",
       orders: "/api/shop/profile/orders",
       commissionSummary: "/api/shop/profile/commission-summary",

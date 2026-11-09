@@ -70,3 +70,78 @@ export interface ListStorefrontProductsParams {
   page?: number;
   size?: number;
 }
+
+// ── Storefront Home / Landing Sections ──
+
+export type BannerActionType =
+  | "NONE"
+  | "INTERNAL_LINK"
+  | "EXTERNAL_LINK"
+  | "CONTACT";
+export type BannerContactType = "HOTLINE" | "ZALO" | "EMAIL";
+
+export interface BannerButtonConfig {
+  enabled: boolean;
+  text: string;
+  actionType: BannerActionType;
+  targetUrl?: string;
+  openInNewTab?: boolean;
+  contactType?: BannerContactType;
+}
+
+export interface StorefrontBannerItem {
+  id: string;
+  badge?: string;
+  showBadge?: boolean;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  button: BannerButtonConfig;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface StorefrontBannerSettings {
+  autoplay: boolean;
+  autoplayIntervalSeconds: number;
+  items: StorefrontBannerItem[];
+}
+
+export interface StorefrontHighlightCard {
+  id: string;
+  icon: string;
+  orderText?: string;
+  title: string;
+  description: string;
+  linkUrl?: string;
+}
+
+export interface StorefrontHighlightSection {
+  enabled: boolean;
+  sectionLabel?: string;
+  kicker: string;
+  title: string;
+  description: string;
+  cards: StorefrontHighlightCard[];
+}
+
+export interface StorefrontFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface StorefrontFaqSection {
+  enabled: boolean;
+  kicker: string;
+  title: string;
+  items: StorefrontFaqItem[];
+}
+
+export interface StorefrontHomeConfig {
+  banners: StorefrontBannerSettings;
+  highlights: StorefrontHighlightSection;
+  faq: StorefrontFaqSection;
+}

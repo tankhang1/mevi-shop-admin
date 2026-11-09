@@ -54,6 +54,15 @@ const StaffListPage = lazy(() => import("@/pages/staff/StaffListPage"));
 const ReportPage = lazy(() => import("@/pages/report/ReportPage"));
 const AgencyReportPage = lazy(() => import("@/pages/report/AgencyReportPage"));
 const MyShopPage = lazy(() => import("@/pages/shop/MyShopPage"));
+const StorefrontBannersPage = lazy(
+  () => import("@/pages/shop/StorefrontBannersPage"),
+);
+const StorefrontHighlightsPage = lazy(
+  () => import("@/pages/shop/StorefrontHighlightsPage"),
+);
+const StorefrontFaqPage = lazy(
+  () => import("@/pages/shop/StorefrontFaqPage"),
+);
 const ShopListPage = lazy(() => import("@/pages/shop/ShopListPage"));
 const ShopDetailPage = lazy(() => import("@/pages/shop/ShopDetailPage"));
 const PartnerContactListPage = lazy(
@@ -183,6 +192,18 @@ function ProtectedRoutes() {
             <Route path={`${ROUTES.reports}/:kind`} component={ReportPage} />
             <Route path={ROUTES.reports} component={ReportsIndexRoute} />
             <Route path={ROUTES.staff} component={StaffListRoute} />
+            <Route
+              path={ROUTES.storefrontBanners}
+              component={StorefrontBannersPage}
+            />
+            <Route
+              path={ROUTES.storefrontHighlights}
+              component={StorefrontHighlightsPage}
+            />
+            <Route
+              path={ROUTES.storefrontFaq}
+              component={StorefrontFaqPage}
+            />
             <Route path={ROUTES.myShop} component={MyShopPage} />
             <Route
               path={ROUTES.shopDetail(":id")}

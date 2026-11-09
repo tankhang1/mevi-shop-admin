@@ -41,7 +41,10 @@ function titleFor(path: string) {
   if (path === ROUTES.report("farm")) return "Doanh thu theo nông hộ";
   if (path === ROUTES.staff) return "Nhân viên điều phối";
   if (path === ROUTES.partnerContactRequests) return "Yêu cầu hợp tác";
-  if (path === ROUTES.myShop) return "Thông tin gian hàng";
+  if (path === ROUTES.storefrontBanners) return "Banner trang chủ";
+  if (path === ROUTES.storefrontHighlights) return "Khối nổi bật & Giá trị";
+  if (path === ROUTES.storefrontFaq) return "Câu hỏi thường gặp";
+  if (path === ROUTES.myShop) return "Hồ sơ gian hàng";
   if (path === ROUTES.shops) return "Gian hàng";
   if (path.startsWith(ROUTES.shops)) return "Chi tiết gian hàng";
   if (path === ROUTES.profile) return "Tài khoản";

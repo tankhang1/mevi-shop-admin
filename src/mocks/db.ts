@@ -9,6 +9,7 @@ import type { Product } from "@/features/product/types";
 import type { ProductGroup } from "@/features/product-group/types";
 import type { Shop } from "@/features/shop/types";
 import type { Staff } from "@/features/staff/types";
+import type { StorefrontHomeConfig } from "@/features/storefront/types";
 import { VN_LOCATIONS, VN_PROVINCES } from "@/features/order/constants";
 import { daysAgo } from "./utils";
 
@@ -30,7 +31,147 @@ export const db: {
   agencies: Agency[];
   shops: Shop[];
   reviews: MockReview[];
+  storefrontHomeConfigs: Record<string, StorefrontHomeConfig>;
 } = {
+  storefrontHomeConfigs: {
+    default: {
+      banners: {
+        autoplay: true,
+        autoplayIntervalSeconds: 5,
+        items: [
+          {
+            id: "banner-1",
+            badge: "ĐẠI LÝ MEVI",
+            showBadge: true,
+            title: "Gian hàng Đà Lạt Xanh",
+            description:
+              "Đại lý chính thức tại Đà Lạt – đặt hàng qua gian hàng để được tư vấn và giao nhanh trong khu vực.",
+            imageUrl:
+              "https://images.unsplash.com/photo-1592417817098-8f3d6910985c?auto=format&fit=crop&w=1600&q=80",
+            button: {
+              enabled: true,
+              text: "Ghé gian hàng",
+              actionType: "INTERNAL_LINK",
+              targetUrl: "/products",
+              openInNewTab: false,
+              contactType: "HOTLINE",
+            },
+            active: true,
+            sortOrder: 1,
+          },
+          {
+            id: "banner-2",
+            badge: "NÔNG SẢN TƯƠI MỖI NGÀY",
+            showBadge: true,
+            title: "Rau củ hữu cơ chuẩn VietGAP",
+            description:
+              "Cam kết 100% không dư lượng thuốc bảo vệ thực vật, thu hoạch trong ngày và đóng gói bảo quản lạnh.",
+            imageUrl:
+              "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80",
+            button: {
+              enabled: true,
+              text: "Khám phá ngay",
+              actionType: "INTERNAL_LINK",
+              targetUrl: "/products",
+              openInNewTab: false,
+              contactType: "HOTLINE",
+            },
+            active: true,
+            sortOrder: 2,
+          },
+        ],
+      },
+      highlights: {
+        enabled: true,
+        sectionLabel: "Câu chuyện & Giá trị",
+        kicker: "MỖI SẢN PHẨM CÓ CÂU CHUYỆN",
+        title: "Biết rõ điều gì đang có trên bàn ăn.",
+        description:
+          "Mevi kết nối những sản phẩm nông nghiệp có thông tin vùng trồng, quy cách và cách bảo quản rõ ràng. Chọn thực phẩm bằng sự an tâm.",
+        cards: [
+          {
+            id: "card-1",
+            icon: "ShieldCheck",
+            orderText: "01",
+            title: "Nguồn gốc rõ ràng",
+            description:
+              "Thông tin vùng trồng được hiển thị cùng từng sản phẩm.",
+          },
+          {
+            id: "card-2",
+            icon: "Package",
+            orderText: "02",
+            title: "Thông tin đầy đủ",
+            description:
+              "Quy cách đóng gói, hạn dùng và hướng dẫn bảo quản.",
+          },
+          {
+            id: "card-3",
+            icon: "Truck",
+            orderText: "03",
+            title: "Đặt hàng linh hoạt",
+            description:
+              "Đặt trước, thanh toán khi nhận hoặc chuyển khoản trực tiếp.",
+          },
+          {
+            id: "card-4",
+            icon: "Store",
+            orderText: "04",
+            title: "Đại lý địa phương",
+            description:
+              "Mua qua những cửa hàng được xây dựng bởi đối tác Mevi.",
+          },
+        ],
+      },
+      faq: {
+        enabled: true,
+        kicker: "CÂU HỎI THƯỜNG GẶP",
+        title: "Bạn cần biết thêm?",
+        items: [
+          {
+            id: "faq-1",
+            question: "Đơn hàng sỉ tối thiểu là bao nhiêu?",
+            answer:
+              "Đơn sỉ tối thiểu là 3 triệu đ mỗi lần đặt. Chiết khấu được tính theo tổng giá trị mua trong tháng: gói Khởi đầu (5 – 20 triệu đ/tháng) giảm 5%, gói Phát triển (20 – 50 triệu đ/tháng) giảm 10% và gói Chiến lược (trên 50 triệu đ/tháng) giảm 15%. Giá sỉ theo từng mức chiết khấu chưa gồm phí vận chuyển.",
+            active: true,
+            sortOrder: 1,
+          },
+          {
+            id: "faq-2",
+            question: "Đại lý có được gian hàng riêng không?",
+            answer:
+              "Có. Mỗi đại lý và cộng tác viên chính thức của Mevi đều được cung cấp một gian hàng trực tuyến với tên miền con và trang quản trị riêng để quản lý đơn hàng và khách hàng.",
+            active: true,
+            sortOrder: 2,
+          },
+          {
+            id: "faq-3",
+            question: "Mevi giao hàng sỉ đến đâu?",
+            answer:
+              "Mevi hỗ trợ giao hàng sỉ trên toàn quốc thông qua hệ thống đối tác vận tải lạnh chuyên dụng, đảm bảo nông sản giữ trọn độ tươi ngon khi đến tay đại lý.",
+            active: true,
+            sortOrder: 3,
+          },
+          {
+            id: "faq-4",
+            question: "Thanh toán như thế nào?",
+            answer:
+              "Đại lý có thể thanh toán trực tiếp qua chuyển khoản ngân hàng hoặc thanh toán khi nhận hàng (COD). Với đại lý thân thiết có ký hợp đồng phân phối, Mevi hỗ trợ chính sách công nợ linh hoạt.",
+            active: true,
+            sortOrder: 4,
+          },
+          {
+            id: "faq-5",
+            question: "Nếu hàng không đạt chất lượng thì sao?",
+            answer:
+              "Mevi cam kết chính sách 1 đổi 1 hoặc hoàn tiền 100% trong vòng 24 giờ nếu sản phẩm bị dập nát, hư hỏng hoặc không đúng quy cách cam kết khi nhận hàng.",
+            active: true,
+            sortOrder: 5,
+          },
+        ],
+      },
+    },
+  },
   shops: [
 
       {

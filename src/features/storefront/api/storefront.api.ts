@@ -1,11 +1,15 @@
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import { realApiClient } from "@/lib/axios";
+import { apiClient, realApiClient } from "@/lib/axios";
 import type { SpringPage } from "@/types/api";
 import type { PartnerProfile } from "@/features/partner";
 import type {
   ListStorefrontCatalogParams,
   ListStorefrontProductsParams,
+  StorefrontBannerSettings,
   StorefrontCatalogItem,
+  StorefrontFaqSection,
+  StorefrontHighlightSection,
+  StorefrontHomeConfig,
   StorefrontPhotoFormat,
   StorefrontPhotoType,
   StorefrontPhotoUploadResponse,
@@ -16,6 +20,18 @@ import type {
 const EP = API_ENDPOINTS.shop.profile;
 const CATALOG_EP = API_ENDPOINTS.shop.catalog;
 const STORAGE_EP = API_ENDPOINTS.storage.storefrontPhotos;
+
+const unwrap = <T>(data: unknown): T => {
+  if (
+    data &&
+    typeof data === "object" &&
+    "data" in data &&
+    (data as { data: unknown }).data !== undefined
+  ) {
+    return (data as { data: T }).data;
+  }
+  return data as T;
+};
 
 export function getActiveWorkspaceId(
   workspaceId?: string | number | null,
@@ -73,17 +89,15 @@ export const storefrontApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await realApiClient.post<StorefrontPhotoUploadResponse>(
-      `${STORAGE_EP}?type=${type}&format=${format}`,
-      formData,
-      {
-        headers: {
-          ...makeHeaders(workspaceId),
-          "Content-Type": "multipart/form-data",
-        },
+    const res = await apiClient.post<
+      StorefrontPhotoUploadResponse | { data: StorefrontPhotoUploadResponse }
+    >(`${STORAGE_EP}?type=${type}&format=${format}`, formData, {
+      headers: {
+        ...makeHeaders(workspaceId),
+        "Content-Type": "multipart/form-data",
       },
-    );
-    return res.data;
+    });
+    return unwrap<StorefrontPhotoUploadResponse>(res.data);
   },
 
   // ── Sản phẩm của gian hàng ──
@@ -165,5 +179,47 @@ export const storefrontApi = {
     await realApiClient.delete(EP.productDelete(productId), {
       headers: makeHeaders(workspaceId),
     });
+  },
+
+  // ── Cấu hình trang chủ gian hàng (Banners, Highlights, FAQ) ──
+  getHomeConfig: async (workspaceId?: string | number | null) => {
+    const res = await apiClient.get<
+      StorefrontHomeConfig | { data: StorefrontHomeConfig }
+    >(EP.homeConfig, {
+      headers: makeHeaders(workspaceId),
+    });
+    return unwrap<StorefrontHomeConfig>(res.data);
+  },
+
+  updateBannerSettings: async (
+    settings: StorefrontBannerSettings,
+    workspaceId?: string | number | null,
+  ) => {
+    const res = await apiClient.put<
+      StorefrontBannerSettings | { data: StorefrontBannerSettings }
+    >(EP.homeBanners, settings, { headers: makeHeaders(workspaceId) });
+    return unwrap<StorefrontBannerSettings>(res.data);
+  },
+
+  updateHighlights: async (
+    highlights: StorefrontHighlightSection,
+    workspaceId?: string | number | null,
+  ) => {
+    const res = await apiClient.put<
+      StorefrontHighlightSection | { data: StorefrontHighlightSection }
+    >(EP.homeHighlights, highlights, { headers: makeHeaders(workspaceId) });
+    return unwrap<StorefrontHighlightSection>(res.data);
+  },
+
+  updateFaqs: async (
+    faq: StorefrontFaqSection,
+    workspaceId?: string | number | null,
+  ) => {
+    const res = await apiClient.put<
+      StorefrontFaqSection | { data: StorefrontFaqSection }
+    >(EP.homeFaqs, faq, {
+      headers: makeHeaders(workspaceId),
+    });
+    return unwrap<StorefrontFaqSection>(res.data);
   },
 };

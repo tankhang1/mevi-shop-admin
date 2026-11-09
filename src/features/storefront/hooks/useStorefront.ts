@@ -5,6 +5,10 @@ import { getActiveWorkspaceId, storefrontApi } from "../api/storefront.api";
 import type {
   ListStorefrontCatalogParams,
   ListStorefrontProductsParams,
+  StorefrontBannerSettings,
+  StorefrontFaqSection,
+  StorefrontHighlightSection,
+  StorefrontHomeConfig,
   StorefrontPhotoFormat,
   StorefrontPhotoType,
   StorefrontProductItem,
@@ -39,6 +43,12 @@ export const storefrontKeys = {
     params?: ListStorefrontCatalogParams,
     workspaceId?: string | number | null,
   ) => [...storefrontKeys.catalog(workspaceId), "list", params ?? {}] as const,
+  homeConfig: (workspaceId?: string | number | null) =>
+    [
+      ...storefrontKeys.all,
+      "homeConfig",
+      String(workspaceId ?? "current"),
+    ] as const,
 };
 
 export function useStorefrontProfile(workspaceId?: string | number | null) {
@@ -335,3 +345,77 @@ export function useRemoveStorefrontProduct(
     },
   });
 }
+
+// ── Hooks cấu hình trang chủ (Banners, Highlights, FAQ) ──
+
+export function useStorefrontHomeConfig(
+  workspaceId?: string | number | null,
+) {
+  const resolvedWsId = getActiveWorkspaceId(workspaceId);
+  return useQuery<StorefrontHomeConfig>({
+    queryKey: storefrontKeys.homeConfig(resolvedWsId),
+    queryFn: () => storefrontApi.getHomeConfig(resolvedWsId),
+    enabled: true,
+  });
+}
+
+export function useUpdateStorefrontBanners(
+  workspaceId?: string | number | null,
+) {
+  const queryClient = useQueryClient();
+  const resolvedWsId = getActiveWorkspaceId(workspaceId);
+  return useMutation({
+    mutationFn: (settings: StorefrontBannerSettings) =>
+      storefrontApi.updateBannerSettings(settings, resolvedWsId),
+    onSuccess: (data) => {
+      queryClient.setQueryData<StorefrontHomeConfig>(
+        storefrontKeys.homeConfig(resolvedWsId),
+        (old) => (old ? { ...old, banners: data } : undefined),
+      );
+      queryClient.invalidateQueries({
+        queryKey: storefrontKeys.homeConfig(resolvedWsId),
+      });
+    },
+  });
+}
+
+export function useUpdateStorefrontHighlights(
+  workspaceId?: string | number | null,
+) {
+  const queryClient = useQueryClient();
+  const resolvedWsId = getActiveWorkspaceId(workspaceId);
+  return useMutation({
+    mutationFn: (highlights: StorefrontHighlightSection) =>
+      storefrontApi.updateHighlights(highlights, resolvedWsId),
+    onSuccess: (data) => {
+      queryClient.setQueryData<StorefrontHomeConfig>(
+        storefrontKeys.homeConfig(resolvedWsId),
+        (old) => (old ? { ...old, highlights: data } : undefined),
+      );
+      queryClient.invalidateQueries({
+        queryKey: storefrontKeys.homeConfig(resolvedWsId),
+      });
+    },
+  });
+}
+
+export function useUpdateStorefrontFaq(
+  workspaceId?: string | number | null,
+) {
+  const queryClient = useQueryClient();
+  const resolvedWsId = getActiveWorkspaceId(workspaceId);
+  return useMutation({
+    mutationFn: (faq: StorefrontFaqSection) =>
+      storefrontApi.updateFaqs(faq, resolvedWsId),
+    onSuccess: (data) => {
+      queryClient.setQueryData<StorefrontHomeConfig>(
+        storefrontKeys.homeConfig(resolvedWsId),
+        (old) => (old ? { ...old, faq: data } : undefined),
+      );
+      queryClient.invalidateQueries({
+        queryKey: storefrontKeys.homeConfig(resolvedWsId),
+      });
+    },
+  });
+}
+
