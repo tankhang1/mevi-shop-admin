@@ -502,7 +502,9 @@ export function StorefrontBannersTab({ workspaceId }: Props) {
                 variant="outline"
                 size="sm"
                 onClick={handleResetSettings}
-                disabled={!hasSettingsChanged || updateSettingsMutation.isPending}
+                disabled={
+                  !hasSettingsChanged || updateSettingsMutation.isPending
+                }
                 title="Khôi phục trạng thái ban đầu"
               >
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
@@ -511,7 +513,9 @@ export function StorefrontBannersTab({ workspaceId }: Props) {
               <Button
                 size="sm"
                 onClick={handleSaveSettings}
-                disabled={!hasSettingsChanged || updateSettingsMutation.isPending}
+                disabled={
+                  !hasSettingsChanged || updateSettingsMutation.isPending
+                }
                 className="px-3"
               >
                 {updateSettingsMutation.isPending ? (
