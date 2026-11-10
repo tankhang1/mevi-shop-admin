@@ -58,7 +58,17 @@ export default function CustomerListPage() {
     { tag: string }
   >({ tag: "all" });
   const { data, isFetching } = useCustomers(table.params);
-  const page = fromSpringPage(data);
+  // DataTable re-filters rows client-side (String(row[key]) === value, and keyword over
+  // Object.values). Server already filtered by tag/keyword, so echo them back on each row.
+  const raw = fromSpringPage(data);
+  const page = raw && {
+    ...raw,
+    items: raw.items.map((c) => ({
+      ...c,
+      tag: table.state.filters.tag,
+      __keyword: table.state.keyword,
+    })),
+  };
   const { data: stats } = useCustomerSummary();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ShopCustomer | undefined>();
