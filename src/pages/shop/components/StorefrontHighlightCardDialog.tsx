@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -17,22 +18,26 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Label,
+  Switch,
   Textarea,
   cn,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import {
   HIGHLIGHT_ICON_MAP,
-  type HighlightCardFormValues,
-  type StorefrontHighlightCard,
-  createStorefrontId,
-  highlightCardFormSchema,
 } from "@/features/storefront";
+import {
+  type HighlightCardFormValues,
+  type HighlightCardInput,
+  type HighlightCardItem,
+  highlightCardSchema,
+} from "@/features/content-block";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  card: StorefrontHighlightCard | null;
-  onSave: (card: StorefrontHighlightCard) => void;
+  card: HighlightCardItem | null;
+  onSave: (card: HighlightCardInput) => Promise<void>;
 }
 
 export function StorefrontHighlightCardDialog({
@@ -41,13 +46,16 @@ export function StorefrontHighlightCardDialog({
   card,
   onSave,
 }: Props) {
+  const [submitting, setSubmitting] = useState(false);
+
   const form = useForm<HighlightCardFormValues>({
-    resolver: zodResolver(highlightCardFormSchema),
+    resolver: zodResolver(highlightCardSchema),
     defaultValues: {
+      enabled: true,
       icon: "ShieldCheck",
       title: "",
       description: "",
-      linkUrl: "",
+      link: "",
     },
   });
 
@@ -55,18 +63,19 @@ export function StorefrontHighlightCardDialog({
     if (open) {
       if (card) {
         form.reset({
-          id: card.id,
+          enabled: card.enabled,
           icon: card.icon || "ShieldCheck",
           title: card.title,
-          description: card.description,
-          linkUrl: card.linkUrl ?? "",
+          description: card.description ?? "",
+          link: card.link ?? "",
         });
       } else {
         form.reset({
+          enabled: true,
           icon: "ShieldCheck",
           title: "",
           description: "",
-          linkUrl: "",
+          link: "",
         });
       }
     }
@@ -78,17 +87,20 @@ export function StorefrontHighlightCardDialog({
     defaultValue: "ShieldCheck",
   });
 
-  const onSubmit = (values: HighlightCardFormValues) => {
-    const result: StorefrontHighlightCard = {
-      id: card?.id || createStorefrontId("card"),
-      icon: values.icon,
-      orderText: card?.orderText,
-      title: values.title.trim(),
-      description: values.description.trim(),
-      linkUrl: values.linkUrl?.trim() || undefined,
-    };
-    onSave(result);
-    onOpenChange(false);
+  const onSubmit = async (values: HighlightCardFormValues) => {
+    setSubmitting(true);
+    try {
+      await onSave({
+        enabled: values.enabled,
+        icon: values.icon,
+        title: values.title.trim(),
+        description: values.description?.trim() || null,
+        link: values.link?.trim() || null,
+      });
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -105,6 +117,32 @@ export function StorefrontHighlightCardDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={submitting} className="space-y-4">
+            {/* Trạng thái hiển thị */}
+            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
+              <div>
+                <Label className="text-sm font-semibold">Trạng thái hiển thị</Label>
+                <p className="text-xs text-muted-foreground">
+                  Bật để thẻ xuất hiện trong khối nổi bật
+                </p>
+              </div>
+              <FormField
+                control={form.control}
+                name="enabled"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        aria-label="Kích hoạt thẻ"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* Chọn biểu tượng Icon */}
             <FormField
               control={form.control}
@@ -120,6 +158,7 @@ export function StorefrontHighlightCardDialog({
                         <button
                           key={key}
                           type="button"
+                          disabled={submitting}
                           onClick={() => field.onChange(key)}
                           title={item.label}
                           className={cn(
@@ -170,10 +209,11 @@ export function StorefrontHighlightCardDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel required>Nội dung mô tả</FormLabel>
+                  <FormLabel>Nội dung mô tả</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value ?? ""}
                       rows={3}
                       placeholder="VD: Thông tin vùng trồng được hiển thị cùng từng sản phẩm."
                     />
@@ -186,33 +226,37 @@ export function StorefrontHighlightCardDialog({
             {/* Đường dẫn tùy chọn */}
             <FormField
               control={form.control}
-              name="linkUrl"
+              name="link"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Liên kết khi click thẻ (tùy chọn)</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
+                      value={field.value ?? ""}
                       placeholder="VD: /about hoặc https://..."
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    Nếu có, khách hàng bấm vào thẻ sẽ chuyển đến trang này.
+                    Nếu có, khách hàng bấm vào thẻ sẽ chuyển đến trang này (bắt đầu bằng / hoặc https://).
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            </fieldset>
 
             <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={submitting}
               >
                 Hủy
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {card ? "Cập nhật thẻ" : "Thêm thẻ vào khối"}
               </Button>
             </DialogFooter>

@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -21,34 +22,33 @@ import {
   Textarea,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import {
-  type FaqItemFormValues,
-  type StorefrontFaqItem,
-  createStorefrontId,
-  faqItemFormSchema,
-} from "@/features/storefront";
+  type FaqQuestionFormValues,
+  type FaqQuestionInput,
+  type FaqQuestionItem,
+  faqQuestionSchema,
+} from "@/features/content-block";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: StorefrontFaqItem | null;
-  defaultSortOrder: number;
-  onSave: (faq: StorefrontFaqItem) => void;
+  item: FaqQuestionItem | null;
+  onSave: (faq: FaqQuestionInput) => Promise<void>;
 }
 
 export function StorefrontFaqDialog({
   open,
   onOpenChange,
   item,
-  defaultSortOrder,
   onSave,
 }: Props) {
-  const form = useForm<FaqItemFormValues>({
-    resolver: zodResolver(faqItemFormSchema),
+  const [submitting, setSubmitting] = useState(false);
+
+  const form = useForm<FaqQuestionFormValues>({
+    resolver: zodResolver(faqQuestionSchema),
     defaultValues: {
       question: "",
       answer: "",
-      active: true,
-      sortOrder: defaultSortOrder,
+      enabled: true,
     },
   });
 
@@ -56,33 +56,32 @@ export function StorefrontFaqDialog({
     if (open) {
       if (item) {
         form.reset({
-          id: item.id,
           question: item.question,
           answer: item.answer,
-          active: item.active,
-          sortOrder: item.sortOrder ?? defaultSortOrder,
+          enabled: item.enabled,
         });
       } else {
         form.reset({
           question: "",
           answer: "",
-          active: true,
-          sortOrder: defaultSortOrder,
+          enabled: true,
         });
       }
     }
-  }, [open, item, defaultSortOrder, form]);
+  }, [open, item, form]);
 
-  const onSubmit = (values: FaqItemFormValues) => {
-    const result: StorefrontFaqItem = {
-      id: item?.id || createStorefrontId("faq"),
-      question: values.question.trim(),
-      answer: values.answer.trim(),
-      active: values.active,
-      sortOrder: values.sortOrder ?? defaultSortOrder,
-    };
-    onSave(result);
-    onOpenChange(false);
+  const onSubmit = async (values: FaqQuestionFormValues) => {
+    setSubmitting(true);
+    try {
+      await onSave({
+        question: values.question.trim(),
+        answer: values.answer.trim(),
+        enabled: values.enabled,
+      });
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -100,12 +99,14 @@ export function StorefrontFaqDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={submitting} className="space-y-4">
+            {/* Câu hỏi */}
             <FormField
               control={form.control}
               name="question"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel required>Câu hỏi</FormLabel>
+                  <FormLabel required>Câu hỏi thường gặp</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -118,6 +119,7 @@ export function StorefrontFaqDialog({
               )}
             />
 
+            {/* Câu trả lời chi tiết */}
             <FormField
               control={form.control}
               name="answer"
@@ -128,7 +130,7 @@ export function StorefrontFaqDialog({
                     <Textarea
                       {...field}
                       rows={5}
-                      placeholder="VD: Đơn sỉ tối thiểu là 3 triệu đ mỗi lần đặt. Chiết khấu được tính theo tổng giá trị mua trong tháng..."
+                      placeholder="Nhập câu trả lời giải đáp thắc mắc..."
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,41 +138,49 @@ export function StorefrontFaqDialog({
               )}
             />
 
-            <div className="flex items-center justify-between border-t pt-3">
+            {/* Trạng thái hiển thị */}
+            <div className="flex items-center justify-between border-t pt-4">
               <div>
-                <Label className="text-sm font-medium">
+                <Label className="font-medium text-sm">
                   Trạng thái hiển thị
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Bật để câu hỏi này xuất hiện trong mục FAQ trên trang
+                  Bật để câu hỏi này xuất hiện trong danh sách FAQ trên trang
+                  chủ
                 </p>
               </div>
               <FormField
                 control={form.control}
-                name="active"
+                name="enabled"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        aria-label="Kích hoạt câu hỏi"
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
             </div>
+            </fieldset>
 
             <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={submitting}
               >
-                Hủy
+                Hủy bỏ
               </Button>
-              <Button type="submit">
-                {item ? "Lưu thay đổi" : "Thêm câu hỏi"}
+              <Button type="submit" disabled={submitting}>
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {item ? "Cập nhật câu hỏi" : "Thêm câu hỏi"}
               </Button>
             </DialogFooter>
           </form>

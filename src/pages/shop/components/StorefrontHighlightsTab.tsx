@@ -2,17 +2,15 @@ import { useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  Eye,
-  EyeOff,
   Layers,
+  Link as LinkIcon,
   Loader2,
   Plus,
   RotateCcw,
   Save,
-  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -27,16 +25,20 @@ import {
   Switch,
   Textarea,
   cn,
-  useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { EmptyBlock, LoadingBlock } from "@/components/common/ui-bits";
+import { HIGHLIGHT_ICON_MAP } from "@/features/storefront";
 import {
-  HIGHLIGHT_ICON_MAP,
-  type StorefrontHighlightCard,
-  type StorefrontHighlightSection,
-  useStorefrontHomeConfig,
-  useUpdateStorefrontHighlights,
-} from "@/features/storefront";
+  type HighlightCardInput,
+  type HighlightCardItem,
+  type HighlightsBlockData,
+  useContentBlock,
+  useCreateBlockItem,
+  useDeleteBlockItem,
+  useReorderBlockItems,
+  useUpdateBlockItem,
+  useUpdateBlockSettings,
+} from "@/features/content-block";
 import { getErrorMessage } from "@/lib/api-error";
 import { StorefrontHighlightCardDialog } from "./StorefrontHighlightCardDialog";
 
@@ -45,22 +47,36 @@ interface Props {
 }
 
 export function StorefrontHighlightsTab({ workspaceId }: Props) {
-  const { toast } = useToast();
+  void workspaceId;
+  // 1. Query
   const {
-    data: config,
+    data: block,
     isLoading,
     isError,
     error,
-  } = useStorefrontHomeConfig(workspaceId);
-  const updateMutation = useUpdateStorefrontHighlights(workspaceId);
+  } = useContentBlock<HighlightsBlockData>("highlights");
 
-  const [localSection, setLocalSection] =
-    useState<StorefrontHighlightSection | null>(null);
+  // 2. Mutations
+  const updateSettingsMutation = useUpdateBlockSettings("highlights");
+  const createItemMutation = useCreateBlockItem<HighlightCardItem, HighlightCardInput>("highlights");
+  const updateItemMutation = useUpdateBlockItem<HighlightCardItem, HighlightCardInput>("highlights");
+  const deleteItemMutation = useDeleteBlockItem("highlights");
+  const reorderMutation = useReorderBlockItems("highlights");
+
+  // Local settings overrides
+  const [customEnabled, setCustomEnabled] = useState<boolean | null>(null);
+  const [customEyebrow, setCustomEyebrow] = useState<string | null>(null);
+  const [customTitle, setCustomTitle] = useState<string | null>(null);
+  const [customDescription, setCustomDescription] = useState<string | null>(null);
+
+  const enabled = customEnabled ?? block?.enabled ?? false;
+  const eyebrow = customEyebrow ?? block?.eyebrow ?? "";
+  const title = customTitle ?? block?.title ?? "";
+  const description = customDescription ?? block?.description ?? "";
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCard, setEditingCard] =
-    useState<StorefrontHighlightCard | null>(null);
-  const [deleteTarget, setDeleteTarget] =
-    useState<StorefrontHighlightCard | null>(null);
+  const [editingCard, setEditingCard] = useState<HighlightCardItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HighlightCardItem | null>(null);
 
   if (isLoading) return <LoadingBlock />;
   if (isError) {
@@ -71,123 +87,152 @@ export function StorefrontHighlightsTab({ workspaceId }: Props) {
     );
   }
 
-  const current = localSection ??
-    config?.highlights ?? {
-      enabled: true,
-      sectionLabel: "Câu chuyện & Giá trị",
-      kicker: "MỖI SẢN PHẨM CÓ CÂU CHUYỆN",
-      title: "Biết rõ điều gì đang có trên bàn ăn.",
-      description:
-        "Mevi kết nối những sản phẩm nông nghiệp có thông tin vùng trồng, quy cách và cách bảo quản rõ ràng. Chọn thực phẩm bằng sự an tâm.",
-      cards: [],
-    };
+  const items = block?.items ?? [];
 
   const handleOpenCreate = () => {
     setEditingCard(null);
     setDialogOpen(true);
   };
 
-  const handleOpenEdit = (c: StorefrontHighlightCard) => {
+  const handleOpenEdit = (c: HighlightCardItem) => {
     setEditingCard(c);
     setDialogOpen(true);
   };
 
-  const handleSaveCard = (saved: StorefrontHighlightCard) => {
-    const exists = current.cards.some((c) => c.id === saved.id);
-    const newCards = exists
-      ? current.cards.map((c) => (c.id === saved.id ? saved : c))
-      : [...current.cards, saved];
+  const handleSaveCard = async (input: HighlightCardInput) => {
+    if (editingCard) {
+      await updateItemMutation.mutateAsync({
+        id: editingCard.id,
+        version: editingCard.version,
+        item: input,
+      });
+    } else {
+      await createItemMutation.mutateAsync(input);
+    }
+  };
 
-    setLocalSection({ ...current, cards: newCards });
-    toast({
-      title: exists ? "Đã cập nhật thẻ" : "Đã thêm thẻ mới",
-      description: "Bấm 'Lưu cấu hình' để hoàn tất.",
+  const handleToggleEnabled = (item: HighlightCardItem) => {
+    updateItemMutation.mutate({
+      id: item.id,
+      version: item.version,
+      item: {
+        enabled: !item.enabled,
+        icon: item.icon,
+        title: item.title,
+        description: item.description,
+        link: item.link,
+      },
     });
   };
 
-  const handleDeleteCard = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    const newCards = current.cards.filter((c) => c.id !== deleteTarget.id);
-    setLocalSection({ ...current, cards: newCards });
+    await deleteItemMutation.mutateAsync(deleteTarget.id);
     setDeleteTarget(null);
-    toast({ title: "Đã xóa thẻ khỏi danh sách" });
   };
 
   const handleMove = (index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= current.cards.length) return;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
 
-    const newCards = [...current.cards];
-    const temp = newCards[index];
-    newCards[index] = newCards[targetIndex];
-    newCards[targetIndex] = temp;
+    const newItems = [...items];
+    const temp = newItems[index];
+    newItems[index] = newItems[targetIndex];
+    newItems[targetIndex] = temp;
 
-    setLocalSection({ ...current, cards: newCards });
+    const newIds = newItems.map((it) => it.id);
+    reorderMutation.mutate(newIds);
   };
 
-  const handleSaveAll = async () => {
-    try {
-      await updateMutation.mutateAsync(current);
-      setLocalSection(null);
-      toast({
-        title: "Đã lưu khối nổi bật thành công",
-        description: "Nội dung đã được cập nhật lên trang chủ gian hàng.",
-      });
-    } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Không thể lưu",
-        description: getErrorMessage(e),
-      });
-    }
+  const currentEyebrow = eyebrow.trim() || null;
+  const serverEyebrow = block?.eyebrow ?? null;
+  const currentTitle = title.trim() || null;
+  const serverTitle = block?.title ?? null;
+  const currentDesc = description.trim() || null;
+  const serverDesc = block?.description ?? null;
+  const serverEnabled = block?.enabled ?? false;
+
+  const hasSettingsChanged =
+    Boolean(block) &&
+    (enabled !== serverEnabled ||
+      currentEyebrow !== serverEyebrow ||
+      currentTitle !== serverTitle ||
+      currentDesc !== serverDesc);
+
+  const handleSaveSettings = () => {
+    if (!block || !hasSettingsChanged) return;
+    updateSettingsMutation.mutate(
+      {
+        version: block.version,
+        settings: {
+          enabled,
+          eyebrow: currentEyebrow,
+          title: currentTitle,
+          description: currentDesc,
+        },
+      },
+      {
+        onSuccess: () => {
+          setCustomEnabled(null);
+          setCustomEyebrow(null);
+          setCustomTitle(null);
+          setCustomDescription(null);
+        },
+      },
+    );
   };
 
-  const handleReset = () => {
-    setLocalSection(null);
-    toast({ title: "Đã hoàn tác về cấu hình hiện tại" });
+  const handleResetSettings = () => {
+    setCustomEnabled(null);
+    setCustomEyebrow(null);
+    setCustomTitle(null);
+    setCustomDescription(null);
   };
 
-  const columns: Column<StorefrontHighlightCard>[] = [
+  const columns: Column<HighlightCardItem>[] = [
     {
-      key: "stt",
+      key: "id",
       label: "STT",
-      width: "110px",
-      render: (_, card) => {
-        const index = current.cards.findIndex((c) => c.id === card.id);
-        const stt = String(index + 1).padStart(2, "0");
+      width: "60px",
+      render: (_, row) => {
+        const index = items.findIndex((it) => it.id === row.id);
         return (
-          <div className="flex items-center gap-1.5">
-            <span className="font-mono text-xs font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-              {stt}
-            </span>
-            <div className="flex flex-col">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                disabled={index === 0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMove(index, "up");
-                }}
-                title="Di chuyển lên"
-              >
-                <ArrowUp className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                disabled={index === current.cards.length - 1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMove(index, "down");
-                }}
-                title="Di chuyển xuống"
-              >
-                <ArrowDown className="h-3 w-3" />
-              </Button>
-            </div>
+          <span className="font-mono text-xs font-semibold text-muted-foreground">
+            #{String(index + 1).padStart(2, "0")}
+          </span>
+        );
+      },
+    },
+    {
+      key: "order",
+      label: "Thứ tự",
+      width: "90px",
+      render: (_, row) => {
+        const index = items.findIndex((it) => it.id === row.id);
+        return (
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={index <= 0}
+              onClick={() => handleMove(index, "up")}
+              title="Di chuyển lên trên"
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={index < 0 || index >= items.length - 1}
+              onClick={() => handleMove(index, "down")}
+              title="Di chuyển xuống dưới"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </Button>
           </div>
         );
       },
@@ -196,292 +241,248 @@ export function StorefrontHighlightsTab({ workspaceId }: Props) {
       key: "icon",
       label: "Biểu tượng",
       width: "80px",
-      render: (_, card) => {
-        const iconDef = HIGHLIGHT_ICON_MAP[card.icon];
-        const IconComp = iconDef ? iconDef.icon : ShieldCheck;
+      render: (iconKey) => {
+        const iconDef = HIGHLIGHT_ICON_MAP[String(iconKey)];
+        const IconComponent = iconDef ? iconDef.icon : Sparkles;
         return (
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <IconComp className="h-4 w-4" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+            <IconComponent className="h-4 w-4" />
           </div>
         );
       },
     },
     {
       key: "title",
-      label: "Tiêu đề & Nội dung",
+      label: "Nội dung cam kết",
       mobilePriority: "primary",
-      render: (_, card) => (
-        <div className="space-y-0.5">
-          <div className="font-bold text-sm text-foreground">{card.title}</div>
-          <p className="line-clamp-2 text-xs text-muted-foreground max-w-lg">
-            {card.description}
-          </p>
+      render: (_, item) => (
+        <div className="space-y-1">
+          <div className="font-semibold text-sm">{item.title}</div>
+          {item.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {item.description}
+            </p>
+          )}
+          {item.link && (
+            <div className="flex items-center gap-1 text-[11px] text-primary">
+              <LinkIcon className="h-3 w-3" />
+              <span className="truncate max-w-[200px]">{item.link}</span>
+            </div>
+          )}
         </div>
       ),
     },
     {
-      key: "linkUrl",
-      label: "Liên kết",
-      render: (url) =>
-        url ? (
-          <span className="font-mono text-xs text-primary truncate block max-w-[180px]">
-            {String(url)}
+      key: "enabled",
+      label: "Trạng thái",
+      width: "120px",
+      render: (_, item) => (
+        <div
+          className="flex items-center gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Switch
+            checked={item.enabled}
+            onCheckedChange={() => handleToggleEnabled(item)}
+          />
+          <span
+            className={cn(
+              "text-xs font-medium max-sm:hidden",
+              item.enabled
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-muted-foreground",
+            )}
+          >
+            {item.enabled ? "Hiện" : "Ẩn"}
           </span>
-        ) : (
-          <span className="text-xs text-muted-foreground italic">—</span>
-        ),
+        </div>
+      ),
     },
   ];
 
+  const activeCards = items.filter((c) => c.enabled);
+
   return (
     <div className="space-y-6">
-      {/* ── Khối 1: Live Preview mô phỏng Ảnh 2 ── */}
+      {/* ── Khối 1: Live Preview ── */}
       <Card className="overflow-hidden border-border shadow-sm">
         <CardHeader className="bg-muted/40 pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layers className="h-4 w-4 text-primary" />
-                Xem trước giao diện thực tế (Live Preview)
-              </CardTitle>
-              <CardDescription>
-                Tái hiện đúng bố cục và phong cách hiển thị trên trang chủ Mevi
-              </CardDescription>
-            </div>
-            <Badge
-              variant={current.enabled ? "default" : "secondary"}
-              className="text-xs"
-            >
-              {current.enabled ? "Khối đang hiển thị" : "Khối đang ẩn"}
-            </Badge>
-          </div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            Xem trước Khối Nổi bật thực tế (Live Preview)
+          </CardTitle>
+          <CardDescription>
+            Khối hiển thị trực quan cam kết chất lượng của Mevi
+          </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-8 bg-muted/20 border-t">
-          <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-            {/* Cột trái: Kicker, Tiêu đề lớn & Đoạn mô tả */}
-            <div className="lg:col-span-5 space-y-3.5">
-              {current.kicker && (
-                <p className="text-xs font-bold tracking-widest uppercase text-amber-700 dark:text-amber-500">
-                  {current.kicker}
-                </p>
-              )}
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
-                {current.title || "Tiêu đề khối giới thiệu"}
-              </h2>
-              {current.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {current.description}
-                </p>
-              )}
-            </div>
-
-            {/* Cột phải: Lưới các thẻ nổi bật (Thích ứng theo số thẻ) */}
-            <div className="lg:col-span-7">
-              {current.cards.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground border-2 border-dashed rounded-xl bg-card">
-                  Chưa có thẻ nào trong khối này.
+        <CardContent className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950/40">
+          <div className="mx-auto max-w-4xl space-y-6">
+            <div className="text-center space-y-2">
+              {eyebrow ? (
+                <div className="text-[11px] font-bold tracking-wider uppercase text-primary">
+                  {eyebrow}
                 </div>
+              ) : null}
+              {title ? (
+                <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+                  {title}
+                </h3>
               ) : (
-                <div
-                  className={cn(
-                    "grid gap-4 sm:gap-4",
-                    current.cards.length === 1
-                      ? "grid-cols-1"
-                      : "grid-cols-1 sm:grid-cols-2",
-                  )}
-                >
-                  {current.cards.map((c, idx) => {
-                    const iconDef = HIGHLIGHT_ICON_MAP[c.icon];
-                    const IconComponent = iconDef ? iconDef.icon : ShieldCheck;
-
-                    return (
-                      <div
-                        key={c.id || idx}
-                        className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all"
-                      >
-                        {/* Top row: Icon on left, Order text on right */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <IconComponent className="h-5 w-5" />
-                          </div>
-                          <span className="font-mono text-xs font-bold text-muted-foreground/80">
-                            {String(idx + 1).padStart(2, "0")}
-                          </span>
-                        </div>
-
-                        {/* Title & Description */}
-                        <div>
-                          <h4 className="text-sm font-bold text-foreground mb-1.5">
-                            {c.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                            {c.description}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="text-sm sm:text-base font-semibold italic text-muted-foreground/60">
+                  (Chưa cấu hình tiêu đề khối nổi bật)
                 </div>
               )}
+              {description ? (
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
+                  {description}
+                </p>
+              ) : null}
             </div>
+
+            {activeCards.length > 0 ? (
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {activeCards.map((c, i) => {
+                  const iconDef = HIGHLIGHT_ICON_MAP[c.icon];
+                  const Icon = iconDef ? iconDef.icon : Sparkles;
+                  return (
+                    <div
+                      key={c.id || i}
+                      className="rounded-xl border bg-card p-4 shadow-xs space-y-2 hover:border-primary/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <span className="font-semibold text-sm text-foreground">
+                          {c.title}
+                        </span>
+                      </div>
+                      {c.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {c.description}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 text-muted-foreground text-xs">
+                Chưa có thẻ nổi bật nào được bật hiển thị
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Khối 2: Thiết lập thông tin tiêu đề & danh sách thẻ ── */}
+      {/* ── Khối 2: Cấu hình khối & Danh sách thẻ ── */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <CardHeader className="pb-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base">
-                Thiết lập nội dung khối
+                Cấu hình Khối & Danh sách thẻ
               </CardTitle>
               <CardDescription>
-                Tùy chỉnh tiêu đề giới thiệu và các thẻ cam kết (không giới hạn
-                số thẻ)
+                Bật/tắt hiển thị khối trên trang chủ và chỉnh sửa các thẻ cam kết
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleReset}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetSettings}
+                disabled={!hasSettingsChanged || updateSettingsMutation.isPending}
+                title="Khôi phục trạng thái ban đầu"
+              >
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Hoàn tác
               </Button>
               <Button
                 size="sm"
-                onClick={handleSaveAll}
-                disabled={updateMutation.isPending}
+                onClick={handleSaveSettings}
+                disabled={!hasSettingsChanged || updateSettingsMutation.isPending}
                 className="px-3"
               >
-                {updateMutation.isPending ? (
+                {updateSettingsMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
                   <Save className="h-3.5 w-3.5 mr-1.5" />
                 )}
                 Lưu cấu hình
               </Button>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleOpenCreate}
+                className="bg-primary text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Thêm thẻ mới
+              </Button>
+            </div>
+          </div>
+
+          {/* Form cấu hình khối */}
+          <div className="rounded-lg bg-muted/40 p-4 border space-y-3">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <Label className="text-sm font-semibold">
+                  Hiển thị khối trên trang chủ
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Khối chỉ xuất hiện trên web khi công tắc này được Bật và Lưu cấu hình
+                </p>
+              </div>
+              <Switch checked={enabled} onCheckedChange={setCustomEnabled} />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Dòng chữ dẫn phía trên (Eyebrow)</Label>
+                <Input
+                  value={eyebrow}
+                  onChange={(e) => setCustomEyebrow(e.target.value)}
+                  placeholder="VD: MỖI SẢN PHẨM CÓ CÂU CHUYỆN"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tiêu đề chính của khối</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="VD: Biết rõ điều gì đang có trên bàn ăn."
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Đoạn mô tả giới thiệu</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setCustomDescription(e.target.value)}
+                rows={2}
+                placeholder="VD: Mevi kết nối những sản phẩm nông nghiệp..."
+              />
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Header fields */}
-          <div className="rounded-xl border p-4 bg-muted/20 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-semibold">
-                  Hiển thị khối này trên trang chủ
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Bật/tắt khối này tại giao diện công khai của gian hàng
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={current.enabled}
-                  onCheckedChange={(checked) =>
-                    setLocalSection({ ...current, enabled: checked })
-                  }
-                  id="section-enabled"
-                />
-                <span className="text-xs font-medium">
-                  {current.enabled ? (
-                    <span className="text-emerald-600 inline-flex items-center gap-1">
-                      <Eye className="h-3 w-3" /> Đang hiển thị
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground inline-flex items-center gap-1">
-                      <EyeOff className="h-3 w-3" /> Đang ẩn
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label className="text-xs font-semibold">
-                  Dòng chữ dẫn phía trên (Dòng dẫn đầu đề)
-                </Label>
-                <Input
-                  value={current.kicker}
-                  onChange={(e) =>
-                    setLocalSection({ ...current, kicker: e.target.value })
-                  }
-                  placeholder="VD: MỖI SẢN PHẨM CÓ CÂU CHUYỆN"
-                  className="mt-1 uppercase tracking-wider font-semibold text-xs"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Đoạn chữ nhỏ in hoa nằm ngay phía trên tiêu đề chính để dẫn
-                  dắt nội dung.
-                </p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <Label className="text-xs font-semibold">
-                  Tiêu đề chính của khối
-                </Label>
-                <Input
-                  value={current.title}
-                  onChange={(e) =>
-                    setLocalSection({ ...current, title: e.target.value })
-                  }
-                  placeholder="VD: Biết rõ điều gì đang có trên bàn ăn."
-                  className="mt-1 font-bold text-base"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <Label className="text-xs font-semibold">
-                  Đoạn mô tả giới thiệu
-                </Label>
-                <Textarea
-                  value={current.description}
-                  onChange={(e) =>
-                    setLocalSection({ ...current, description: e.target.value })
-                  }
-                  rows={3}
-                  placeholder="VD: Mevi kết nối những sản phẩm nông nghiệp có thông tin vùng trồng, quy cách và cách bảo quản rõ ràng..."
-                  className="mt-1 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Cards List */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold">Danh sách các thẻ nổi bật</h4>
-                <Badge variant="outline" className="text-xs font-semibold">
-                  {current.cards.length} thẻ
-                </Badge>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleOpenCreate}
-                className="h-8 text-xs font-semibold"
-              >
-                <Plus className="h-3.5 w-3.5 mr-1 text-primary" />
-                Thêm thẻ mới
-              </Button>
-            </div>
-
-            <DataTable
-              data={current.cards}
-              columns={columns}
-              searchable={false}
-              filterable={false}
-              columnToggleable={false}
-              downloadable={false}
-              totalPages={1}
-              totalElements={current.cards.length}
-              pageSize={current.cards.length || 10}
-              onEdit={handleOpenEdit}
-              onDelete={setDeleteTarget}
-              enableMobileCard
-            />
-          </div>
+        <CardContent>
+          <DataTable
+            data={items}
+            columns={columns}
+            searchable={false}
+            filterable={false}
+            columnToggleable={false}
+            downloadable={false}
+            totalPages={1}
+            totalElements={items.length}
+            pageSize={items.length || 10}
+            onEdit={handleOpenEdit}
+            onDelete={setDeleteTarget}
+            enableMobileCard
+          />
         </CardContent>
       </Card>
 
@@ -493,13 +494,13 @@ export function StorefrontHighlightsTab({ workspaceId }: Props) {
         onSave={handleSaveCard}
       />
 
-      {/* Delete Dialog */}
+      {/* Dialog xác nhận xóa */}
       <DeleteDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Xóa thẻ nổi bật này?"
         description={`Bạn có chắc muốn xóa thẻ "${deleteTarget?.title}"?`}
-        onConfirm={handleDeleteCard}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );

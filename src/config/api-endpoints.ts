@@ -127,8 +127,33 @@ export const API_ENDPOINTS = {
     reports: {
       /** ?groupBy=agency|product|group|farm&from=YYYY-MM-DD&to=YYYY-MM-DD&category=&source=all|agency|direct */
       revenue: "/api/admin/shop/reports/revenue",
-      /** GET — Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-03 mục 14) */
+      /** GET — Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-09) */
+      productSummary: "/api/admin/shop/reports/products/summary",
       products: "/api/admin/shop/reports/products",
+      /** GET — Báo cáo doanh thu theo đại lý / CTV (BE notice 2026-11-09) */
+      partnerSummary: "/api/admin/shop/reports/partners/summary",
+      partners: "/api/admin/shop/reports/partners",
+      /** GET — Báo cáo doanh thu theo nông hộ / HTX (BE notice 2026-11-09) */
+      farmSummary: "/api/admin/shop/reports/farms/summary",
+      farms: "/api/admin/shop/reports/farms",
+      /** GET — Báo cáo doanh thu theo nhóm sản phẩm (BE notice 2026-11-09) */
+      categorySummary: "/api/admin/shop/reports/product-categories/summary",
+      categories: "/api/admin/shop/reports/product-categories",
+    },
+    /** Quản lý các khối nội dung (Banner, Highlights, FAQ) (BE notice 2026-11-09) */
+    contentBlocks: {
+      block: (block: string) => `/api/admin/shop/content-blocks/${block}`,
+      settings: (block: string, version: number) =>
+        `/api/admin/shop/content-blocks/${block}/settings?version=${version}`,
+      items: (block: string) => `/api/admin/shop/content-blocks/${block}/items`,
+      item: (block: string, id: string, version?: number) =>
+        version !== undefined
+          ? `/api/admin/shop/content-blocks/${block}/items/${id}?version=${version}`
+          : `/api/admin/shop/content-blocks/${block}/items/${id}`,
+      order: (block: string) => `/api/admin/shop/content-blocks/${block}/items/order`,
+    },
+    storage: {
+      files: "/api/admin/storage/files",
     },
     farmRegistrations: {
       base: "/api/admin/shop/farm-registrations",
@@ -249,6 +274,9 @@ export const API_ENDPOINTS = {
   },
   storage: {
     storefrontPhotos: "/api/storage/storefront-photos",
+  },
+  public: {
+    contentBlocks: "/api/public/shop/content-blocks",
   },
   masterData: {
     geo: {

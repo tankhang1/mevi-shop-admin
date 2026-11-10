@@ -62,8 +62,29 @@ export interface RevenueReportParams {
   shopId?: string;
 }
 
-/** Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-03 mục 14) */
+/** Filter chung cho các API báo cáo (BE notice 2026-11-09) */
+export interface ReportFilterParams {
+  from?: string;
+  to?: string;
+  source?: "REFERRAL" | "DIRECT" | "";
+  storefrontId?: number | string;
+  categoryId?: number | string;
+  keyword?: string;
+  page?: number;
+  size?: number;
+  granularity?: "DAY" | "WEEK" | "MONTH";
+  top?: number;
+}
+
+export interface ReportSeriesPoint {
+  period: string;
+  revenue: number;
+  orderCount: number;
+}
+
+// ── 1. Báo cáo sản phẩm ──
 export interface ProductRevenueReportItem {
+  id?: string | number;
   product: {
     id: number | string;
     code: string;
@@ -86,29 +107,112 @@ export interface ProductRevenueReportTopItem {
   revenue: number[];
 }
 
-export interface ProductRevenueReportSeries {
-  period: string;
-  revenue: number;
-  orderCount: number;
-}
+export type ProductRevenueReportSeries = ReportSeriesPoint;
 
-export interface ProductRevenueReport {
+export interface ProductRevenueSummary {
   from: string;
   to: string;
   revenue: number;
   deliveredOrders: number;
   quantity: number;
   productCount: number;
-  series: ProductRevenueReportSeries[];
-  products: ProductRevenueReportItem[];
+  series: ReportSeriesPoint[];
   topProducts: ProductRevenueReportTopItem[];
 }
 
-export interface ProductRevenueReportParams {
-  from?: string;
-  to?: string;
-  granularity?: "DAY" | "WEEK" | "MONTH";
-  source?: "REFERRAL" | "DIRECT" | "";
-  storefrontId?: number | string;
-  categoryId?: number | string;
+// Legacy alias
+export type ProductRevenueReport = ProductRevenueSummary & {
+  products?: ProductRevenueReportItem[];
+};
+export type ProductRevenueReportParams = ReportFilterParams;
+
+// ── 2. Báo cáo đại lý / CTV ──
+export interface PartnerRevenueTopItem {
+  storefrontId: number;
+  name: string;
+  revenue: number[];
+}
+
+export interface PartnerRevenueSummary {
+  from: string;
+  to: string;
+  revenue: number;
+  deliveredOrders: number;
+  quantity: number;
+  commission: number;
+  series: ReportSeriesPoint[];
+  topPartners: PartnerRevenueTopItem[];
+}
+
+export interface PartnerRevenueItem {
+  id?: string | number;
+  storefrontId: number | null;
+  name: string | null;
+  partnerType: "AGENCY" | "COLLABORATOR" | null;
+  commissionRate: number | null;
+  orderCount: number;
+  quantity: number;
+  revenue: number;
+  share: number;
+  commission: number | null;
+}
+
+// ── 3. Báo cáo nông hộ / HTX ──
+export interface FarmRevenueTopItem {
+  workspaceId: number;
+  name: string;
+  revenue: number[];
+}
+
+export interface FarmRevenueSummary {
+  from: string;
+  to: string;
+  revenue: number;
+  deliveredOrders: number;
+  quantity: number;
+  farmCount: number;
+  series: ReportSeriesPoint[];
+  topFarms: FarmRevenueTopItem[];
+}
+
+export interface FarmRevenueItem {
+  id?: string | number;
+  workspaceId: number;
+  name: string;
+  organizationTypeName?: string | null;
+  district?: string | null;
+  province?: string | null;
+  orderCount: number;
+  quantity: number;
+  revenue: number;
+  share: number;
+}
+
+// ── 4. Báo cáo nhóm sản phẩm (Danh mục) ──
+export interface CategoryRevenueTopItem {
+  categoryId: number;
+  name: string;
+  revenue: number[];
+}
+
+export interface CategoryRevenueSummary {
+  from: string;
+  to: string;
+  revenue: number;
+  deliveredOrders: number;
+  quantity: number;
+  categoryCount: number;
+  series: ReportSeriesPoint[];
+  topCategories: CategoryRevenueTopItem[];
+}
+
+export interface CategoryRevenueItem {
+  id?: string | number;
+  categoryId: number;
+  name: string;
+  productCount: number;
+  orderCount: number;
+  quantity: number;
+  revenue: number;
+  share: number;
 }

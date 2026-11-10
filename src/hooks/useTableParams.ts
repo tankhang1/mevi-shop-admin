@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DataTableProps } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import type { ListParams, Paginated } from "@/types/api";
 
@@ -17,6 +17,9 @@ export function useTableParams<F extends Record<string, string>>(
   const [keyword, setKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [filters, setFilters] = useState<F>(initialFilters);
+
+  const initialFiltersRef = useRef(initialFilters);
+  const initialSizeRef = useRef(initialSize);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -57,13 +60,13 @@ export function useTableParams<F extends Record<string, string>>(
   }
 
   /** Back to page 1 with no keyword/filters — e.g. when switching between table and grid */
-  const reset = (nextSize = size) => {
+  const reset = useCallback((nextSize?: number) => {
     setPage(1);
-    setSize(nextSize);
+    setSize(typeof nextSize === "number" ? nextSize : initialSizeRef.current);
     setKeyword("");
     setDebouncedKeyword("");
-    setFilters(initialFilters);
-  };
+    setFilters(initialFiltersRef.current);
+  }, []);
 
   return {
     params,

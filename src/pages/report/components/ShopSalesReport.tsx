@@ -13,14 +13,19 @@ import {
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { LoadingBlock } from "@/components/common/ui-bits";
 import {
+  type ProductRevenueReportItem,
+  type RevenueReport,
   type RevenueRow,
   mapPartnerReportToRevenueReport,
   mapProductReportToRevenueReport,
-  useProductRevenueReport,
+  useProductRevenueList,
+  useProductRevenueSummary,
+  useProductRevenueTop10,
 } from "@/features/report";
 import { useAccess } from "@/features/auth";
 import { usePartnerReport } from "@/features/partner";
 import { useShopFilter } from "@/features/shop";
+import { useTableParams } from "@/hooks/useTableParams";
 import { formatVnd } from "@/lib/format";
 import { ReportTrendChart } from "./ReportTrendChart";
 import { RevenueBars } from "./RevenueBars";
@@ -31,26 +36,37 @@ import { type ReportFilterState, defaultFilters } from "./report-filters";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
-const columns: Column<RevenueRow>[] = [
+const columns: Column<ProductRevenueReportItem>[] = [
   {
-    key: "label",
+    key: "product",
     label: "Sản phẩm",
     mobilePriority: "primary",
     render: (_, r) => (
-      <div className="min-w-0">
-        <div className="font-medium">{r.label}</div>
-        {r.sub && <div className="text-xs text-muted-foreground">{r.sub}</div>}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {r.product.imageUrl && (
+          <img
+            src={r.product.imageUrl}
+            alt={r.product.title}
+            className="h-10 w-10 shrink-0 rounded-md object-cover border"
+          />
+        )}
+        <div className="min-w-0">
+          <div className="font-medium truncate">{r.product.title}</div>
+          {r.product.code && (
+            <div className="text-xs text-muted-foreground font-mono">{r.product.code}</div>
+          )}
+        </div>
       </div>
     ),
   },
   {
-    key: "orders",
+    key: "orderCount",
     label: "Số đơn",
     sortable: true,
     render: (v) => <span className="tabular-nums">{nf.format(Number(v))}</span>,
   },
   {
-    key: "units",
+    key: "quantity",
     label: "Số lượng bán",
     sortable: true,
     render: (v) => <span className="tabular-nums">{nf.format(Number(v))}</span>,
@@ -91,10 +107,13 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
   );
   const [, navigate] = useLocation();
   const range = { from: filters.from, to: filters.to };
+
+  const table = useTableParams();
+
   // Order list pre-filtered to the completed orders behind this product's figure
-  const openOrders = (r: RevenueRow) => {
+  const openOrders = (r: ProductRevenueReportItem) => {
     const q = new URLSearchParams({
-      productId: r.id,
+      productId: String(r.product.id),
       status: "completed",
       ...range,
     });
@@ -102,6 +121,7 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
     if (isRoot && filters.shopId !== "all") q.set("shopId", filters.shopId);
     navigate(`${ROUTES.orders}?${q}`);
   };
+
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const categoryId =
@@ -109,41 +129,63 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
       ? filters.category
       : undefined;
 
-  // 1. Nếu có agencyId: gọi API Báo cáo đối tác (Mục 13.6)
+  // 1. Nếu có agencyId: gọi API Báo cáo đối tác legacy
   const {
     data: partnerReport,
     isLoading: isPartnerLoading,
-    isFetching: isPartnerFetching,
   } = usePartnerReport(agencyId, {
     from: filters.from,
     to: filters.to,
     categoryId,
   });
 
-  // 2. Nếu không có agencyId: gọi API Báo cáo doanh thu theo sản phẩm (Mục 14)
+  // 2. Nếu không có agencyId: gọi API Báo cáo doanh thu theo sản phẩm (BE notice 2026-11-09)
+  const reportQueryFilters = useMemo(
+    () => ({
+      from: filters.from,
+      to: filters.to,
+      source:
+        filters.source === "agency"
+          ? ("REFERRAL" as const)
+          : filters.source === "direct"
+            ? ("DIRECT" as const)
+            : ("" as const),
+      categoryId,
+      storefrontId:
+        isRoot && filters.shopId !== "all" ? filters.shopId : undefined,
+    }),
+    [filters, categoryId, isRoot],
+  );
+
+  // 2.1. Thẻ số liệu & biểu đồ
   const {
-    data: productReport,
-    isLoading: isProductLoading,
-    isFetching: isProductFetching,
-  } = useProductRevenueReport(
+    data: productSummary,
+    isLoading: isSummaryLoading,
+    isFetching: isSummaryFetching,
+  } = useProductRevenueSummary(!agencyId ? reportQueryFilters : undefined);
+
+  // 2.2. Danh sách phân trang + tìm kiếm
+  const {
+    data: productPage,
+    isLoading: isListLoading,
+    isFetching: isListFetching,
+  } = useProductRevenueList(
     !agencyId
       ? {
-          from: filters.from,
-          to: filters.to,
-          source:
-            filters.source === "agency"
-              ? "REFERRAL"
-              : filters.source === "direct"
-                ? "DIRECT"
-                : "",
-          categoryId,
-          storefrontId:
-            isRoot && filters.shopId !== "all" ? filters.shopId : undefined,
+          ...reportQueryFilters,
+          keyword: table.params.keyword,
+          page: table.params.page,
+          size: table.params.size,
         }
       : undefined,
   );
 
-  const data = useMemo(() => {
+  // 2.3. Top 10 sản phẩm bán chạy (không truyền keyword)
+  const { data: top10Page } = useProductRevenueTop10(
+    !agencyId ? reportQueryFilters : undefined,
+  );
+
+  const reportChartData: RevenueReport | undefined = useMemo(() => {
     if (agencyId && partnerReport) {
       return mapPartnerReportToRevenueReport(
         partnerReport,
@@ -151,14 +193,29 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
         filters.to,
       );
     }
-    if (!agencyId && productReport) {
-      return mapProductReportToRevenueReport(productReport);
+    if (!agencyId && productSummary) {
+      return mapProductReportToRevenueReport(productSummary);
     }
     return undefined;
-  }, [agencyId, partnerReport, productReport, filters.from, filters.to]);
+  }, [agencyId, partnerReport, productSummary, filters.from, filters.to]);
 
-  const isLoading = agencyId ? isPartnerLoading : isProductLoading;
-  const isFetching = agencyId ? isPartnerFetching : isProductFetching;
+  const top10Rows: RevenueRow[] = useMemo(() => {
+    if (top10Page?.items) {
+      return top10Page.items.map((it) => ({
+        id: String(it.product.id),
+        label: it.product.title,
+        sub: it.product.code,
+        orders: it.orderCount,
+        units: it.quantity,
+        revenue: it.revenue,
+        share: it.share,
+      }));
+    }
+    return [];
+  }, [top10Page]);
+
+  const isLoading = agencyId ? isPartnerLoading : isSummaryLoading;
+  const isFetching = agencyId ? false : isSummaryFetching || isListFetching;
 
   const stats = useMemo(() => {
     if (agencyId && partnerReport) {
@@ -190,29 +247,29 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
       ];
     }
 
-    if (!agencyId && productReport) {
+    if (!agencyId && productSummary) {
       return [
         {
           title: "Doanh thu",
-          value: formatVnd(productReport.revenue),
-          note: `${nf.format(productReport.deliveredOrders)} đơn hoàn tất`,
+          value: formatVnd(productSummary.revenue),
+          note: `${nf.format(productSummary.deliveredOrders)} đơn hoàn tất`,
           icon: Banknote,
         },
         {
           title: "Đơn hoàn tất",
-          value: nf.format(productReport.deliveredOrders),
+          value: nf.format(productSummary.deliveredOrders),
           note: "Đơn hoàn tất trong kỳ",
           icon: ShoppingBag,
         },
         {
           title: "Sản phẩm đã bán",
-          value: nf.format(productReport.quantity),
+          value: nf.format(productSummary.quantity),
           note: "Tổng số lượng bán ra",
           icon: Package,
         },
         {
           title: "Số sản phẩm có doanh thu",
-          value: nf.format(productReport.productCount),
+          value: nf.format(productSummary.productCount),
           note: "Mặt hàng phát sinh đơn",
           icon: CalendarDays,
         },
@@ -220,7 +277,7 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
     }
 
     return [];
-  }, [agencyId, partnerReport, productReport, currentMonth]);
+  }, [agencyId, partnerReport, productSummary, currentMonth]);
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -249,12 +306,12 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
         showSource={!agencyId}
       />
 
-      {isLoading || !data ? (
+      {isLoading || !reportChartData ? (
         <LoadingBlock />
       ) : (
         <>
-          <ReportTrendChart report={data} />
-          {data.rows.length > 0 && (
+          <ReportTrendChart report={reportChartData} />
+          {top10Rows.length > 0 && (
             <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
               <Card>
                 <CardHeader className="pb-3">
@@ -263,24 +320,31 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className={isFetching ? "opacity-60" : undefined}>
-                  <RevenueBars rows={data.rows} />
+                  <RevenueBars rows={top10Rows} />
                 </CardContent>
               </Card>
-              <TopSeriesChart report={data} entity="Sản phẩm" />
+              <TopSeriesChart report={reportChartData} entity="Sản phẩm" />
             </div>
           )}
           <div className="min-w-0">
             <DataTable
-              data={data.rows}
+              {...table.bind(productPage, isListLoading || isListFetching)}
               columns={columns}
-              loading={isFetching}
               searchPlaceholder="Tìm sản phẩm..."
               filterable={false}
               enableMobileCard
               onRowClick={openOrders}
               renderMobileCard={(r) => (
                 <RevenueMobileCard
-                  row={r}
+                  row={{
+                    id: String(r.product.id),
+                    label: r.product.title,
+                    sub: r.product.code,
+                    orders: r.orderCount,
+                    units: r.quantity,
+                    revenue: r.revenue,
+                    share: r.share,
+                  }}
                   showCommission={false}
                   onClick={() => openOrders(r)}
                 />

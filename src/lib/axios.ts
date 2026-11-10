@@ -1,4 +1,8 @@
-import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
+import axios, {
+  type AxiosError,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import { env } from "@/config/env";
 import { getAccessToken, useAuthStore } from "@/features/auth/store/auth.store";
@@ -9,7 +13,7 @@ const REFRESH_PATH = API_ENDPOINTS.auth.refresh;
 function createClient({ mock }: { mock: boolean }) {
   return axios.create({
     baseURL: env.apiBaseUrl,
-    timeout: 30_000,
+    timeout: 60_000,
     headers: { "Content-Type": "application/json" },
     // Explicit network adapter: mocks/install.ts swaps axios.defaults.adapter, which instances would inherit
     adapter: mock ? mockAdapter : ["xhr", "fetch"],
@@ -20,12 +24,17 @@ function createClient({ mock }: { mock: boolean }) {
 export const realApiClient = createClient({ mock: false });
 
 /** Legacy screens — answered by src/mocks while VITE_USE_MOCK=true */
-export const apiClient = env.useMock ? createClient({ mock: true }) : realApiClient;
+export const apiClient = env.useMock
+  ? createClient({ mock: true })
+  : realApiClient;
 
 /** POST /auth/refresh with the old Bearer token → `string` or `{ access_token }` */
 async function requestNewToken() {
-  const res = await realApiClient.post<string | { access_token: string }>(REFRESH_PATH);
-  const token = typeof res.data === "string" ? res.data : res.data?.access_token;
+  const res = await realApiClient.post<string | { access_token: string }>(
+    REFRESH_PATH,
+  );
+  const token =
+    typeof res.data === "string" ? res.data : res.data?.access_token;
   if (!token) throw new Error("Refresh returned no token");
   return token;
 }
@@ -43,7 +52,8 @@ type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 function attachInterceptors(client: AxiosInstance) {
   client.interceptors.request.use((config) => {
     const token = getAccessToken();
-    if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
+    if (token && !config.headers.Authorization)
+      config.headers.Authorization = `Bearer ${token}`;
 
     if (!config.headers["X-Workspace-Id"]) {
       const stored =
@@ -75,7 +85,12 @@ function attachInterceptors(client: AxiosInstance) {
       const config = error.config as RetriableConfig | undefined;
       const status = error.response?.status;
 
-      if (status === 401 && config && !config._retried && !config.url?.endsWith(REFRESH_PATH)) {
+      if (
+        status === 401 &&
+        config &&
+        !config._retried &&
+        !config.url?.endsWith(REFRESH_PATH)
+      ) {
         config._retried = true;
         try {
           refreshing ??= requestNewToken().finally(() => (refreshing = null));
@@ -89,7 +104,9 @@ function attachInterceptors(client: AxiosInstance) {
       } else if (status === 401) {
         sessionExpired();
       } else if (status === 403) {
-        console.warn(`[api] 403 Forbidden: ${config?.method?.toUpperCase()} ${config?.url}`);
+        console.warn(
+          `[api] 403 Forbidden: ${config?.method?.toUpperCase()} ${config?.url}`,
+        );
       }
       return Promise.reject(error);
     },
