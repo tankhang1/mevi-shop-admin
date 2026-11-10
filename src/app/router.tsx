@@ -95,6 +95,8 @@ const AgencyListRoute = rootOnly(AgencyListPage);
 const AgencyDetailRoute = rootOnly(AgencyDetailPage);
 const AgencyReportRoute = rootOnly(AgencyReportPage);
 const PartnerContactListRoute = rootOnly(PartnerContactListPage);
+const StorefrontHighlightsRoute = rootOnly(StorefrontHighlightsPage);
+const StorefrontFaqRoute = rootOnly(StorefrontFaqPage);
 
 /** Staff work from their order queue; dashboard is hidden temporarily */
 function DashboardRoute() {
@@ -198,11 +200,11 @@ function ProtectedRoutes() {
             />
             <Route
               path={ROUTES.storefrontHighlights}
-              component={StorefrontHighlightsPage}
+              component={StorefrontHighlightsRoute}
             />
             <Route
               path={ROUTES.storefrontFaq}
-              component={StorefrontFaqPage}
+              component={StorefrontFaqRoute}
             />
             <Route path={ROUTES.myShop} component={MyShopPage} />
             <Route
