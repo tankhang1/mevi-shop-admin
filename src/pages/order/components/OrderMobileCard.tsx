@@ -1,7 +1,14 @@
 import { Check, MapPin, Network, Package, Truck, X } from "lucide-react";
 import { type MobileCardHelpers, cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
-import { ORDER_STATUS, type Order, isFinalOrderStatus } from "@/features/order";
+import {
+  ORDER_PAYMENT_STATUS,
+  ORDER_STATUS,
+  type Order,
+  type OrderPaymentStatus,
+  isFinalOrderStatus,
+  isOrderCompleted,
+} from "@/features/order";
 import { formatDate, formatVnd } from "@/lib/format";
 
 interface Props {
@@ -12,12 +19,21 @@ interface Props {
 }
 
 /** Mobile order card: hiển thị gọn gàng, thao tác nhanh */
-export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Props) {
+export function OrderMobileCard({
+  order: o,
+  helpers,
+  onDeliver,
+  onCancel,
+}: Props) {
   const open = !isFinalOrderStatus(o.status);
   const units = (o.items ?? []).reduce((s, it) => s + it.quantity, 0);
 
   const customerName =
-    o.customer?.fullName ?? o.customerName ?? o.recipient?.name ?? o.recipientName ?? "—";
+    o.customer?.fullName ??
+    o.customerName ??
+    o.recipient?.name ??
+    o.recipientName ??
+    "—";
   const customerCode = o.customer?.code ?? o.customerCode;
   const recipientName = o.recipient?.name ?? o.recipientName;
   const address =
@@ -32,6 +48,10 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
     label: String(o.status),
     className: "bg-muted",
   };
+  const paymentStatus = (o.paymentStatus ?? "UNPAID") as OrderPaymentStatus;
+  const paymentCfg =
+    ORDER_PAYMENT_STATUS[paymentStatus] ?? ORDER_PAYMENT_STATUS.UNPAID;
+  const completed = isOrderCompleted(o);
 
   return (
     <div
@@ -45,9 +65,17 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
         onClick={helpers.onView}
         className="block w-full space-y-2 p-3.5 text-left active:bg-muted/50"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-mono text-sm font-bold">{o.code}</span>
-          <StatusPill label={statusCfg.label} className={statusCfg.className} />
+          {completed ? (
+            <StatusPill label="Hoàn thành" className="bg-emerald-100 text-emerald-800" />
+          ) : (
+            <StatusPill label={statusCfg.label} className={statusCfg.className} />
+          )}
+          <StatusPill
+            label={paymentCfg.label}
+            className={paymentCfg.className}
+          />
           <span className="ml-auto text-[11px] text-muted-foreground">
             {formatDate(o.createdAt)}
           </span>
@@ -65,13 +93,17 @@ export function OrderMobileCard({ order: o, helpers, onDeliver, onCancel }: Prop
             </p>
             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
               <MapPin className="h-3 w-3 shrink-0" />
-              {recipientName && recipientName !== customerName && `${recipientName} · `}
+              {recipientName &&
+                recipientName !== customerName &&
+                `${recipientName} · `}
               {address}
             </p>
             {o.trackingCode && (
               <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 <Truck className="h-3 w-3 shrink-0" />
-                <span className="font-mono text-foreground font-medium">{o.trackingCode}</span>
+                <span className="font-mono text-foreground font-medium">
+                  {o.trackingCode}
+                </span>
                 {o.shippingCarrier && ` · ${o.shippingCarrier}`}
               </p>
             )}

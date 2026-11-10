@@ -4,6 +4,7 @@ import type { OrderListParams } from "./types";
 export type OrderFilters = Required<
   Record<
     | "status"
+    | "paymentStatus"
     | "teamId"
     | "assigneeId"
     | "productGroupId"
@@ -22,6 +23,7 @@ export type OrderFilters = Required<
 
 export const EMPTY_ORDER_FILTERS: OrderFilters = {
   status: "all",
+  paymentStatus: "all",
   teamId: "all",
   assigneeId: "all",
   productGroupId: "all",
@@ -39,5 +41,7 @@ export const EMPTY_ORDER_FILTERS: OrderFilters = {
 /** How many filters differ from the defaults — shown on the "Bộ lọc" button */
 export const countActive = (f: Partial<OrderFilters>) =>
   (Object.keys(EMPTY_ORDER_FILTERS) as (keyof OrderFilters)[]).filter(
-    (k) => k !== "dateField" && (f[k] ?? EMPTY_ORDER_FILTERS[k]) !== EMPTY_ORDER_FILTERS[k],
+    (k) =>
+      k !== "dateField" &&
+      (f[k] ?? EMPTY_ORDER_FILTERS[k]) !== EMPTY_ORDER_FILTERS[k],
   ).length;

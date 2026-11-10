@@ -1,7 +1,16 @@
 import type { Column, TableFilterDef } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { StatusPill } from "@/components/common/ui-bits";
-import { ORDER_STATUS, ORDER_STATUSES } from "../constants";
-import type { Order, OrderStatus } from "../types";
+import {
+  ORDER_PAYMENT_STATUS,
+  ORDER_STATUS,
+  ORDER_STATUSES,
+} from "../constants";
+import {
+  isOrderCompleted,
+  type Order,
+  type OrderPaymentStatus,
+  type OrderStatus,
+} from "../types";
 import { formatDate, formatVnd } from "@/lib/format";
 
 /** Read-only order columns — shared by the order list and the dashboard */
@@ -68,9 +77,32 @@ export const orderColumns: Column<Order>[] = [
     key: "status",
     label: "Trạng thái",
     mobilePriority: "badge",
-    render: (v) => {
+    render: (v, o) => {
+      const completed = isOrderCompleted(o);
+      if (completed) {
+        return <StatusPill label="Hoàn thành" className="bg-emerald-100 text-emerald-800" />;
+      }
       const cfg = ORDER_STATUS[v as OrderStatus] ?? { label: String(v), className: "bg-muted" };
       return <StatusPill label={cfg.label} className={cfg.className} />;
+    },
+  },
+  {
+    key: "paymentStatus",
+    label: "Thanh toán",
+    mobilePriority: "secondary",
+    render: (_, o) => {
+      const pStatus = (o.paymentStatus ?? "UNPAID") as OrderPaymentStatus;
+      const cfg = ORDER_PAYMENT_STATUS[pStatus] ?? ORDER_PAYMENT_STATUS.UNPAID;
+      return (
+        <div className="space-y-0.5">
+          <StatusPill label={cfg.label} className={cfg.className} />
+          {o.paidAt && (
+            <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+              {formatDate(o.paidAt)}
+            </div>
+          )}
+        </div>
+      );
     },
   },
 ];
@@ -80,5 +112,13 @@ export const orderFilters: TableFilterDef[] = [
     key: "status",
     label: "Trạng thái",
     options: ORDER_STATUSES.map((s) => ({ label: ORDER_STATUS[s].label, value: s })),
+  },
+  {
+    key: "paymentStatus",
+    label: "Thanh toán",
+    options: [
+      { label: ORDER_PAYMENT_STATUS.UNPAID.label, value: "UNPAID" },
+      { label: ORDER_PAYMENT_STATUS.PAID.label, value: "PAID" },
+    ],
   },
 ];

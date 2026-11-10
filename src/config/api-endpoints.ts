@@ -159,7 +159,8 @@ export const API_ENDPOINTS = {
         version !== undefined
           ? `/api/admin/shop/content-blocks/${block}/items/${id}?version=${version}`
           : `/api/admin/shop/content-blocks/${block}/items/${id}`,
-      order: (block: string) => `/api/admin/shop/content-blocks/${block}/items/order`,
+      order: (block: string) =>
+        `/api/admin/shop/content-blocks/${block}/items/order`,
     },
     storage: {
       files: "/api/admin/storage/files",
@@ -182,6 +183,8 @@ export const API_ENDPOINTS = {
       detail: (id: string | number) => `/api/shop/orders/${id}`,
       /** PUT { status, reason? } — Cập nhật trạng thái đơn hàng */
       status: (id: string | number) => `/api/shop/orders/${id}/status`,
+      /** PUT { paymentStatus: "PAID" | "UNPAID" } — Ghi nhận thanh toán đơn hàng (BE notice 2026-11-10) */
+      payment: (id: string | number) => `/api/shop/orders/${id}/payment`,
       /** PUT { dispatchGroupId, assigneeUserId, shippingCarrier, trackingCode, internalNote } — Cập nhật thông tin xử lý / điều phối */
       processing: (id: string | number) => `/api/shop/orders/${id}/processing`,
       /** Fallback / tương thích cũ */

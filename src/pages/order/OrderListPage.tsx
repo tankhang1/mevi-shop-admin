@@ -52,9 +52,28 @@ export default function OrderListPage() {
   // Pre-set filters from the URL, e.g. ?teamId= from "Xem đơn của nhóm",
   // ?productId=&status=completed&from=&to=&agencyId= from a report's product row
   const urlParams = new URLSearchParams(search);
+  const rawStatus = urlParams.get("status");
+  const rawPaymentStatus = urlParams.get("paymentStatus");
+
+  let initialStatus: string | undefined = rawStatus ?? undefined;
+  let initialPaymentStatus: string | undefined = rawPaymentStatus ?? undefined;
+
+  // Chuẩn hóa trạng thái hoàn thành: backend không có status completed, map sang DELIVERED + PAID
+  if (rawStatus === "completed" || rawStatus === "COMPLETED") {
+    initialStatus = "DELIVERED";
+    initialPaymentStatus = "PAID";
+  } else if (rawStatus) {
+    const upper = rawStatus.toUpperCase();
+    if (["PENDING", "CONFIRMED", "SHIPPING", "DELIVERED", "CANCELLED"].includes(upper)) {
+      initialStatus = upper;
+    }
+  }
+
   const fromUrl = Object.fromEntries(
     (Object.keys(EMPTY_ORDER_FILTERS) as (keyof OrderFilters)[]).flatMap(
       (k) => {
+        if (k === "status" && initialStatus) return [[k, initialStatus]];
+        if (k === "paymentStatus" && initialPaymentStatus) return [[k, initialPaymentStatus]];
         const v = urlParams.get(k);
         return v ? [[k, v]] : [];
       },
@@ -72,11 +91,23 @@ export default function OrderListPage() {
     ...table.params,
     // Filters are kept as plain strings; status/dateField always hold one of the option values
     status: table.params.status as OrderListParams["status"],
+    paymentStatus: table.params
+      .paymentStatus as OrderListParams["paymentStatus"],
     dateField: table.params.dateField as OrderListParams["dateField"],
   });
   const { data: statusCounts } = useOrderStatusCounts({
     shopId: table.params.shopId,
     agencyId: table.params.agencyId,
+  });
+  const { data: unpaidCounts } = useOrderStatusCounts({
+    shopId: table.params.shopId,
+    agencyId: table.params.agencyId,
+    paymentStatus: "UNPAID",
+  });
+  const { data: paidCounts } = useOrderStatusCounts({
+    shopId: table.params.shopId,
+    agencyId: table.params.agencyId,
+    paymentStatus: "PAID",
   });
   const [filterOpen, setFilterOpen] = useState(false);
   const applyFilters = (next: OrderFilters & { shopId?: string }) => {
@@ -142,7 +173,8 @@ export default function OrderListPage() {
       label: "Mã vận đơn",
       render: (_, o) => {
         const carrierName =
-          (o.shippingCarrier && SHIPPING_CARRIERS_MAP[o.shippingCarrier as ShippingCarrier]) ||
+          (o.shippingCarrier &&
+            SHIPPING_CARRIERS_MAP[o.shippingCarrier as ShippingCarrier]) ||
           o.shippingCarrier ||
           o.carrier;
         return o.trackingCode ? (
@@ -171,9 +203,7 @@ export default function OrderListPage() {
           <div className="text-sm">
             <div className="whitespace-nowrap font-medium">{tName}</div>
             {aName && (
-              <div className="text-xs text-muted-foreground">
-                {aName}
-              </div>
+              <div className="text-xs text-muted-foreground">{aName}</div>
             )}
           </div>
         ) : (
@@ -258,6 +288,32 @@ export default function OrderListPage() {
     [activeFilterCount],
   );
 
+  const currentStatus = table.state.filters.status ?? "all";
+  const currentPayment = table.state.filters.paymentStatus ?? "all";
+  const activeTab = (() => {
+    if (currentStatus === "DELIVERED" && currentPayment === "UNPAID") {
+      return "DELIVERED_UNPAID";
+    }
+    if (currentStatus === "DELIVERED" && currentPayment === "PAID") {
+      return "COMPLETED";
+    }
+    return currentStatus;
+  })();
+
+  const handleTabChange = (val: string) => {
+    const { onFilterChange } = table.bind(page, isFetching);
+    if (val === "DELIVERED_UNPAID") {
+      onFilterChange("status", "DELIVERED");
+      onFilterChange("paymentStatus", "UNPAID");
+    } else if (val === "COMPLETED") {
+      onFilterChange("status", "DELIVERED");
+      onFilterChange("paymentStatus", "PAID");
+    } else {
+      onFilterChange("status", val);
+      onFilterChange("paymentStatus", "all");
+    }
+  };
+
   return (
     <>
       {fromTeam && (
@@ -266,11 +322,11 @@ export default function OrderListPage() {
         </div>
       )}
       <OrderStatusChips
-        value={table.state.filters.status ?? "all"}
-        onChange={(v) =>
-          table.bind(page, isFetching).onFilterChange("status", v)
-        }
+        value={activeTab}
+        onChange={handleTabChange}
         counts={statusCounts}
+        unpaidDeliveredCount={unpaidCounts?.delivered}
+        completedCount={paidCounts?.delivered}
       />
       <DataTable
         {...table.bind(page, isFetching)}

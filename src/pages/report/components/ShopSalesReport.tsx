@@ -114,7 +114,8 @@ export function ShopSalesReport({ agencyId }: { agencyId?: string } = {}) {
   const openOrders = (r: ProductRevenueReportItem) => {
     const q = new URLSearchParams({
       productId: String(r.product.id),
-      status: "completed",
+      status: "DELIVERED",
+      paymentStatus: "PAID",
       ...range,
     });
     if (agencyId) q.set("agencyId", agencyId);

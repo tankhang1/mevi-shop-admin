@@ -1,30 +1,46 @@
 import { cn } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import { ORDER_STATUS, ORDER_STATUSES, type OrderStatusCounts } from "@/features/order";
+import { ORDER_STATUS, type OrderStatusCounts } from "@/features/order";
 
 /** Thanh lọc trạng thái kèm số lượng đếm realtime (hỗ trợ cả desktop và mobile) */
 export function OrderStatusChips({
   value,
   onChange,
   counts,
+  unpaidDeliveredCount,
+  completedCount,
 }: {
   value: string;
   onChange: (v: string) => void;
   counts?: OrderStatusCounts;
+  unpaidDeliveredCount?: number;
+  completedCount?: number;
 }) {
   const getCount = (val: string) => {
-    if (!counts) return undefined;
-    if (val === "all") return counts.total;
-    if (val === "PENDING") return counts.pending;
-    if (val === "CONFIRMED") return counts.confirmed;
-    if (val === "SHIPPING") return counts.shipping;
-    if (val === "DELIVERED") return counts.delivered;
-    if (val === "CANCELLED") return counts.cancelled;
+    if (
+      !counts &&
+      unpaidDeliveredCount === undefined &&
+      completedCount === undefined
+    ) {
+      return undefined;
+    }
+    if (val === "all") return counts?.total;
+    if (val === "PENDING") return counts?.pending;
+    if (val === "CONFIRMED") return counts?.confirmed;
+    if (val === "SHIPPING") return counts?.shipping;
+    if (val === "DELIVERED_UNPAID") return unpaidDeliveredCount;
+    if (val === "COMPLETED") return completedCount;
+    if (val === "CANCELLED") return counts?.cancelled;
     return undefined;
   };
 
   const chips = [
     { value: "all", label: "Tất cả" },
-    ...ORDER_STATUSES.map((s) => ({ value: s, label: ORDER_STATUS[s].label })),
+    { value: "PENDING", label: ORDER_STATUS.PENDING.label },
+    { value: "CONFIRMED", label: ORDER_STATUS.CONFIRMED.label },
+    { value: "SHIPPING", label: ORDER_STATUS.SHIPPING.label },
+    { value: "DELIVERED_UNPAID", label: "Chờ thanh toán" },
+    { value: "COMPLETED", label: "Hoàn thành" },
+    { value: "CANCELLED", label: ORDER_STATUS.CANCELLED.label },
   ];
 
   return (

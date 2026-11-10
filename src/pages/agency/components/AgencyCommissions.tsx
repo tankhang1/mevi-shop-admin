@@ -81,8 +81,13 @@ export function AgencyCommissions({ agency }: { agency: Agency }) {
       let status: CommissionStatus = "pending";
       if (order.commission?.status) {
         status = order.commission.status.toLowerCase() as CommissionStatus;
-      } else if (order.status === "DELIVERED") {
+      } else if (
+        order.status === "DELIVERED" &&
+        order.paymentStatus === "PAID"
+      ) {
         status = "payable";
+      } else if (order.status === "DELIVERED") {
+        status = "pending";
       } else if (order.status === "CANCELLED") {
         status = "void";
       }

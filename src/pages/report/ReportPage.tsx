@@ -610,7 +610,8 @@ export default function ReportPage() {
   const openGroupOrders = (r: CategoryRevenueItem) => {
     const q = new URLSearchParams({
       categoryId: String(r.categoryId),
-      status: "completed",
+      status: "DELIVERED",
+      paymentStatus: "PAID",
       from: filters.from,
       to: filters.to,
     });

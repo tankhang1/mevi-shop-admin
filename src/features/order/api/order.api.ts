@@ -10,6 +10,7 @@ import type {
   Order,
   OrderDetail,
   OrderListParams,
+  OrderPaymentStatus,
   OrderProcessingInput,
   OrderStatusCounts,
   OrderStatusUpdateInput,
@@ -32,9 +33,15 @@ const unwrap = <T>(data: unknown): T => {
 export const orderApi = {
   /** Lấy danh sách đơn đặt hàng */
   list: async (params?: OrderListParams) => {
-    const pageParams = params
-      ? toSpringPageParams(cleanFilters(params as Record<string, unknown>))
-      : undefined;
+    let clean = cleanFilters((params ?? {}) as Record<string, unknown>);
+    if (clean.status === "completed" || clean.status === "COMPLETED") {
+      clean = {
+        ...clean,
+        status: "DELIVERED",
+        paymentStatus: clean.paymentStatus ?? "PAID",
+      };
+    }
+    const pageParams = toSpringPageParams(clean);
     const res = await realApiClient.get<
       SpringPage<Order> | ApiResponse<Paginated<Order>> | Paginated<Order>
     >(EP.base, {
@@ -101,6 +108,18 @@ export const orderApi = {
       input,
     );
     return unwrap<Order>(res.data);
+  },
+
+  /** Ghi nhận thanh toán đơn hàng (PUT /api/shop/orders/{id}/payment) — BE notice 2026-11-10 */
+  updatePayment: async (
+    id: string | number,
+    paymentStatus: OrderPaymentStatus,
+  ) => {
+    const res = await realApiClient.put<OrderDetail | ApiResponse<OrderDetail>>(
+      EP.payment(id),
+      { paymentStatus },
+    );
+    return unwrap<OrderDetail>(res.data);
   },
 
   /** Tương thích cũ: Gán nhóm / người phụ trách */

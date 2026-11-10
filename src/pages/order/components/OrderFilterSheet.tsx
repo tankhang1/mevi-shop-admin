@@ -255,6 +255,21 @@ function FilterBody({
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Thanh toán">
+            <Select
+              value={f.paymentStatus || ALL}
+              onValueChange={(v) => set({ paymentStatus: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Tất cả thanh toán</SelectItem>
+                <SelectItem value="UNPAID">Chưa thanh toán</SelectItem>
+                <SelectItem value="PAID">Đã thanh toán</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
         </Group>
 
         <Group title="Thời gian">

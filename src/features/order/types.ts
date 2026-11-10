@@ -19,6 +19,9 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 
+/** Trạng thái thanh toán (BE notice 2026-11-10) */
+export type OrderPaymentStatus = "UNPAID" | "PAID";
+
 /** Đơn vị vận chuyển hỗ trợ */
 export type ShippingCarrier =
   | "SELF_DELIVERY"
@@ -169,6 +172,11 @@ export interface Order {
   cancelledBy?: { id: number | string; fullName: string } | null;
   statusHistory?: OrderStatusEvent[];
   subtotal?: number;
+
+  // Payment (BE notice 2026-11-10)
+  paymentStatus?: OrderPaymentStatus;
+  paidAt?: string | null;
+  paidBy?: { id: number | string; fullName: string } | null;
 }
 
 /** Detail view joins extra joined fields */
@@ -201,6 +209,7 @@ export interface OrderStatusUpdateInput {
 
 export interface OrderListParams extends ListParams {
   status?: "all" | OrderStatus;
+  paymentStatus?: "all" | OrderPaymentStatus;
   keyword?: string;
   code?: string;
   dispatchGroupId?: string | number;
@@ -223,3 +232,5 @@ export interface OrderListParams extends ListParams {
   customerId?: string;
   shopId?: string;
 }
+
+export { isOrderCompleted } from "./constants";
