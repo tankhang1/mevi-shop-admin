@@ -1,6 +1,6 @@
 import { Pencil, Phone } from "lucide-react";
 import type { MobileCardHelpers } from "@Team-Trung-Vu-Khang/eco-shared-ui";
-import type { CustomerWithStats } from "@/features/customer";
+import { type ShopCustomer, toLocalPhone } from "@/features/customer";
 import { formatDate, formatVnd } from "@/lib/format";
 import { Initials } from "../CustomerListPage";
 
@@ -11,8 +11,8 @@ export function CustomerMobileCard({
   customer: c,
   helpers,
 }: {
-  customer: CustomerWithStats;
-  helpers: MobileCardHelpers<CustomerWithStats>;
+  customer: ShopCustomer;
+  helpers: MobileCardHelpers<ShopCustomer>;
 }) {
   return (
     <div className="flex items-center rounded-2xl border bg-card shadow-sm">
@@ -21,11 +21,11 @@ export function CustomerMobileCard({
         onClick={helpers.onView}
         className="flex min-w-0 flex-1 gap-3 rounded-l-2xl p-3 text-left active:bg-muted/50"
       >
-        <Initials name={c.name} size="h-11 w-11 text-sm" />
+        <Initials name={c.fullName} size="h-11 w-11 text-sm" />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold">{c.name}</h3>
+          <h3 className="truncate text-sm font-semibold">{c.fullName}</h3>
           <div className="mt-0.5 flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">{c.phone}</span>
+            <span className="text-xs text-muted-foreground">{toLocalPhone(c.phoneNumber)}</span>
           </div>
           <p className="mt-1 text-xs">
             <span className="font-semibold tabular-nums">{formatVnd(c.totalSpent)}</span>
@@ -46,7 +46,7 @@ export function CustomerMobileCard({
         </div>
       </button>
       <div className="flex shrink-0 items-center gap-1.5 pr-3">
-        <a href={`tel:${c.phone}`} className={`${iconBtn} text-primary`} aria-label={`Gọi ${c.phone}`}>
+        <a href={`tel:${toLocalPhone(c.phoneNumber)}`} className={`${iconBtn} text-primary`} aria-label={`Gọi ${toLocalPhone(c.phoneNumber)}`}>
           <Phone className="h-4 w-4" />
         </a>
         {helpers.onEdit && (

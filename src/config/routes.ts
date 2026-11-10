@@ -13,7 +13,7 @@ export const ROUTES = {
   inventoryHistory: (productId: string) => `/admin/inventory/${productId}`,
   /** Same value as SHOP_ROUTES.customers (eco-shared-ui ≥ next release) */
   customers: "/admin/customers",
-  customerDetail: (id: string) => `/admin/customers/${id}`,
+  customerDetail: (id: string | number) => `/admin/customers/${id}`,
   orderDetail: (id: string) => `${SHOP_ROUTES.orders}/${id}`,
   /** Same value as SHOP_ROUTES.staff (eco-shared-ui ≥ next release) */
   staff: "/admin/staff",
