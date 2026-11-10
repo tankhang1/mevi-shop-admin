@@ -25,7 +25,7 @@ import {
   LoadingBlock,
 } from "@/components/common/ui-bits";
 import { ROUTES } from "@/config/routes";
-import { useCustomer } from "@/features/customer";
+import { CUSTOMER_STATUS, toLocalPhone, useCustomer } from "@/features/customer";
 import { type OrderListParams, useOrders } from "@/features/order";
 import {
   orderColumns,
@@ -54,7 +54,7 @@ const Row = ({
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { data: c, isLoading, isError } = useCustomer(id);
+  const { data: c, isLoading, isError } = useCustomer(Number(id));
   const [editing, setEditing] = useState(false);
   const table = useTableParams<Pick<OrderListParams, "status">>({
     status: "all",
@@ -75,7 +75,13 @@ export default function CustomerDetailPage() {
   );
 
   if (isLoading) return <LoadingBlock />;
-  if (isError || !c) return <EmptyBlock>Không tìm thấy khách hàng.</EmptyBlock>;
+  if (isError || !c)
+    return (
+      <div className="space-y-5">
+        <BackLink to={ROUTES.customers} label="Danh sách khách hàng" />
+        <EmptyBlock>Không tìm thấy khách hàng. Vui lòng mở lại từ danh sách.</EmptyBlock>
+      </div>
+    );
 
   const avg = c.orderCount ? Math.round(c.totalSpent / c.orderCount) : 0;
 
@@ -87,18 +93,24 @@ export default function CustomerDetailPage() {
         <Card className="h-fit">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-3">
-              <Initials name={c.name} size="h-14 w-14 text-lg" />
+              <Initials name={c.fullName} size="h-14 w-14 text-lg" />
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold">{c.name}</h2>
+                <h2 className="truncate text-lg font-semibold">{c.fullName}</h2>
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  {c.code}
+                  <span className={`rounded-full px-2 py-0.5 font-medium ${CUSTOMER_STATUS[c.status].className}`}>
+                    {CUSTOMER_STATUS[c.status].label}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="space-y-2.5 border-t pt-4">
               <Row icon={Phone}>
                 <a
-                  href={`tel:${c.phone}`}
+                  href={`tel:${toLocalPhone(c.phoneNumber)}`}
                   className="text-primary hover:underline"
                 >
-                  {c.phone}
+                  {toLocalPhone(c.phoneNumber)}
                 </a>
               </Row>
               <Row icon={Mail}>
@@ -111,7 +123,7 @@ export default function CustomerDetailPage() {
                   </a>
                 )}
               </Row>
-              <Row icon={MapPin}>{c.address}</Row>
+              <Row icon={MapPin}>{[c.operatingArea, c.commune, c.province].filter(Boolean).join(", ")}</Row>
               <Row icon={CalendarClock}>Khách từ {formatDate(c.createdAt)}</Row>
             </div>
             {c.tags.length > 0 && (
@@ -131,7 +143,7 @@ export default function CustomerDetailPage() {
                 <StickyNote className="h-3.5 w-3.5" /> Ghi chú nội bộ
               </div>
               <p className="whitespace-pre-line text-sm">
-                {c.note || (
+                {c.internalNote || (
                   <span className="text-muted-foreground">
                     Chưa có ghi chú.
                   </span>
@@ -153,11 +165,12 @@ export default function CustomerDetailPage() {
                 label: "Đã chi tiêu",
                 value: formatVnd(c.totalSpent),
                 icon: Banknote,
-                note: "Đơn hoàn tất",
+                note: "Đơn đã giao",
               },
               {
                 label: "Giá trị TB / đơn",
                 value: formatVnd(avg),
+                note: "Đã chi tiêu / tổng đơn",
                 icon: Banknote,
               },
             ].map((s) => (

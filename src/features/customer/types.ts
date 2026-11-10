@@ -43,3 +43,81 @@ export interface CustomerStats {
   returning: number;
   vip: number;
 }
+
+/* ------------------------------------------------------------------ */
+/* Mevi shop customers — real BE (notice 2026-11-09)                   */
+/* ------------------------------------------------------------------ */
+
+export type ShopCustomerStatus = "active" | "inactive";
+
+/** Same values as the registration form */
+export type ShopCustomerAudienceType = "individual" | "cooperative" | "business" | "other";
+
+export interface ShopCustomer {
+  /** Account id — same as `customer.id` on orders */
+  id: number;
+  code: string;
+  fullName: string;
+  /** Format `84xxxxxxxxx` */
+  phoneNumber: string;
+  email: string | null;
+  status: ShopCustomerStatus;
+  /** Address */
+  operatingArea: string | null;
+  province: string | null;
+  commune: string | null;
+  tags: string[];
+  internalNote: string | null;
+  /** All orders, including cancelled */
+  orderCount: number;
+  /** Sum of DELIVERED orders, VND */
+  totalSpent: number;
+  /** ISO UTC; includes cancelled orders; null when no orders */
+  lastOrderAt: string | null;
+  /** ISO UTC */
+  createdAt: string;
+}
+
+export interface ShopCustomerSummary {
+  total: number;
+  /** Created since start of current month (VN time) */
+  newThisMonth: number;
+}
+
+export interface ShopCustomerListParams {
+  /** Matches name, phone (`09…` or `+84 9…`), email, tag */
+  keyword?: string;
+  /** Exact tag, case-insensitive; AND with keyword */
+  tag?: string;
+  /** 0-based, default 0 */
+  page?: number;
+  /** 1–100, default 20 */
+  size?: number;
+}
+
+/** PUT replaces every field — send current values for fields not edited */
+export interface ShopCustomerProfileInput {
+  /** ≤150 */
+  operatingArea?: string | null;
+  /** ≤150 */
+  province?: string | null;
+  /** ≤150 */
+  commune?: string | null;
+  /** ≤10 tags, each ≤50; case-insensitive duplicates dropped */
+  tags?: string[];
+  /** ≤2000, hidden from customer */
+  internalNote?: string | null;
+}
+
+export interface ShopCustomerCreateInput extends ShopCustomerProfileInput {
+  /** ≤255 */
+  fullName: string;
+  /** VN mobile number */
+  phoneNumber: string;
+  /** ≤255 */
+  email?: string | null;
+  /** Required — BE has no default */
+  audienceType: ShopCustomerAudienceType;
+  /** When audienceType = other, ≤255 */
+  audienceTypeOther?: string | null;
+}

@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import { useLocation } from "wouter";
+import { LogOut, type LucideProps } from "lucide-react";
 import {
+  type AccountMenuGroupConfig,
   ShopAdminLayout,
+  cn,
   ShopMobileLayout,
   useIsMobile,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { menuFor, mobileNavFor, shopMenu } from "@/config/menu";
 import { ROUTES } from "@/config/routes";
-import { useAccess } from "@/features/auth";
+import { authApi, useAccess } from "@/features/auth";
 import { usePageHeaderStore } from "./page-header.store";
 
 const BRAND_TITLE = "Trạm xanh MEVI";
@@ -51,6 +54,28 @@ function titleFor(path: string) {
   return "Tổng quan";
 }
 
+/** Library hardcodes `text-emerald-600` on menu icons — cn/twMerge swaps it for red */
+const LogOutIcon = ({ className, ...props }: LucideProps) => (
+  <LogOut className={cn(className, "text-destructive")} {...props} />
+);
+
+/** Appended after the library's workspace + Mevi Center items */
+const ACCOUNT_MENU: AccountMenuGroupConfig[] = [
+  {
+    items: [
+      {
+        label: "Đăng xuất",
+        icon: LogOutIcon,
+        className: "text-destructive focus:text-destructive",
+        onClick: ({ closeMenu }) => {
+          closeMenu();
+          void authApi.logout();
+        },
+      },
+    ],
+  },
+];
+
 /** Desktop: sidebar + header · Mobile: header + bottom nav (both from eco-shared-ui) */
 export function ShopLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -78,6 +103,7 @@ export function ShopLayout({ children }: { children: ReactNode }) {
       menu={roles.length ? menuFor(roles) : shopMenu}
       title={titleFor(location)}
       actions={actions}
+      accountMenuItems={ACCOUNT_MENU}
     >
       {children}
     </ShopAdminLayout>

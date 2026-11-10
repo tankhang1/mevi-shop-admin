@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import {
+  AutoCompleteSelect,
   Button,
   Dialog,
   DialogContent,
@@ -10,52 +12,63 @@ import {
   DialogTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   useToast,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import {
+  CUSTOMER_AUDIENCE_TYPES,
   CUSTOMER_TAG_SUGGESTIONS,
-  type Customer,
   type CustomerFormValues,
+  type ShopCustomer,
   customerSchema,
+  toLocalPhone,
   useCreateCustomer,
-  useUpdateCustomer,
+  useUpdateCustomerProfile,
 } from "@/features/customer";
+import { useGeoProvinces, useGeoWards } from "@/features/partner";
 import { getErrorMessage } from "@/lib/api-error";
 import { TagInput } from "./TagInput";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pass a customer to edit; omit to add a new one */
-  customer?: Customer;
-  onCreated?: (c: Customer) => void;
+  /** Pass a customer to edit its profile; omit to add a new one */
+  customer?: ShopCustomer;
+  onCreated?: (c: ShopCustomer) => void;
 }
 
-const toFormValues = (c?: Customer): CustomerFormValues => ({
-  name: c?.name ?? "",
-  phone: c?.phone ?? "",
+const toFormValues = (c?: ShopCustomer): CustomerFormValues => ({
+  fullName: c?.fullName ?? "",
+  phoneNumber: c ? toLocalPhone(c.phoneNumber) : "",
   email: c?.email ?? "",
-  address: c?.address ?? "",
+  audienceType: "individual",
+  audienceTypeOther: "",
+  operatingArea: c?.operatingArea ?? "",
+  province: c?.province ?? "",
+  commune: c?.commune ?? "",
   tags: c?.tags ?? [],
-  note: c?.note ?? "",
+  internalNote: c?.internalNote ?? "",
 });
 
-export function CustomerFormDialog({
-  open,
-  onOpenChange,
-  customer,
-  onCreated,
-}: Props) {
+const orNull = (v: string) => v.trim() || null;
+
+export function CustomerFormDialog({ open, onOpenChange, customer, onCreated }: Props) {
   const { toast } = useToast();
   const create = useCreateCustomer();
-  const update = useUpdateCustomer();
+  const update = useUpdateCustomerProfile();
   const isEdit = !!customer;
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -68,80 +81,166 @@ export function CustomerFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, customer?.id, reset]);
 
-  const phone = useWatch({ control, name: "phone" });
-  const phoneChanged = isEdit && phone !== customer.phone;
+  const audienceType = useWatch({ control, name: "audienceType" });
+  const province = useWatch({ control, name: "province" });
+  const { data: provinces = [], isLoading: loadingProvinces } = useGeoProvinces();
+  const provinceCode = provinces.find((p) => p.fullName === province || p.name === province)?.code;
+  const { data: wards = [], isLoading: loadingWards } = useGeoWards(provinceCode);
 
-  const onSubmit = async (data: CustomerFormValues) => {
+  const onSubmit = async (v: CustomerFormValues) => {
+    // PUT replaces every profile field, so always send them all
+    const profile = {
+      operatingArea: orNull(v.operatingArea),
+      province: orNull(v.province),
+      commune: orNull(v.commune),
+      tags: v.tags,
+      internalNote: orNull(v.internalNote),
+    };
     try {
       if (isEdit) {
-        await update.mutateAsync({ id: customer.id, data });
-        toast({ title: "Đã lưu thông tin khách hàng", description: data.name });
+        await update.mutateAsync({ id: customer.id, data: profile });
+        toast({ title: "Đã lưu thông tin khách hàng", description: customer.fullName });
       } else {
-        const c = await create.mutateAsync(data);
-        toast({ title: "Đã thêm khách hàng", description: data.name });
+        const c = await create.mutateAsync({
+          ...profile,
+          fullName: v.fullName.trim(),
+          phoneNumber: v.phoneNumber.trim(),
+          email: orNull(v.email),
+          audienceType: v.audienceType,
+          audienceTypeOther: v.audienceType === "other" ? orNull(v.audienceTypeOther) : null,
+        });
+        toast({ title: "Đã thêm khách hàng", description: c.fullName });
         onCreated?.(c);
       }
       onOpenChange(false);
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: getErrorMessage(e),
-      });
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        setError("phoneNumber", { message: "Số điện thoại đã có tài khoản" });
+        return;
+      }
+      toast({ variant: "destructive", title: "Lỗi", description: getErrorMessage(e) });
     }
   };
 
   const err = (k: keyof CustomerFormValues) =>
-    errors[k] && (
-      <p className="text-xs text-destructive">{errors[k]?.message}</p>
-    );
+    errors[k] && <p className="text-xs text-destructive">{errors[k]?.message}</p>;
+  const req = <span className="text-destructive"> *</span>;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={(o) => !isSubmitting && onOpenChange(o)}>
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Sửa thông tin khách hàng" : "Thêm khách hàng"}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? "Sửa hồ sơ khách hàng" : "Thêm khách hàng"}</DialogTitle>
         </DialogHeader>
-        <form
-          id="customer-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="grid gap-4 sm:grid-cols-2"
-        >
+        <form id="customer-form" onSubmit={handleSubmit(onSubmit)}>
+          <fieldset disabled={isSubmitting} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="name">
-              Họ tên<span className="text-destructive"> *</span>
-            </Label>
-            <Input id="name" {...register("name")} />
-            {err("name")}
+            <Label htmlFor="fullName">Họ tên{!isEdit && req}</Label>
+            <Input id="fullName" disabled={isEdit} {...register("fullName")} />
+            {err("fullName")}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="phone">
-              Số điện thoại<span className="text-destructive"> *</span>
-            </Label>
+            <Label htmlFor="phoneNumber">Số điện thoại{!isEdit && req}</Label>
             <Input
-              id="phone"
+              id="phoneNumber"
               type="tel"
               inputMode="tel"
               placeholder="09xxxxxxxx"
-              {...register("phone")}
+              disabled={isEdit}
+              {...register("phoneNumber")}
             />
-            {err("phone")}
-            {phoneChanged && (
-              <p className="text-xs text-amber-700">
-                Các đơn cũ sẽ được chuyển sang số mới.
-              </p>
-            )}
+            {err("phoneNumber")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" {...register("email")} />
+            <Input id="email" type="email" disabled={isEdit} {...register("email")} />
             {err("email")}
           </div>
+
+          {!isEdit && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Đối tượng{req}</Label>
+                <Controller
+                  control={control}
+                  name="audienceType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CUSTOMER_AUDIENCE_TYPES.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            {a.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              {audienceType === "other" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="audienceTypeOther">Mô tả đối tượng{req}</Label>
+                  <Input id="audienceTypeOther" {...register("audienceTypeOther")} />
+                  {err("audienceTypeOther")}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Khách đăng nhập bằng SĐT với mật khẩu mặc định và phải đổi mật khẩu ở lần đăng nhập đầu tiên.
+              </p>
+            </>
+          )}
+
+          <div className="space-y-1.5">
+            <Label>Tỉnh / Thành phố</Label>
+            <Controller
+              control={control}
+              name="province"
+              render={({ field }) => (
+                <AutoCompleteSelect
+                  options={provinces.map((p) => ({ value: p.fullName || p.name, label: p.fullName || p.name }))}
+                  value={field.value}
+                  disabled={isSubmitting}
+                  onChange={(v: string) => {
+                    field.onChange(v ?? "");
+                    setValue("commune", "");
+                  }}
+                  placeholder={loadingProvinces ? "Đang tải..." : "Chọn Tỉnh / Thành phố"}
+                  searchPlaceholder="Tìm tỉnh, thành phố..."
+                  emptyText="Không tìm thấy"
+                  clearable
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Phường / Xã</Label>
+            <Controller
+              control={control}
+              name="commune"
+              render={({ field }) => (
+                <AutoCompleteSelect
+                  options={wards.map((w) => ({ value: w.fullName || w.name, label: w.fullName || w.name }))}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!province || isSubmitting}
+                  placeholder={!province ? "Chọn Tỉnh/Thành trước" : loadingWards ? "Đang tải..." : "Chọn Phường / Xã"}
+                  searchPlaceholder="Tìm phường, xã..."
+                  emptyText="Không tìm thấy"
+                  clearable
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="address">Địa chỉ</Label>
-            <Input id="address" {...register("address")} />
+            <Label htmlFor="operatingArea">Địa chỉ</Label>
+            <Input id="operatingArea" placeholder="Số nhà, đường..." {...register("operatingArea")} />
+            {err("operatingArea")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Nhãn</Label>
@@ -149,30 +248,29 @@ export function CustomerFormDialog({
               control={control}
               name="tags"
               render={({ field }) => (
-                <TagInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  suggestions={CUSTOMER_TAG_SUGGESTIONS}
-                />
+                <TagInput value={field.value} onChange={field.onChange} suggestions={CUSTOMER_TAG_SUGGESTIONS} />
               )}
             />
+            {err("tags")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="note">Ghi chú nội bộ</Label>
+            <Label htmlFor="internalNote">Ghi chú nội bộ</Label>
             <Textarea
-              id="note"
+              id="internalNote"
               rows={3}
-              placeholder="Sở thích, lưu ý khi giao hàng…"
-              {...register("note")}
+              placeholder="Sở thích, lưu ý khi giao hàng… (khách không thấy)"
+              {...register("internalNote")}
             />
-            {err("note")}
+            {err("internalNote")}
           </div>
+          </fieldset>
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
             Huỷ
           </Button>
           <Button type="submit" form="customer-form" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             {isEdit ? "Lưu thay đổi" : "Thêm khách hàng"}
           </Button>
         </DialogFooter>

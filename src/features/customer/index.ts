@@ -1,4 +1,4 @@
-export { customerApi } from "./api/customer.api";
+export { shopCustomerApi } from "./api/shop-customer.api";
 export * from "./hooks/use-customers";
 export * from "./constants";
 export * from "./schema";

@@ -97,6 +97,15 @@ export const API_ENDPOINTS = {
       stats: "/api/admin/shop/customers/stats",
       detail: (id: string) => `/api/admin/shop/customers/${id}`,
     },
+    /** Mevi shop customers (BE notice 2026-11-09) — responses are NOT wrapped in `{ data }` */
+    shopCustomers: {
+      /** GET ?keyword&tag&page&size → SpringPage · POST create */
+      base: "/api/admin/shop/customers",
+      /** GET → { total, newThisMonth } */
+      summary: "/api/admin/shop/customers/summary",
+      /** PUT — replaces all profile fields */
+      profile: (id: number) => `/api/admin/shop/customers/${id}/profile`,
+    },
     staff: {
       /** GET — Danh sách nhân viên điều phối (BE notice 2026-11-03) */
       base: "/api/admin/users/shop-staff",

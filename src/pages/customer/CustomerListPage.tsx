@@ -13,12 +13,14 @@ import { usePageActions } from "@/app/layouts/page-header.store";
 import { ROUTES } from "@/config/routes";
 import {
   CUSTOMER_TAG_SUGGESTIONS,
-  type CustomerWithStats,
-  useCustomerStats,
+  type ShopCustomer,
+  toLocalPhone,
+  useCustomerSummary,
   useCustomers,
 } from "@/features/customer";
 import { useTableParams } from "@/hooks/useTableParams";
 import { formatDate, formatVnd } from "@/lib/format";
+import { fromSpringPage } from "@/lib/pagination";
 import { CustomerMobileCard } from "./components/CustomerMobileCard";
 import { CustomerFormDialog } from "./components/CustomerFormDialog";
 
@@ -55,10 +57,21 @@ export default function CustomerListPage() {
   const table = useTableParams<
     { tag: string }
   >({ tag: "all" });
-  const { data: page, isFetching } = useCustomers(table.params);
-  const { data: stats } = useCustomerStats();
+  const { data, isFetching } = useCustomers(table.params);
+  // DataTable re-filters rows client-side (String(row[key]) === value, and keyword over
+  // Object.values). Server already filtered by tag/keyword, so echo them back on each row.
+  const raw = fromSpringPage(data);
+  const page = raw && {
+    ...raw,
+    items: raw.items.map((c) => ({
+      ...c,
+      tag: table.state.filters.tag,
+      __keyword: table.state.keyword,
+    })),
+  };
+  const { data: stats } = useCustomerSummary();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<CustomerWithStats | undefined>();
+  const [editing, setEditing] = useState<ShopCustomer | undefined>();
 
   usePageActions(() => (
     <Button
@@ -71,17 +84,17 @@ export default function CustomerListPage() {
     </Button>
   ), [isMobile]);
 
-  const columns: Column<CustomerWithStats>[] = [
+  const columns: Column<ShopCustomer>[] = [
     {
-      key: "name",
+      key: "fullName",
       label: "Khách hàng",
       mobilePriority: "primary",
       render: (_, c) => (
         <div className="flex min-w-0 items-center gap-3">
-          <Initials name={c.name} />
+          <Initials name={c.fullName} />
           <div className="min-w-0">
-            <div className="truncate font-medium">{c.name}</div>
-            <div className="text-xs text-muted-foreground">{c.phone}</div>
+            <div className="truncate font-medium">{c.fullName}</div>
+            <div className="text-xs text-muted-foreground">{toLocalPhone(c.phoneNumber)}</div>
           </div>
         </div>
       ),
@@ -108,13 +121,11 @@ export default function CustomerListPage() {
     {
       key: "orderCount",
       label: "Tổng đơn",
-      sortable: true,
       render: (v) => <span className="tabular-nums">{String(v)}</span>,
     },
     {
       key: "totalSpent",
       label: "Đã chi tiêu",
-      sortable: true,
       mobilePriority: "secondary",
       render: (v) => (
         <span className="whitespace-nowrap font-medium tabular-nums">
