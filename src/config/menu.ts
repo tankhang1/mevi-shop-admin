@@ -49,13 +49,15 @@ export const shopMenu: AdminMenuSection[] = [
   // },
   {
     title: "Sản phẩm",
+    roles: [...ROOT],
     items: [
       {
         id: "products",
         label: "Danh mục sản phẩm",
         icon: Package,
         href: ROUTES.products,
-        roles: [...ALL],
+        // Đại lý/CTV chọn sản phẩm qua Hồ sơ gian hàng → "Sản phẩm kinh doanh"
+        roles: [...ROOT],
       },
       {
         id: "product-groups",
@@ -96,7 +98,8 @@ export const shopMenu: AdminMenuSection[] = [
         label: "Khách hàng",
         icon: Users,
         href: ROUTES.customers,
-        roles: [...ALL],
+        // Đại lý/CTV không quản lý khách hàng — khách đi theo flow đăng ký chung
+        roles: [...ROOT],
       },
       {
         id: "staff",
@@ -150,14 +153,15 @@ export const shopMenu: AdminMenuSection[] = [
   },
   {
     title: "Gian hàng",
-    roles: [...ONLY_SP_ADMIN],
+    roles: [...ONLY_SP_ADMIN, ...AGENT],
     items: [
       {
         id: "my-shop",
         label: "Hồ sơ gian hàng",
         icon: Store,
         href: ROUTES.myShop,
-        roles: [...ONLY_SP_ADMIN],
+        // Chỉ đại lý/CTV có gian hàng riêng: hồ sơ + tab "Sản phẩm kinh doanh"
+        roles: [...AGENT],
       },
       {
         id: "storefront-banners",
