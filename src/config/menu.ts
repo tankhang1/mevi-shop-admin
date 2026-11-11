@@ -17,13 +17,15 @@ import {
 } from "lucide-react";
 import {
   type AdminMenuSection,
+  type FarmRole,
   SHOP_MOBILE_NAV_ITEMS,
 } from "@Team-Trung-Vu-Khang/eco-shared-ui";
 import { ROUTES } from "./routes";
 
-// const ONLY_SP_ADMIN: FarmRole[] = ["MEVI_SUPER_ADMIN"];
+const ONLY_SP_ADMIN = ["MEVI_SUPER_ADMIN"] as const;
 const ROOT = ["MEVI_SUPER_ADMIN", "MEVI_ADMIN", "MEVI_SHOP_ADMIN"] as const;
-const AGENT = ["MEVI_SHOP_AGENT"] as const;
+// FarmRole (eco-shared-ui@0.0.31) chưa có MEVI_SHOP_AGENT — ép kiểu tạm tới khi lib bổ sung
+const AGENT = ["MEVI_SHOP_AGENT" as FarmRole];
 /** Order-processing staff: their own orders and the customers on them */
 const STAFF = ["MEVI_SHOP_STAFF"] as const;
 const ALL = [...ROOT, ...AGENT];
@@ -148,34 +150,35 @@ export const shopMenu: AdminMenuSection[] = [
   },
   {
     title: "Gian hàng",
+    roles: [...ONLY_SP_ADMIN],
     items: [
       {
         id: "my-shop",
         label: "Hồ sơ gian hàng",
         icon: Store,
         href: ROUTES.myShop,
-        roles: [...AGENT, ...ROOT],
+        roles: [...ONLY_SP_ADMIN],
       },
       {
         id: "storefront-banners",
         label: "Banner trang chủ",
         icon: ImageIcon,
         href: ROUTES.storefrontBanners,
-        roles: [...AGENT, ...ROOT],
+        roles: [...ONLY_SP_ADMIN],
       },
       {
         id: "storefront-highlights",
         label: "Khối nổi bật & Giá trị",
         icon: Sparkles,
         href: ROUTES.storefrontHighlights,
-        roles: [...ROOT],
+        roles: [...ONLY_SP_ADMIN],
       },
       {
         id: "storefront-faq",
         label: "Câu hỏi thường gặp",
         icon: HelpCircle,
         href: ROUTES.storefrontFaq,
-        roles: [...ROOT],
+        roles: [...ONLY_SP_ADMIN],
       },
     ],
   },
