@@ -91,7 +91,7 @@ export const shopMenu: AdminMenuSection[] = [
         label: "Nhóm điều phối",
         icon: Network,
         href: ROUTES.dispatchTeams,
-        roles: [...ROOT],
+        roles: [...ONLY_SP_ADMIN],
       },
       {
         id: "customers",

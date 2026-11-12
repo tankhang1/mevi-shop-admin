@@ -27,6 +27,9 @@ export const SHOP_STAFF_ROLE = "MEVI_SHOP_STAFF";
 export const isRootRole = (roles: readonly string[]) =>
   roles.some((r) => (ROOT_ROLES as readonly string[]).includes(r));
 
+export const isSuperAdminRole = (roles: readonly string[]) =>
+  roles.includes("MEVI_SUPER_ADMIN");
+
 export const isShopAgentRole = (roles: readonly string[]) =>
   roles.some((r) => (SHOP_AGENT_ROLES as readonly string[]).includes(r));
 

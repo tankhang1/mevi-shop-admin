@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useParams } from "wouter";
-import { ArrowRight, XCircle } from "lucide-react";
+import { ArrowRight, Printer, XCircle } from "lucide-react";
 import {
   Button,
   Card,
@@ -37,6 +37,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import { formatDate, formatVnd } from "@/lib/format";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { OrderDispatchCard } from "./components/OrderDispatchCard";
+import { OrderPrintDialog } from "./components/OrderPrintDialog";
 import { OrderTrackingCard } from "./components/OrderTrackingCard";
 import { OrderTimeline } from "./components/OrderTimeline";
 
@@ -83,28 +84,40 @@ export default function OrderDetailPage() {
   const saveNote = useUpdateOrderNote();
   const [confirmNext, setConfirmNext] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [confirmPaymentTarget, setConfirmPaymentTarget] =
     useState<OrderPaymentStatus | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   const next = order && nextOrderStatus(order.status);
 
-  const actions = order && !isFinalOrderStatus(order.status) && (
+  const actions = order && (
     <>
       <Button
         variant="outline"
-        className="flex-1 text-destructive hover:text-destructive md:flex-none"
-        onClick={() => setCancelling(true)}
+        className="flex-1 md:flex-none"
+        onClick={() => setPrinting(true)}
       >
-        <XCircle className="mr-1.5 h-4 w-4" /> Huỷ đơn
+        <Printer className="mr-1.5 h-4 w-4" /> In đơn hàng
       </Button>
-      {next && (
-        <Button
-          className="flex-[2] md:flex-none"
-          onClick={() => setConfirmNext(true)}
-        >
-          {NEXT_STEP_LABEL[next]} <ArrowRight className="ml-1.5 h-4 w-4" />
-        </Button>
+      {!isFinalOrderStatus(order.status) && (
+        <>
+          <Button
+            variant="outline"
+            className="flex-1 text-destructive hover:text-destructive md:flex-none"
+            onClick={() => setCancelling(true)}
+          >
+            <XCircle className="mr-1.5 h-4 w-4" /> Huỷ đơn
+          </Button>
+          {next && (
+            <Button
+              className="flex-[2] md:flex-none"
+              onClick={() => setConfirmNext(true)}
+            >
+              {NEXT_STEP_LABEL[next]} <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          )}
+        </>
       )}
     </>
   );
@@ -575,6 +588,11 @@ export default function OrderDetailPage() {
           onConfirm={() => void changeStatus(next)}
         />
       )}
+      <OrderPrintDialog
+        open={printing}
+        onOpenChange={setPrinting}
+        order={order}
+      />
       <CancelOrderDialog
         open={cancelling}
         onOpenChange={setCancelling}

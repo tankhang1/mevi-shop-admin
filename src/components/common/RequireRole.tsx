@@ -11,17 +11,24 @@ import { LoadingBlock } from "./ui-bits";
  * a clear message instead of a page full of errors when someone opens the URL directly.
  */
 export function RequireRole({
+  superAdmin,
   root,
   shopAdmin,
   children,
 }: {
+  superAdmin?: boolean;
   root?: boolean;
   shopAdmin?: boolean;
   children: ReactNode;
 }) {
-  const { isRoot, isShopAdmin, isLoading } = useAccess();
+  const { isSuperAdmin, isRoot, isShopAdmin, isLoading } = useAccess();
   if (isLoading) return <LoadingBlock />;
-  if ((root && isRoot) || (shopAdmin && isShopAdmin)) return <>{children}</>;
+  if (
+    (superAdmin && isSuperAdmin) ||
+    (root && isRoot) ||
+    (shopAdmin && isShopAdmin)
+  )
+    return <>{children}</>;
   return (
     <Card className="mx-auto mt-10 max-w-md">
       <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
@@ -30,9 +37,11 @@ export function RequireRole({
         </span>
         <h2 className="text-lg font-semibold">Không có quyền truy cập</h2>
         <p className="text-sm text-muted-foreground">
-          {root
-            ? "Trang này chỉ dành cho quản trị viên Mevi."
-            : "Trang này chỉ dành cho chủ gian hàng."}
+          {superAdmin
+            ? "Trang này chỉ dành cho Super Admin Mevi."
+            : root
+              ? "Trang này chỉ dành cho quản trị viên Mevi."
+              : "Trang này chỉ dành cho chủ gian hàng."}
         </p>
         <Button asChild variant="outline">
           <Link href={ROUTES.products}>Về trang sản phẩm</Link>

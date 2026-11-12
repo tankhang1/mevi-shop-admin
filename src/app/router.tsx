@@ -60,9 +60,7 @@ const StorefrontBannersPage = lazy(
 const StorefrontHighlightsPage = lazy(
   () => import("@/pages/shop/StorefrontHighlightsPage"),
 );
-const StorefrontFaqPage = lazy(
-  () => import("@/pages/shop/StorefrontFaqPage"),
-);
+const StorefrontFaqPage = lazy(() => import("@/pages/shop/StorefrontFaqPage"));
 const ShopListPage = lazy(() => import("@/pages/shop/ShopListPage"));
 const ShopDetailPage = lazy(() => import("@/pages/shop/ShopDetailPage"));
 const PartnerContactListPage = lazy(
@@ -78,6 +76,14 @@ const rootOnly = (Page: ComponentType) =>
       </RequireRole>
     );
   };
+const superAdminOnly = (Page: ComponentType) =>
+  function SuperAdminOnly() {
+    return (
+      <RequireRole superAdmin>
+        <Page />
+      </RequireRole>
+    );
+  };
 const ApprovalRoute = rootOnly(ProductApprovalPage);
 const FarmRegistrationRoute = rootOnly(FarmRegistrationPage);
 const ProductCreateRoute = rootOnly(ProductCreatePage);
@@ -86,8 +92,8 @@ const ProductGroupListRoute = rootOnly(ProductGroupListPage);
 const ProductGroupDetailRoute = rootOnly(ProductGroupDetailPage);
 const InventoryRoute = rootOnly(InventoryPage);
 const InventoryHistoryRoute = rootOnly(InventoryHistoryPage);
-const DispatchTeamListRoute = rootOnly(DispatchTeamListPage);
-const DispatchTeamFormRoute = rootOnly(DispatchTeamFormPage);
+const DispatchTeamListRoute = superAdminOnly(DispatchTeamListPage);
+const DispatchTeamFormRoute = superAdminOnly(DispatchTeamFormPage);
 const StaffListRoute = rootOnly(StaffListPage);
 const ShopListRoute = rootOnly(ShopListPage);
 const ShopDetailRoute = rootOnly(ShopDetailPage);
@@ -202,10 +208,7 @@ function ProtectedRoutes() {
               path={ROUTES.storefrontHighlights}
               component={StorefrontHighlightsRoute}
             />
-            <Route
-              path={ROUTES.storefrontFaq}
-              component={StorefrontFaqRoute}
-            />
+            <Route path={ROUTES.storefrontFaq} component={StorefrontFaqRoute} />
             <Route path={ROUTES.myShop} component={MyShopPage} />
             <Route
               path={ROUTES.shopDetail(":id")}
